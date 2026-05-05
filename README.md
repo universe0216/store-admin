@@ -59,3 +59,219 @@ Additionally, make sure that the following extensions are enabled in your PHP:
 - json (enabled by default - don't turn it off)
 - [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
 - [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+
+## Store App Database SQL
+
+The following SQL schema matches the migration file `app/Database/Migrations/2026-04-25-000001_CreateStoreSchema.php`.
+
+```sql
+CREATE TABLE categories (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    parent_id INT(11) UNSIGNED NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_categories_name (name),
+    KEY idx_categories_parent_id (parent_id),
+    CONSTRAINT fk_categories_parent_id
+        FOREIGN KEY (parent_id) REFERENCES categories(id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
+CREATE TABLE products (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    category_id INT(11) UNSIGNED NOT NULL,
+    brand VARCHAR(100) NULL,
+    serial_number VARCHAR(255) NULL,
+    description TEXT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_products_name (name),
+    KEY idx_products_category_id (category_id),
+    CONSTRAINT fk_products_category_id
+        FOREIGN KEY (category_id) REFERENCES categories(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE variant_attributes (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uq_variant_attributes_name (name)
+);
+
+CREATE TABLE variant_attribute_values (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    attribute_id INT(11) UNSIGNED NOT NULL,
+    value VARCHAR(100) NOT NULL,
+    sort_order INT(11) NOT NULL DEFAULT 0,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uq_variant_attribute_values_attribute_value (attribute_id, value),
+    KEY idx_variant_attribute_values_attribute_id (attribute_id),
+    CONSTRAINT fk_variant_attribute_values_attribute_id
+        FOREIGN KEY (attribute_id) REFERENCES variant_attributes(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE TABLE product_variants (
+    id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id INT(11) UNSIGNED NOT NULL,
+    sku VARCHAR(50) NOT NULL,
+    barcode VARCHAR(50) NULL,
+    cost_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    selling_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    stock_qty INT(11) NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uq_product_variants_sku (sku),
+    UNIQUE KEY uq_product_variants_barcode (barcode),
+    KEY idx_product_variants_product_id (product_id),
+    CONSTRAINT fk_product_variants_product_id
+        FOREIGN KEY (product_id) REFERENCES products(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE TABLE product_variant_values (
+    id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_variant_id BIGINT(20) UNSIGNED NOT NULL,
+    attribute_id INT(11) UNSIGNED NOT NULL,
+    attribute_value_id INT(11) UNSIGNED NOT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uq_product_variant_values_variant_attribute (product_variant_id, attribute_id),
+    UNIQUE KEY uq_product_variant_values_variant_value (product_variant_id, attribute_value_id),
+    KEY idx_product_variant_values_attribute_value_id (attribute_value_id),
+    CONSTRAINT fk_product_variant_values_variant_id
+        FOREIGN KEY (product_variant_id) REFERENCES product_variants(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_product_variant_values_attribute_id
+        FOREIGN KEY (attribute_id) REFERENCES variant_attributes(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    CONSTRAINT fk_product_variant_values_attribute_value_id
+        FOREIGN KEY (attribute_value_id) REFERENCES variant_attribute_values(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE suppliers (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    phone VARCHAR(30) NULL,
+    email VARCHAR(150) NULL,
+    address TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_suppliers_name (name)
+);
+
+CREATE TABLE purchases (
+    id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    purchase_no VARCHAR(30) NOT NULL,
+    purchase_date DATETIME NOT NULL,
+    supplier_id INT(11) UNSIGNED NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    sub_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    discount_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    grand_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    paid_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    notes TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uq_purchases_purchase_no (purchase_no),
+    KEY idx_purchases_purchase_date (purchase_date),
+    KEY idx_purchases_supplier_id (supplier_id),
+    CONSTRAINT fk_purchases_supplier_id
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE purchase_items (
+    id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    purchase_id BIGINT(20) UNSIGNED NOT NULL,
+    product_variant_id BIGINT(20) UNSIGNED NOT NULL,
+    qty INT(11) UNSIGNED NOT NULL,
+    unit_cost DECIMAL(12,2) NOT NULL,
+    discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    line_total DECIMAL(12,2) NOT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_purchase_items_purchase_id (purchase_id),
+    KEY idx_purchase_items_product_variant_id (product_variant_id),
+    CONSTRAINT fk_purchase_items_purchase_id
+        FOREIGN KEY (purchase_id) REFERENCES purchases(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_purchase_items_product_variant_id
+        FOREIGN KEY (product_variant_id) REFERENCES product_variants(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE sales (
+    id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sale_no VARCHAR(30) NOT NULL,
+    sale_date DATETIME NOT NULL,
+    customer_name VARCHAR(120) NULL,
+    sub_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    discount_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    grand_total DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    payment_method VARCHAR(30) NOT NULL DEFAULT 'cash',
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uq_sales_sale_no (sale_no),
+    KEY idx_sales_sale_date (sale_date)
+);
+
+CREATE TABLE sale_items (
+    id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sale_id BIGINT(20) UNSIGNED NOT NULL,
+    product_variant_id BIGINT(20) UNSIGNED NOT NULL,
+    qty INT(11) UNSIGNED NOT NULL,
+    unit_price DECIMAL(12,2) NOT NULL,
+    discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    line_total DECIMAL(12,2) NOT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_sale_items_sale_id (sale_id),
+    KEY idx_sale_items_product_variant_id (product_variant_id),
+    CONSTRAINT fk_sale_items_sale_id
+        FOREIGN KEY (sale_id) REFERENCES sales(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_sale_items_product_variant_id
+        FOREIGN KEY (product_variant_id) REFERENCES product_variants(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE stock_movements (
+    id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_variant_id BIGINT(20) UNSIGNED NOT NULL,
+    movement_type VARCHAR(20) NOT NULL,
+    qty_change INT(11) NOT NULL,
+    reference_type VARCHAR(30) NULL,
+    reference_id BIGINT(20) UNSIGNED NULL,
+    notes TEXT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_stock_movements_product_variant_id (product_variant_id),
+    KEY idx_stock_movements_movement_type (movement_type),
+    KEY idx_stock_movements_created_at (created_at),
+    CONSTRAINT fk_stock_movements_product_variant_id
+        FOREIGN KEY (product_variant_id) REFERENCES product_variants(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+```
