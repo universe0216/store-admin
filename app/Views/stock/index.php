@@ -3,17 +3,17 @@
 <?= $this->section('title') ?>Stock<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-    <div class="container py-4">
+    <div class="container-fluid py-4 px-5">
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h3 fw-bold mb-1">Stock</h1>
-                <p class="text-muted mb-0">Show all stocks.</p>
+                <!-- <p class="text-muted mb-0">Show all stocks.</p> -->
             </div>
         </div>
 
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <h2 class="h5 fw-semibold mb-3">Stock List</h2>
+                <!-- <h2 class="h5 fw-semibold mb-3">Stock List</h2> -->
                 <div class="row g-2 mb-3">
                     <div class="col-12 col-md-4">
                         <input type="text" id="filterProductName" class="form-control" placeholder="Filter by product name">

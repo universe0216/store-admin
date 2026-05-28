@@ -24,94 +24,99 @@
             <a href="<?= site_url('purchases') ?>" class="btn btn-outline-secondary">Back to List</a>
         </div>
 
-        <div class="card shadow-sm mb-4">
+        <div id="purchaseHeaderForm" class="card shadow-sm mb-4">
             <div class="card-body p-4">
-                <div id="purchaseHeaderForm" class="border rounded-3 p-3 mb-3 bg-light">
-                    <h2 class="h6 fw-semibold mb-3">Purchase Details</h2>
-                    <div class="row g-3">
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <label class="form-label text-secondary mb-1">Purchase Date</label>
-                            <div id="purchaseDate"></div>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <label class="form-label text-secondary mb-1">Supplier</label>
-                            <div id="supplierDropdown"></div>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <label class="form-label text-secondary mb-1">Warehouse</label>
-                            <div id="purchaseWarehouseDropdown"></div>
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-3">
-                            <label class="form-label text-secondary mb-1">Transfer Fee</label>
-                            <div id="transferFeeInput"></div>
-                        </div>
-                        <div class="col-12 col-lg-6">
-                            <label class="form-label text-secondary mb-1">Notes</label>
-                            <input id="notesInput" type="text" class="form-control">
-                        </div>
-                        <div class="col-12 col-lg-6 d-flex align-items-end justify-content-lg-end">
-                            <input type="button" id="savePurchaseBtn" value="Save Purchase" class="btn btn-primary">
-                        </div>
+                <h2 class="h6 fw-semibold mb-3">Purchase Details</h2>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Purchase Date</label>
+                        <div id="purchaseDate"></div>
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Supplier</label>
+                        <div id="supplierDropdown"></div>
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Warehouse</label>
+                        <div id="purchaseWarehouseDropdown"></div>
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Transfer Fee</label>
+                        <div id="transferFeeInput"></div>
+                    </div>
+                    <div class="col-12 col-lg-6">
+                        <label class="form-label text-secondary mb-1">Notes</label>
+                        <input id="notesInput" type="text" class="form-control">
+                    </div>
+                    <div class="col-12 col-lg-6 d-flex align-items-end justify-content-lg-end">
+                        <input type="button" id="savePurchaseBtn" value="Save Purchase" class="btn btn-primary">
                     </div>
                 </div>
-                <div id="messageBox" class="small fw-semibold text-success"></div>
-                <div class="row g-4">
-                    <div class="col-12 col-lg-6">
-                        <div class="border rounded-3 p-3 mb-4 bg-light">
-                            <h2 class="h6 fw-semibold mb-3">Add Product</h2>
-                            <form id="purchaseItemForm" class="row g-3">
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Name</label>
-                                    <input type="text" id="productNameInput" class="form-control" placeholder="Product name">
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Serial Number</label>
-                                    <input type="text" id="productSerialInput" class="form-control" placeholder="Serial number">
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Category</label>
-                                    <div id="categoryDropDownButton" style="width: 100%;">
-                                        <div id="categoryTree"></div>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Brand</label>
-                                    <input type="text" id="productBrandInput" class="form-control" placeholder="Brand">
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Style</label>
-                                    <input type="text" id="productStyleInput" class="form-control" placeholder="Style">
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Size</label>
-                                    <div id="sizeSelector"></div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Sets Count</label>
-                                    <div id="setsCountInput"></div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Unit Price</label>
-                                    <div id="unitPriceInput"></div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Total Units</label>
-                                    <div id="totalUnitsInput"></div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-secondary mb-1">Total Price</label>
-                                    <div id="totalPriceInput"></div>
-                                </div>
-                                <div class="col-12 col-md-6 d-flex align-items-end">
-                                    <button type="button" id="addProductsBtn" class="btn btn-sm btn-primary">Add Product</button>
-                                </div>
-                            </form>
-                        </div>
+            </div>
+        </div>
 
+        <div id="messageBox" class="small fw-semibold text-success mb-3"></div>
 
+        <div class="row g-4">
+            <div class="col-12 col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h6 fw-semibold mb-3">Add Product</h2>
+                        <form id="purchaseItemForm" class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Name</label>
+                                <input type="text" id="productNameInput" class="form-control" placeholder="Product name">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Serial Number</label>
+                                <input type="text" id="productSerialInput" class="form-control" placeholder="Serial number">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Category</label>
+                                <div id="categoryDropDownButton" style="width: 100%;">
+                                    <div id="categoryTree"></div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Brand</label>
+                                <input type="text" id="productBrandInput" class="form-control" placeholder="Brand">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Style</label>
+                                <input type="text" id="productStyleInput" class="form-control" placeholder="Style">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Size</label>
+                                <div id="sizeSelector"></div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Sets Count</label>
+                                <div id="setsCountInput"></div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Unit Price</label>
+                                <div id="unitPriceInput"></div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Total Units</label>
+                                <div id="totalUnitsInput"></div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-secondary mb-1">Total Price</label>
+                                <div id="totalPriceInput"></div>
+                            </div>
+                            <div class="col-12 col-md-6 d-flex align-items-end">
+                                <button type="button" id="addProductsBtn" class="btn btn-sm btn-primary">Add Product</button>
+                            </div>
+                        </form>
                     </div>
+                </div>
+            </div>
 
-                    <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h6 fw-semibold mb-3">Purchase Items</h2>
                         <div id="itemsGrid"></div>
                     </div>
                 </div>

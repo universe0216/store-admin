@@ -14,9 +14,35 @@ class Sells extends BaseController
 {
     public function index(): ResponseInterface
     {
-        $rows = (new SaleModel())
-            ->orderBy('id', 'DESC')
-            ->findAll(500);
+        $search   = trim((string) ($this->request->getGet('q') ?? ''));
+        $dateFrom = trim((string) ($this->request->getGet('date_from') ?? ''));
+        $dateTo   = trim((string) ($this->request->getGet('date_to') ?? ''));
+
+        $builder = db_connect()->table('sales')
+            ->select('sales.*')
+            ->distinct()
+            ->orderBy('sales.id', 'DESC');
+
+        if ($dateFrom !== '') {
+            $builder->where('DATE(sales.sale_date) >=', $dateFrom);
+        }
+
+        if ($dateTo !== '') {
+            $builder->where('DATE(sales.sale_date) <=', $dateTo);
+        }
+
+        if ($search !== '') {
+            $builder
+                ->join('sale_items', 'sale_items.sale_id = sales.id')
+                ->join('product_variants', 'product_variants.id = sale_items.product_variant_id')
+                ->join('products', 'products.id = product_variants.product_id')
+                ->groupStart()
+                    ->like('products.name', $search)
+                    ->orLike('products.serial_number', $search)
+                ->groupEnd();
+        }
+
+        $rows = $builder->limit(500)->get()->getResultArray();
 
         return $this->response->setJSON(['data' => $rows]);
     }
