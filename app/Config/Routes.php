@@ -14,6 +14,7 @@ $routes->get('stock', 'Stock::index');
 $routes->get('inventory', 'Inventory::index');
 $routes->get('suppliers', 'Suppliers::index');
 $routes->get('categories', 'Categories::index');
+$routes->get('warehouses', 'Warehouses::index');
 
 $routes->group('api', static function ($routes): void {
     $routes->get('purchases', 'Api\Purchases::index');
@@ -29,6 +30,11 @@ $routes->group('api', static function ($routes): void {
     $routes->post('categories', 'Api\Categories::create');
     $routes->put('categories/(:num)', 'Api\Categories::update/$1');
     $routes->delete('categories/(:num)', 'Api\Categories::delete/$1');
+    $routes->get('warehouses', 'Api\Warehouses::index');
+    $routes->get('warehouses/(:num)', 'Api\Warehouses::show/$1');
+    $routes->post('warehouses', 'Api\Warehouses::create');
+    $routes->put('warehouses/(:num)', 'Api\Warehouses::update/$1');
+    $routes->delete('warehouses/(:num)', 'Api\Warehouses::delete/$1');
     $routes->get('products', 'Api\Purchases::products');
     $routes->post('products', 'Api\Purchases::createProduct');
     $routes->get('product-variants', 'Api\Purchases::variants');
@@ -37,6 +43,5 @@ $routes->group('api', static function ($routes): void {
     $routes->put('stock/warehouse', 'Api\Purchases::updateVariantWarehouse');
     $routes->get('sales', 'Api\Sells::index');
     $routes->post('sales', 'Api\Sells::create');
-    $routes->get('warehouses', 'Api\Sells::warehouses');
     $routes->get('warehouse-products', 'Api\Sells::productsByWarehouse');
 });

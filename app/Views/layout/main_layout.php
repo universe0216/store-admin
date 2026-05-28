@@ -29,11 +29,16 @@
                     <li class="nav-item">
                         <a class="nav-link" href="<?= site_url('/') ?>">Home</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= site_url('suppliers') ?>">Suppliers</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= site_url('categories') ?>">Categories</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Primary
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="<?= site_url('suppliers') ?>">Suppliers</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('categories') ?>">Categories</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('warehouses') ?>">Warehouses</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('currencies') ?>">Currencies</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="<?= site_url('purchases') ?>">Purchase</a>

@@ -21,17 +21,6 @@ class Sells extends BaseController
         return $this->response->setJSON(['data' => $rows]);
     }
 
-    public function warehouses(): ResponseInterface
-    {
-        $rows = db_connect()->table('warehouses')
-            ->select('id, name, location')
-            ->orderBy('name', 'ASC')
-            ->get()
-            ->getResultArray();
-
-        return $this->response->setJSON(['data' => $rows]);
-    }
-
     public function productsByWarehouse(): ResponseInterface
     {
         $warehouseId = (int) ($this->request->getGet('warehouse_id') ?? 0);
