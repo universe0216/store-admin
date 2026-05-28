@@ -256,6 +256,31 @@ CREATE TABLE sale_items (
         ON DELETE RESTRICT
 );
 
+CREATE TABLE warehouses (
+    id INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    location VARCHAR(255) NULL
+);
+
+CREATE TABLE inventory (
+    id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    variant_id BIGINT(20) UNSIGNED NOT NULL,
+    warehouse_id INT(11) UNSIGNED NOT NULL,
+    quantity INT(11) NOT NULL DEFAULT 0,
+    reserved_quantity INT(11) NOT NULL DEFAULT 0,
+    updated_at DATETIME NULL,
+    KEY idx_inventory_variant_id (variant_id),
+    KEY idx_inventory_warehouse_id (warehouse_id),
+    CONSTRAINT fk_inventory_variant_id
+        FOREIGN KEY (variant_id) REFERENCES product_variants(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    CONSTRAINT fk_inventory_warehouse_id
+        FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
 CREATE TABLE stock_movements (
     id BIGINT(20) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     product_variant_id BIGINT(20) UNSIGNED NOT NULL,

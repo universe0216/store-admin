@@ -12,10 +12,22 @@
             <a href="<?= site_url('purchases/create') ?>" class="btn btn-primary">New Purchase</a>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <h2 class="h5 fw-semibold mb-3">Purchase List</h2>
-                <div id="purchasesGrid"></div>
+        <div class="row g-3">
+            <div class="col-12 col-xl-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-semibold mb-3">Purchase List</h2>
+                        <div id="purchasesGrid"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h2 class="h5 fw-semibold mb-3">Purchase Items</h2>
+                        <div id="purchaseItemsGrid"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -30,8 +42,9 @@
         function initWidgets() {
             $("#purchasesGrid").jqxGrid({
                 width: "100%",
-                height: 300,
+                height: 420,
                 columnsresize: true,
+                selectionmode: "singlerow",
                 source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" }),
                 columns: [
                     { text: "ID", datafield: "id", width: 70 },
@@ -40,6 +53,24 @@
                     { text: "Supplier", datafield: "supplier_name", width: 220 },
                     { text: "Status", datafield: "status", width: 100 },
                     { text: "Grand Total", datafield: "grand_total", cellsformat: "f2" }
+                ]
+            });
+
+            $("#purchaseItemsGrid").jqxGrid({
+                width: "100%",
+                height: 420,
+                columnsresize: true,
+                source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" }),
+                columns: [
+                    { text: "Product", datafield: "product_name", width: 180 },
+                    { text: "Product Number", datafield: "product_number", width: 140 },
+                    { text: "Brand", datafield: "brand", width: 120 },
+                    { text: "Style", datafield: "style", width: 110 },
+                    { text: "Unit Cost", datafield: "unit_cost", width: 100, cellsformat: "f2", cellsalign: "right" },
+                    { text: "Size", datafield: "size_value", width: 90 },
+                    { text: "Sets Count", datafield: "sets_count", width: 90, cellsalign: "right" },
+                    { text: "Units Count", datafield: "units_count", width: 90, cellsalign: "right" },
+                    { text: "Total Price", datafield: "total_price", cellsformat: "f2", cellsalign: "right" }
                 ]
             });
         }
@@ -54,9 +85,53 @@
             });
         }
 
+        function loadPurchaseItems(purchaseId) {
+            if (!purchaseId) {
+                $("#purchaseItemsGrid").jqxGrid({
+                    source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" })
+                });
+                return;
+            }
+
+            $.getJSON(`${API_URLS.purchases}/${purchaseId}`).done(function(res) {
+                const items = (res.data?.items || []).map(item => ({
+                    product_id: Number(item.product_id || 0),
+                    product_name: item.product_name || "",
+                    product_number: item.product_number || "",
+                    brand: item.brand || "",
+                    style: item.style || "",
+                    unit_cost: Number(item.unit_cost || 0),
+                    size_value: item.size_value || "",
+                    sets_count: Number(item.sets_count || 0),
+                    units_count: Number(item.units_count || 0),
+                    total_price: Number(item.total_price || 0)
+                }));
+                $("#purchaseItemsGrid").jqxGrid({
+                    source: new $.jqx.dataAdapter({ localdata: items, datatype: "array" })
+                });
+            }).fail(function(xhr) {
+                const msg = xhr.responseJSON?.message || "Failed to load purchase items.";
+                console.error(msg);
+                $("#purchaseItemsGrid").jqxGrid({
+                    source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" })
+                });
+            });
+        }
+
         $(function() {
             initWidgets();
-            loadPurchases();
+            loadPurchases().done(function() {
+                const firstRow = $("#purchasesGrid").jqxGrid("getrowdata", 0);
+                if (firstRow?.id) {
+                    $("#purchasesGrid").jqxGrid("selectrow", 0);
+                    loadPurchaseItems(Number(firstRow.id));
+                }
+            });
+
+            $("#purchasesGrid").on("rowselect", function (event) {
+                const row = event.args?.row;
+                loadPurchaseItems(Number(row?.id || 0));
+            });
         });
     </script>
 <?= $this->endSection() ?>

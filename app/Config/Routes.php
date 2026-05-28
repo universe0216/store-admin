@@ -8,6 +8,10 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'Home::index');
 $routes->get('purchases', 'Purchases::index');
 $routes->get('purchases/create', 'Purchases::create');
+$routes->get('sells', 'Sells::index');
+$routes->get('sells/create', 'Sells::create');
+$routes->get('stock', 'Stock::index');
+$routes->get('inventory', 'Inventory::index');
 $routes->get('suppliers', 'Suppliers::index');
 $routes->get('categories', 'Categories::index');
 
@@ -28,4 +32,11 @@ $routes->group('api', static function ($routes): void {
     $routes->get('products', 'Api\Purchases::products');
     $routes->post('products', 'Api\Purchases::createProduct');
     $routes->get('product-variants', 'Api\Purchases::variants');
+    $routes->get('inventory', 'Api\Purchases::inventory');
+    $routes->get('stock', 'Api\Purchases::stock');
+    $routes->put('stock/warehouse', 'Api\Purchases::updateVariantWarehouse');
+    $routes->get('sales', 'Api\Sells::index');
+    $routes->post('sales', 'Api\Sells::create');
+    $routes->get('warehouses', 'Api\Sells::warehouses');
+    $routes->get('warehouse-products', 'Api\Sells::productsByWarehouse');
 });

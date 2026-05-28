@@ -39,10 +39,10 @@
                         <a class="nav-link" href="<?= site_url('purchases') ?>">Purchase</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Sells</a>
+                        <a class="nav-link" href="<?= site_url('sells') ?>">Sells</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Stock</a>
+                        <a class="nav-link" href="<?= site_url('stock') ?>">Stock</a>
                     </li>
                 </ul>
             </div>
@@ -70,6 +70,7 @@
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxmenu.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.edit.js"></script>
+    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.filter.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxdatatable.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxtreegrid.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.selection.js"></script>
