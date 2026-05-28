@@ -4,7 +4,8 @@
 
 <?= $this->section('pageStyles') ?>
 <style>
-    #registerProductDetailsForm .jqx-numberinput input {
+    #purchaseHeaderForm .jqx-numberinput input,
+    #purchaseItemForm .jqx-numberinput input {
         height: 100% !important;
         line-height: 34px !important;
         padding-top: 0 !important;
@@ -14,109 +15,104 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-    <div class="container py-4">
+    <div class="container-fluid py-4 px-5">
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h3 fw-bold mb-1">New Purchase</h1>
-                <p class="text-muted mb-0">Create purchase transaction.</p>
+                <!-- <p class="text-muted mb-0">Create purchase transaction.</p> -->
             </div>
             <a href="<?= site_url('purchases') ?>" class="btn btn-outline-secondary">Back to List</a>
         </div>
 
         <div class="card shadow-sm mb-4">
             <div class="card-body p-4">
-                <div class="row g-3 mb-3">
-                    <div class="col-12 col-md-4">
-                        <label class="form-label text-secondary mb-1">Purchase Date</label>
-                        <div id="purchaseDate"></div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label text-secondary mb-1">Supplier</label>
-                        <div id="supplierDropdown"></div>
-                    </div>
-                </div>
-
-                <div class="border rounded-3 p-3 mb-4 bg-light">
-                    <h2 class="h6 fw-semibold mb-3">Quick Create Product</h2>
-                    <form id="quickProductForm" class="row g-3">
-                        <div class="col-12 col-md-3">
-                            <label class="form-label text-secondary mb-1">Name</label>
-                            <input type="text" id="productNameInput" class="form-control" placeholder="Product name">
+                <div id="purchaseHeaderForm" class="border rounded-3 p-3 mb-3 bg-light">
+                    <h2 class="h6 fw-semibold mb-3">Purchase Details</h2>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label class="form-label text-secondary mb-1">Purchase Date</label>
+                            <div id="purchaseDate"></div>
                         </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label text-secondary mb-1">Serial Number</label>
-                            <input type="text" id="productSerialInput" class="form-control" placeholder="Serial number">
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label class="form-label text-secondary mb-1">Supplier</label>
+                            <div id="supplierDropdown"></div>
                         </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label text-secondary mb-1">Category</label>
-                            <div id="categoryDropDownButton" style="width: 100%;">
-                                <div id="categoryTree"></div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label text-secondary mb-1">Brand</label>
-                            <input type="text" id="productBrandInput" class="form-control" placeholder="Brand">
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" id="registerProductBtn" class="btn btn-sm btn-success">Register Product</button>
-                            <div id="quickProductMessage" class="small fw-semibold mt-2"></div>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="border rounded-3 p-3 mb-4">
-                    <h2 class="h6 fw-semibold mb-3">Register Product Details</h2>
-                    <form id="registerProductDetailsForm" class="row g-3">
-                        <div class="col-12 col-md-4">
-                            <label class="form-label text-secondary mb-1">Product</label>
-                            <div id="productDropdown"></div>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <label class="form-label text-secondary mb-1">Style</label>
-                            <input type="text" id="productStyleInput" class="form-control" placeholder="Style">
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <label class="form-label text-secondary mb-1">Size</label>
-                            <div id="sizeSelector"></div>
-                        </div>
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-6 col-lg-3">
                             <label class="form-label text-secondary mb-1">Warehouse</label>
                             <div id="purchaseWarehouseDropdown"></div>
                         </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label text-secondary mb-1">Sets Count</label>
-                            <div id="setsCountInput"></div>
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label class="form-label text-secondary mb-1">Transfer Fee</label>
+                            <div id="transferFeeInput"></div>
                         </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label text-secondary mb-1">Unit Price</label>
-                            <div id="unitPriceInput"></div>
+                        <div class="col-12 col-lg-6">
+                            <label class="form-label text-secondary mb-1">Notes</label>
+                            <input id="notesInput" type="text" class="form-control">
                         </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label text-secondary mb-1">Total Units</label>
-                            <div id="totalUnitsInput"></div>
+                        <div class="col-12 col-lg-6 d-flex align-items-end justify-content-lg-end">
+                            <input type="button" id="savePurchaseBtn" value="Save Purchase" class="btn btn-primary">
                         </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label text-secondary mb-1">Total Price</label>
-                            <div id="totalPriceInput"></div>
-                        </div>
-                        <div class="col-12">
-                            <button type="button" id="addProductsBtn" class="btn btn-sm btn-primary">Add producs</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
+                <div id="messageBox" class="small fw-semibold text-success"></div>
+                <div class="row g-4">
+                    <div class="col-12 col-lg-6">
+                        <div class="border rounded-3 p-3 mb-4 bg-light">
+                            <h2 class="h6 fw-semibold mb-3">Add Product</h2>
+                            <form id="purchaseItemForm" class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Name</label>
+                                    <input type="text" id="productNameInput" class="form-control" placeholder="Product name">
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Serial Number</label>
+                                    <input type="text" id="productSerialInput" class="form-control" placeholder="Serial number">
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Category</label>
+                                    <div id="categoryDropDownButton" style="width: 100%;">
+                                        <div id="categoryTree"></div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Brand</label>
+                                    <input type="text" id="productBrandInput" class="form-control" placeholder="Brand">
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Style</label>
+                                    <input type="text" id="productStyleInput" class="form-control" placeholder="Style">
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Size</label>
+                                    <div id="sizeSelector"></div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Sets Count</label>
+                                    <div id="setsCountInput"></div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Unit Price</label>
+                                    <div id="unitPriceInput"></div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Total Units</label>
+                                    <div id="totalUnitsInput"></div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-secondary mb-1">Total Price</label>
+                                    <div id="totalPriceInput"></div>
+                                </div>
+                                <div class="col-12 col-md-6 d-flex align-items-end">
+                                    <button type="button" id="addProductsBtn" class="btn btn-sm btn-primary">Add Product</button>
+                                </div>
+                            </form>
+                        </div>
 
-                <div id="itemsGrid" class="mb-3"></div>
 
-                <div class="row g-3 align-items-end">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-secondary mb-1">Notes</label>
-                        <input id="notesInput" type="text">
                     </div>
-                    <div class="col-12 col-md-auto">
-                        <input type="button" id="savePurchaseBtn" value="Save Purchase">
-                    </div>
-                    <div class="col-12 col-md">
-                        <div id="messageBox" class="small fw-semibold text-success"></div>
+
+                    <div class="col-12 col-lg-6">
+                        <div id="itemsGrid"></div>
                     </div>
                 </div>
             </div>
@@ -132,7 +128,9 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-2">Total Units Count: <span id="confirmTotalUnitsCount" class="fw-semibold">0</span></div>
-                    <div>Sum Total Price: <span id="confirmTotalPriceSum" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Items Total: <span id="confirmTotalPriceSum" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Transfer Fee: <span id="confirmTransferFee" class="fw-semibold">0.00</span></div>
+                    <div>Grand Total: <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -149,7 +147,6 @@
             suppliers: "<?= site_url('api/suppliers') ?>",
             categories: "<?= site_url('api/categories') ?>",
             products: "<?= site_url('api/products') ?>",
-            variants: "<?= site_url('api/product-variants') ?>",
             warehouses: "<?= site_url('api/warehouses') ?>",
             purchases: "<?= site_url('api/purchases') ?>"
         };
@@ -157,9 +154,7 @@
         const items = [];
         let suppliers = [];
         let categories = [];
-        let products = [];
         let warehouses = [];
-        let productVariants = [];
         let selectedSizeCount = 0;
         let selectedCategoryId = 0;
         let confirmPurchaseModal = null;
@@ -169,12 +164,21 @@
         }));
 
         function initWidgets() {
-            $("#supplierDropdown").jqxDropDownList({ width: 280, height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select supplier" });
-            $("#purchaseDate").jqxDateTimeInput({ width: 220, height: 34, formatString: "yyyy-MM-dd HH:mm:ss" });
+            $("#supplierDropdown").jqxDropDownList({ width: "100%", height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select supplier" });
+            $("#purchaseDate").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd" });
+            $("#purchaseWarehouseDropdown").jqxDropDownList({ width: "100%", height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select warehouse" });
+            $("#transferFeeInput").jqxNumberInput({
+                width: "100%",
+                height: 34,
+                decimalDigits: 2,
+                digits: 10,
+                min: 0,
+                inputMode: "simple",
+                spinButtons: true,
+                value: 0
+            });
             $("#categoryDropDownButton").jqxDropDownButton({ width: "100%", height: 34 });
             $("#categoryDropDownButton").jqxDropDownButton("setContent", '<div style="position: relative; margin-left: 3px; margin-top: 5px;" class="text-muted">Select category</div>');
-            $("#productDropdown").jqxDropDownList({ width: 280, height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select product" });
-            $("#purchaseWarehouseDropdown").jqxDropDownList({ width: "100%", height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select warehouse" });
             $("#sizeSelector").jqxDropDownList({
                 width: "100%",
                 height: 34,
@@ -228,13 +232,12 @@
                 disabled: true,
                 value: 0
             });
-            $("#notesInput").jqxInput({ width: 420, height: 34 });
-            $("#savePurchaseBtn").jqxButton({ width: 140, height: 34, theme: "base" });
+            $("#savePurchaseBtn").jqxButton({ width: 160, height: 38, theme: "base" });
             $("#addProductsBtn").jqxButton({ width: 140, height: 34, theme: "base" });
 
             $("#itemsGrid").jqxGrid({
                 width: "100%",
-                height: 220,
+                height: 520,
                 source: new $.jqx.dataAdapter({ localdata: items, datatype: "array" }),
                 editable: true,
                 editmode: "click",
@@ -363,19 +366,6 @@
             });
         }
 
-        function loadProducts() {
-            return $.getJSON(API_URLS.products).done(function(res) {
-                products = res.data || [];
-                $("#productDropdown").jqxDropDownList({ source: products });
-                if (products.length === 0) {
-                    $("#messageBox").text("No active products found.");
-                }
-            }).fail(function(xhr) {
-                const msg = xhr.responseJSON?.message || "Failed to load products.";
-                $("#messageBox").text(msg);
-            });
-        }
-
         function loadWarehouses() {
             return $.getJSON(API_URLS.warehouses).done(function(res) {
                 warehouses = res.data || [];
@@ -389,91 +379,22 @@
             });
         }
 
-        function registerQuickProduct() {
-            const quickMessage = $("#quickProductMessage");
-            quickMessage.removeClass("text-success text-danger").text("");
-
-            const name = String($("#productNameInput").val() || "").trim();
-            const serialNumber = String($("#productSerialInput").val() || "").trim();
-            const brand = String($("#productBrandInput").val() || "").trim();
-
-            if (!name) {
-                quickMessage.addClass("text-danger").text("Product name is required.");
-                return;
+        function clearProductForm() {
+            $("#productNameInput").val("");
+            $("#productSerialInput").val("");
+            $("#productBrandInput").val("");
+            $("#productStyleInput").val("");
+            selectedCategoryId = 0;
+            $("#categoryDropDownButton").jqxDropDownButton("setContent", '<div style="position: relative; margin-left: 3px; margin-top: 5px;" class="text-muted">Select category</div>');
+            $("#sizeSelector").jqxDropDownList("uncheckAll");
+            selectedSizeCount = 0;
+            $("#setsCountInput").jqxNumberInput("val", 0);
+            $("#unitPriceInput").jqxNumberInput("val", 0);
+            $("#totalUnitsInput").jqxNumberInput("val", 0);
+            $("#totalPriceInput").jqxNumberInput("val", 0);
+            if (warehouses.length > 0) {
+                $("#purchaseWarehouseDropdown").jqxDropDownList("selectIndex", 0);
             }
-            if (!serialNumber) {
-                quickMessage.addClass("text-danger").text("Serial number is required.");
-                return;
-            }
-            if (!selectedCategoryId) {
-                quickMessage.addClass("text-danger").text("Please select category from category tree.");
-                return;
-            }
-
-            const payload = {
-                name,
-                serial_number: serialNumber || null,
-                category_id: Number(selectedCategoryId),
-                brand: brand || null
-            };
-
-            $.ajax({
-                url: API_URLS.products,
-                method: "POST",
-                contentType: "application/json",
-                data: JSON.stringify(payload)
-            }).done(function (res) {
-                const createdId = Number(res.data?.id || 0);
-                quickMessage.addClass("text-success").text("New product is created.");
-
-                $("#productNameInput").val("");
-                $("#productSerialInput").val("");
-                $("#productBrandInput").val("");
-
-                loadProducts().done(function () {
-                    if (createdId > 0) {
-                        $("#productDropdown").jqxDropDownList("selectItem", createdId);
-                    }
-                });
-            }).fail(function (xhr) {
-                quickMessage.addClass("text-danger").text(xhr.responseJSON?.message || "Failed to register product.");
-            });
-        }
-
-        function filterProductsByCategory(categoryId) {
-            const filtered = Number(categoryId) > 0
-                ? products.filter(p => Number(p.category_id) === Number(categoryId))
-                : products;
-
-            $("#productDropdown").jqxDropDownList({ source: filtered });
-            $("#productDropdown").jqxDropDownList("clearSelection");
-            productVariants = [];
-        }
-
-        function loadVariantsByProduct(productId) {
-            if (!productId) {
-                productVariants = [];
-                selectedSizeCount = 0;
-                $("#sizeSelector").jqxDropDownList({ source: FIXED_SIZES });
-                $("#sizeSelector").jqxDropDownList("uncheckAll");
-                recalcTotalUnits();
-                return $.Deferred().resolve().promise();
-            }
-
-            return $.getJSON(API_URLS.variants, { product_id: productId }).done(function(res) {
-                productVariants = (res.data || []).map(v => ({
-                    ...v,
-                    variant_key: String(v.id),
-                    variant_label: `${v.product_name || "-"} | ${v.sku || "-"} | Size: ${v.size_value || "-"}`
-                }));
-                $("#sizeSelector").jqxDropDownList({ source: FIXED_SIZES });
-                $("#sizeSelector").jqxDropDownList("uncheckAll");
-                selectedSizeCount = 0;
-                recalcTotalUnits();
-            }).fail(function(xhr) {
-                const msg = xhr.responseJSON?.message || "Failed to load product variants.";
-                $("#messageBox").text(msg);
-            });
         }
 
         function recalcTotalUnits() {
@@ -490,56 +411,87 @@
             $("#totalPriceInput").jqxNumberInput("val", totalPrice);
         }
 
-        function addItemRow() {
-            const selectedProduct = $("#productDropdown").jqxDropDownList("getSelectedItem");
-            if (!selectedProduct) {
-                $("#messageBox").text("Please select a product.");
+        function addProductToGrid() {
+            const name = String($("#productNameInput").val() || "").trim();
+            const serialNumber = String($("#productSerialInput").val() || "").trim();
+            const brand = String($("#productBrandInput").val() || "").trim();
+            const styleValue = String($("#productStyleInput").val() || "").trim();
+            const checkedSizes = $("#sizeSelector").jqxDropDownList("getCheckedItems") || [];
+            const setsCount = Number($("#setsCountInput").jqxNumberInput("val") || 0);
+            const unitCost = Number($("#unitPriceInput").jqxNumberInput("val") || 0);
+            const unitsCount = Number($("#totalUnitsInput").jqxNumberInput("val") || 0);
+            const totalPrice = Number($("#totalPriceInput").jqxNumberInput("val") || 0);
+            const selectedWarehouse = $("#purchaseWarehouseDropdown").jqxDropDownList("getSelectedItem");
+            const warehouseId = Number(selectedWarehouse?.value || 0);
+
+            if (!name) {
+                $("#messageBox").text("Product name is required.");
                 return;
             }
-
-            const selectedProductId = Number(selectedProduct.value);
-            const productInfo = products.find(p => Number(p.id) === selectedProductId) || {};
-            const checkedSizes = $("#sizeSelector").jqxDropDownList("getCheckedItems") || [];
+            if (!serialNumber) {
+                $("#messageBox").text("Serial number is required.");
+                return;
+            }
+            if (!selectedCategoryId) {
+                $("#messageBox").text("Please select category from category tree.");
+                return;
+            }
             if (checkedSizes.length === 0) {
                 $("#messageBox").text("Please select at least one size.");
                 return;
             }
-
-            const setsCount = Number($("#setsCountInput").jqxNumberInput("val") || 0);
+            if (!warehouseId) {
+                $("#messageBox").text("Please select warehouse.");
+                return;
+            }
             if (setsCount <= 0) {
                 $("#messageBox").text("Sets count must be greater than 0.");
                 return;
             }
 
-            const unitCost = Number($("#unitPriceInput").jqxNumberInput("val") || 0);
-            const unitsCount = Number($("#totalUnitsInput").jqxNumberInput("val") || 0);
-            const totalPrice = Number($("#totalPriceInput").jqxNumberInput("val") || 0);
-            const styleValue = String($("#productStyleInput").val() || "").trim();
-            const selectedWarehouse = $("#purchaseWarehouseDropdown").jqxDropDownList("getSelectedItem");
-            const warehouseId = Number(selectedWarehouse?.value || 0);
-            if (!warehouseId) {
-                $("#messageBox").text("Please select warehouse.");
-                return;
-            }
-            const firstVariant = productVariants[0] || {};
-            const rowData = {
-                product_id: selectedProductId,
-                product_variant_id: Number(firstVariant.id || 0),
-                product_name: selectedProduct.label || productInfo.name || "",
-                sku: String(productInfo.serial_number || ""),
-                brand: String(productInfo.brand || ""),
-                style: styleValue,
-                warehouse_id: warehouseId,
-                warehouse_name: String(selectedWarehouse?.label || ""),
-                unit_cost: Number(unitCost.toFixed(2)),
-                size_value: checkedSizes.map(s => String(s.value)).join(", "),
-                sets_count: setsCount,
-                units_count: unitsCount,
-                total_price: Number(totalPrice.toFixed(2))
-            };
-            $("#itemsGrid").jqxGrid("addrow", null, rowData);
-            updateGridFooterTotals();
-            $("#messageBox").text("Product row added.");
+            $("#addProductsBtn").prop("disabled", true);
+
+            $.ajax({
+                url: API_URLS.products,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    name,
+                    serial_number: serialNumber,
+                    category_id: Number(selectedCategoryId),
+                    brand: brand || null
+                })
+            }).done(function (res) {
+                const createdId = Number(res.data?.id || 0);
+                if (createdId < 1) {
+                    $("#messageBox").text("Failed to register product.");
+                    return;
+                }
+
+                const rowData = {
+                    product_id: createdId,
+                    product_variant_id: 0,
+                    product_name: name,
+                    sku: serialNumber,
+                    brand: brand,
+                    style: styleValue,
+                    warehouse_id: warehouseId,
+                    warehouse_name: String(selectedWarehouse?.label || ""),
+                    unit_cost: Number(unitCost.toFixed(2)),
+                    size_value: checkedSizes.map(s => String(s.value)).join(", "),
+                    sets_count: setsCount,
+                    units_count: unitsCount,
+                    total_price: Number(totalPrice.toFixed(2))
+                };
+                $("#itemsGrid").jqxGrid("addrow", null, rowData);
+                updateGridFooterTotals();
+                clearProductForm();
+                $("#messageBox").text("Product registered and added to grid.");
+            }).fail(function (xhr) {
+                $("#messageBox").text(xhr.responseJSON?.message || "Failed to register product.");
+            }).always(function () {
+                $("#addProductsBtn").prop("disabled", false);
+            });
         }
 
         function removeSelectedRow() {
@@ -592,15 +544,20 @@
                 return;
             }
 
+            const transferFee = Number($("#transferFeeInput").jqxNumberInput("val") || 0);
             const payload = {
                 supplier_id: supplierId,
                 purchase_date: purchaseDate,
                 notes: $("#notesInput").val(),
+                transfer_fee: transferFee,
                 items: validItems
             };
             const totals = getGridTotals();
+            const grandTotal = totals.totalPriceSum + Math.max(transferFee, 0);
             $("#confirmTotalUnitsCount").text(totals.totalUnitsCount);
             $("#confirmTotalPriceSum").text(totals.totalPriceSum.toFixed(2));
+            $("#confirmTransferFee").text(Math.max(transferFee, 0).toFixed(2));
+            $("#confirmGrandTotal").text(grandTotal.toFixed(2));
             $("#confirmSavePurchaseBtn").off("click").on("click", function () {
                 if (confirmPurchaseModal) {
                     confirmPurchaseModal.hide();
@@ -616,7 +573,6 @@
             initWidgets();
             loadSuppliers();
             loadCategories();
-            loadProducts();
             loadWarehouses();
             confirmPurchaseModal = new bootstrap.Modal(document.getElementById("purchaseConfirmModal"));
 
@@ -631,15 +587,6 @@
                 const dropDownContent = `<div style="position: relative; margin-left: 3px; margin-top: 5px;">${item.label}</div>`;
                 $("#categoryDropDownButton").jqxDropDownButton("setContent", dropDownContent);
                 $("#categoryDropDownButton").jqxDropDownButton("close");
-                filterProductsByCategory(selectedCategoryId);
-            });
-
-            $("#productDropdown").on("select", function (event) {
-                const item = event.args?.item;
-                if (!item) {
-                    return;
-                }
-                loadVariantsByProduct(Number(item.value));
             });
 
             $("#sizeSelector").on("checkChange", function () {
@@ -651,12 +598,8 @@
             $("#setsCountInput").on("valueChanged", recalcTotalUnits);
             $("#unitPriceInput").on("valueChanged", recalcTotalPrice);
 
-            $("#addProductsBtn").on("click", addItemRow);
+            $("#addProductsBtn").on("click", addProductToGrid);
             $("#savePurchaseBtn").on("click", savePurchase);
-            $("#quickProductForm").on("submit", function (event) {
-                event.preventDefault();
-                registerQuickProduct();
-            });
         });
 </script>
 <?= $this->endSection() ?>

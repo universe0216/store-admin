@@ -3,11 +3,11 @@
 <?= $this->section('title') ?>Purchase List<?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-    <div class="container py-4">
+    <div class="container-fluid py-4 px-5">
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h3 fw-bold mb-1">Purchase List</h1>
-                <p class="text-muted mb-0">Monitor purchase history.</p>
+                <!-- <p class="text-muted mb-0">Monitor purchase history.</p> -->
             </div>
             <a href="<?= site_url('purchases/create') ?>" class="btn btn-primary">New Purchase</a>
         </div>
@@ -47,10 +47,10 @@
                 selectionmode: "singlerow",
                 source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" }),
                 columns: [
-                    { text: "ID", datafield: "id", width: 70 },
+                    { text: "ID", datafield: "id", width: 50 },
                     { text: "Purchase No", datafield: "purchase_no", width: 180 },
-                    { text: "Date", datafield: "purchase_date", width: 180 },
-                    { text: "Supplier", datafield: "supplier_name", width: 220 },
+                    { text: "Date", datafield: "purchase_date", width: 100 },
+                    { text: "Supplier", datafield: "supplier_name", width: 150 },
                     { text: "Status", datafield: "status", width: 100 },
                     { text: "Grand Total", datafield: "grand_total", cellsformat: "f2" }
                 ]

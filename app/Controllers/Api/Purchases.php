@@ -83,6 +83,7 @@ class Purchases extends BaseController
         $purchaseDate = (string) ($payload['purchase_date'] ?? '');
         $status       = 'received';
         $notes        = (string) ($payload['notes'] ?? '');
+        $transferFee  = max(0, (float) ($payload['transfer_fee'] ?? 0));
         $items        = $payload['items'] ?? [];
 
         if ($supplierId < 1 || $purchaseDate === '' || ! is_array($items) || $items === []) {
@@ -182,7 +183,7 @@ class Purchases extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'No valid purchase items.']);
         }
 
-        $grandTotal = $subTotal - $discountTotal;
+        $grandTotal = $subTotal - $discountTotal + $transferFee;
         $db->transBegin();
 
         try {
@@ -193,6 +194,7 @@ class Purchases extends BaseController
                 'status'         => $status,
                 'sub_total'      => $subTotal,
                 'discount_total' => $discountTotal,
+                'transfer_fee'   => $transferFee,
                 'grand_total'    => $grandTotal,
                 'paid_total'     => 0,
                 'notes'          => $notes !== '' ? $notes : null,
@@ -513,7 +515,7 @@ class Purchases extends BaseController
 
     private function generatePurchaseNo(): string
     {
-        return 'PO-' . date('Ymd-His') . '-' . random_int(100, 999);
+        return 'PO-' .  date('Ymd-His');
     }
 
     private function findOrCreateVariantBySize(

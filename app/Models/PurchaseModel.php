@@ -15,6 +15,7 @@ class PurchaseModel extends BaseModel
         'status',
         'sub_total',
         'discount_total',
+        'transfer_fee',
         'grand_total',
         'paid_total',
         'notes',
