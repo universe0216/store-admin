@@ -13,7 +13,7 @@
 <?= $this->section('content') ?>
     <div class="container-fluid px-5 py-4">
         <div class="mb-4">
-            <h1 class="h3 fw-bold mb-1">E-commerce metrics</h1>
+            <h1 class="h3 fw-bold mb-1">Dashboard</h1>
             <p class="text-muted mb-0">Sample dashboard charts (dummy data). Wire to API when ready.</p>
         </div>
 

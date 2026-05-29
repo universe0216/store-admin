@@ -66,6 +66,14 @@
                             <li><a class="dropdown-item" href="<?= site_url('inventory') ?>">Inventory</a></li>
                         </ul>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Finance
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="<?= site_url('finance') ?>">Transactions</a></li>
+                        </ul>
+                    </li>
                 </ul>
             </div>
         </div>
