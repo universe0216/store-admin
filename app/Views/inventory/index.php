@@ -15,6 +15,9 @@
         padding-bottom: 0 !important;
         box-sizing: border-box;
     }
+    .toast-container {
+        z-index: 2000;
+    }
 </style>
 <?= $this->endSection() ?>
 
@@ -50,6 +53,15 @@
             </div>
         </div>
     </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="inventoryToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div id="inventoryToastBody" class="toast-body"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
 <?= $this->endSection() ?>
 
 <?= $this->section('pageScripts') ?>
@@ -59,6 +71,8 @@
             warehouses: "<?= site_url('api/warehouses') ?>"
         };
 
+        let savingSellingPrice = false;
+
         function setInventoryMessage(msg, isError = false) {
             const box = $("#inventoryMessage");
             box.text(msg || "");
@@ -66,6 +80,56 @@
             if (msg) {
                 box.addClass(isError ? "text-danger" : "text-success");
             }
+        }
+
+        function showInventoryToast(msg, isError = false) {
+            const el = document.getElementById("inventoryToast");
+            const body = document.getElementById("inventoryToastBody");
+            if (!el || !body || typeof bootstrap === "undefined") {
+                return;
+            }
+
+            body.textContent = msg || "";
+            el.classList.remove("text-bg-success", "text-bg-danger");
+            el.classList.add(isError ? "text-bg-danger" : "text-bg-success");
+
+            const toast = bootstrap.Toast.getOrCreateInstance(el, {
+                delay: 3000,
+                autohide: true
+            });
+            toast.show();
+        }
+
+        function saveSellingPrice(rowIndex, sellingPrice) {
+            if (savingSellingPrice) {
+                return;
+            }
+
+            const row = $("#inventoryGrid").jqxGrid("getrowdata", rowIndex);
+            const variantId = Number(row?.variant_id || 0);
+            const price = Math.max(0, Number(sellingPrice || 0));
+
+            if (variantId < 1) {
+                return;
+            }
+
+            savingSellingPrice = true;
+            $.ajax({
+                url: `${API_URLS.inventory}/variant/${variantId}/selling-price`,
+                method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify({ selling_price: price })
+            }).done(function () {
+                setInventoryMessage("");
+                showInventoryToast("Selling price saved.");
+            }).fail(function (xhr) {
+                const msg = xhr.responseJSON?.message || "Failed to update selling price.";
+                setInventoryMessage(msg, true);
+                showInventoryToast(msg, true);
+                loadInventory();
+            }).always(function () {
+                savingSellingPrice = false;
+            });
         }
 
         function initWidgets() {
@@ -104,31 +168,15 @@
                 ]
             });
 
-            $("#inventoryGrid").on("cellvaluechanged", function (event) {
+            function onSellingPriceEdited(event) {
                 if (event.args.datafield !== "selling_price") {
                     return;
                 }
+                saveSellingPrice(event.args.rowindex, event.args.value);
+            }
 
-                const row = $("#inventoryGrid").jqxGrid("getrowdata", event.args.rowindex);
-                const variantId = Number(row?.variant_id || 0);
-                const sellingPrice = Math.max(0, Number(event.args.value || 0));
-
-                if (variantId < 1) {
-                    return;
-                }
-
-                $.ajax({
-                    url: `${API_URLS.inventory}/variant/${variantId}/selling-price`,
-                    method: "PUT",
-                    contentType: "application/json",
-                    data: JSON.stringify({ selling_price: sellingPrice })
-                }).done(function () {
-                    setInventoryMessage("Selling price saved.");
-                }).fail(function (xhr) {
-                    setInventoryMessage(xhr.responseJSON?.message || "Failed to update selling price.", true);
-                    loadInventory();
-                });
-            });
+            $("#inventoryGrid").on("cellendedit", onSellingPriceEdited);
+            $("#inventoryGrid").on("cellvaluechanged", onSellingPriceEdited);
         }
 
         function loadWarehouses() {
@@ -173,6 +221,7 @@
         }
 
         $(function() {
+            $(".toast-container").appendTo("body");
             initWidgets();
             loadWarehouses().always(loadInventory);
             $("#applyInventoryFilterBtn").on("click", loadInventory);
