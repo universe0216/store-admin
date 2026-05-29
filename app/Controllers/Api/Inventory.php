@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Controllers\Api;
+
+use App\Controllers\BaseController;
+use App\Models\ProductModel;
+use App\Models\ProductVariantModel;
+use App\Models\PurchaseItemModel;
+use App\Models\PurchaseModel;
+use App\Models\StockMovementModel;
+use App\Models\SupplierModel;
+use CodeIgniter\Database\BaseConnection;
+use CodeIgniter\HTTP\ResponseInterface;
+use RuntimeException;
+use Throwable;
+
+class Inventory extends BaseController
+{
+    public function index(): ResponseInterface
+    {
+        $search      = trim((string) (
+            $this->request->getGet('q')
+            ?? $this->request->getGet('product_name')
+            ?? $this->request->getGet('product_number')
+            ?? ''
+        ));
+        $warehouseId = (int) ($this->request->getGet('warehouse_id') ?? 0);
+
+        $builder = db_connect()->table('inventory')
+            ->select(
+                "inventory.id, inventory.variant_id, inventory.warehouse_id, inventory.quantity, inventory.reserved_quantity, inventory.updated_at, " .
+                "product_variants.sku, product_variants.cost_price, product_variants.selling_price, " .
+                "product_variants.size AS size_value, product_variants.style, " .
+                "products.name AS product_name, products.serial_number AS product_number, products.brand, " .
+                "warehouses.name AS warehouse_name, warehouses.location AS warehouse_location"
+            )
+            ->join('product_variants', 'product_variants.id = inventory.variant_id')
+            ->join('products', 'products.id = product_variants.product_id')
+            ->join('warehouses', 'warehouses.id = inventory.warehouse_id')
+            ->where('product_variants.is_active', 1)
+            ->where('inventory.quantity >', 0)
+            ->orderBy('products.name', 'ASC');
+
+        if ($warehouseId > 0) {
+            $builder->where('inventory.warehouse_id', $warehouseId);
+        }
+
+        if ($search !== '') {
+            $builder->groupStart()
+                ->like('products.name', $search)
+                ->orLike('products.serial_number', $search)
+                ->orLike('product_variants.style', $search)
+                ->groupEnd();
+        }
+
+        $rows = $builder->get(5000)->getResultArray();
+
+        return $this->response->setJSON(['data' => $rows]);
+    }
+}

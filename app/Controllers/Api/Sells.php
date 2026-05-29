@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\SaleItemModel;
 use App\Models\SaleModel;
 use App\Models\StockMovementModel;
+use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\ResponseInterface;
 use RuntimeException;
 use Throwable;
@@ -100,6 +101,54 @@ class Sells extends BaseController
         $rows = $builder->get()->getResultArray();
 
         return $this->response->setJSON(['data' => $rows]);
+    }
+
+    public function delete(int $id): ResponseInterface
+    {
+        $saleModel = new SaleModel();
+        $sale      = $saleModel->find($id);
+
+        if ($sale === null) {
+            return $this->response->setStatusCode(404)->setJSON(['message' => 'Sale not found.']);
+        }
+
+        $items       = (new SaleItemModel())->where('sale_id', $id)->findAll();
+        $warehouseId = (int) ($sale['warehouse_id'] ?? 0);
+        $db          = db_connect();
+        $db->transBegin();
+
+        try {
+            foreach ($items as $item) {
+                $this->restoreSaleStock(
+                    $db,
+                    $warehouseId,
+                    (int) ($item['product_variant_id'] ?? 0),
+                    (int) ($item['qty'] ?? 0)
+                );
+            }
+
+            $db->table('stock_movements')
+                ->where('reference_type', 'sale')
+                ->where('reference_id', $id)
+                ->delete();
+
+            $saleModel->delete($id);
+
+            if ($db->transStatus() === false) {
+                throw new RuntimeException('Failed to delete sale.');
+            }
+
+            $db->transCommit();
+
+            return $this->response->setJSON(['message' => 'Sale deleted successfully.']);
+        } catch (Throwable $e) {
+            $db->transRollback();
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'message' => 'Failed to delete sale.',
+                'error'   => $e->getMessage(),
+            ]);
+        }
     }
 
     public function create(): ResponseInterface
@@ -420,8 +469,60 @@ class Sells extends BaseController
         return (int) ($countRow->aggregate ?? 0);
     }
 
+    private function restoreSaleStock(BaseConnection $db, int $warehouseId, int $variantId, int $qty): void
+    {
+        if ($variantId < 1 || $qty < 1) {
+            return;
+        }
+
+        if ($warehouseId > 0) {
+            $inventory = $db->table('inventory')
+                ->select('id')
+                ->where('warehouse_id', $warehouseId)
+                ->where('variant_id', $variantId)
+                ->get()
+                ->getFirstRow('array');
+
+            if (is_array($inventory) && isset($inventory['id'])) {
+                $db->table('inventory')
+                    ->set('quantity', 'quantity + ' . $qty, false)
+                    ->set('updated_at', date('Y-m-d H:i:s'))
+                    ->where('id', (int) $inventory['id'])
+                    ->update();
+            } else {
+                $db->table('inventory')->insert([
+                    'variant_id'        => $variantId,
+                    'warehouse_id'      => $warehouseId,
+                    'quantity'          => $qty,
+                    'reserved_quantity' => 0,
+                    'updated_at'        => date('Y-m-d H:i:s'),
+                ]);
+            }
+        } else {
+            $inventory = $db->table('inventory')
+                ->select('id')
+                ->where('variant_id', $variantId)
+                ->orderBy('id', 'ASC')
+                ->get()
+                ->getFirstRow('array');
+
+            if (is_array($inventory) && isset($inventory['id'])) {
+                $db->table('inventory')
+                    ->set('quantity', 'quantity + ' . $qty, false)
+                    ->set('updated_at', date('Y-m-d H:i:s'))
+                    ->where('id', (int) $inventory['id'])
+                    ->update();
+            }
+        }
+
+        $db->table('product_variants')
+            ->set('stock_qty', 'stock_qty + ' . $qty, false)
+            ->where('id', $variantId)
+            ->update();
+    }
+
     private function generateSaleNo(): string
     {
-        return 'SO-' . date('Ymd-His');
+        return 'SO-' . date('Ymd-His') . '-' . random_int(100, 999);
     }
 }

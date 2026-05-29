@@ -17,15 +17,11 @@
                     <div class="card-body p-4">
                         <div class="row g-3 align-items-end mb-3">
                             <div class="col-12 col-md-3">
-                                <label class="form-label text-secondary mb-1" for="saleProductSearch">Product Name</label>
                                 <input type="text" id="saleProductSearch" class="form-control" placeholder="Search by product name">
                             </div>
-                            <div class="col-12 col-md-3">
-                                <label class="form-label text-secondary mb-1">From</label>
+                            <div class="col-12 col-md-6 d-flex align-items-center gap-2">
                                 <div id="saleDateFrom"></div>
-                            </div>
-                            <div class="col-12 col-md-3">
-                                <label class="form-label text-secondary mb-1">To</label>
+                                <span class="text-secondary">~</span>
                                 <div id="saleDateTo"></div>
                             </div>
                             <div class="col-12 col-md-3 d-flex gap-2 justify-content-end">
@@ -65,6 +61,9 @@
             <div class="col-12 col-xl-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-body p-4">
+                        <div class="d-flex justify-content-end mb-4">
+                            <button type="button" id="deleteSaleBtn" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </div>
                         <div id="saleInfoPanel" class="border rounded bg-light p-3 mb-3 small">
                             <div class="row g-2">
                                 <div class="col-6 col-md-4">
@@ -202,8 +201,8 @@
         }
 
         function initWidgets() {
-            $("#saleDateFrom").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
-            $("#saleDateTo").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+            $("#saleDateFrom").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+            $("#saleDateTo").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
 
             salesGridAdapter = new $.jqx.dataAdapter(salesGridSource);
 
@@ -377,6 +376,35 @@
             loadSales(0, saleListPageSize, true);
         }
 
+        function deleteSelectedSale() {
+            const rowIndex = $("#salesGrid").jqxGrid("getselectedrowindex");
+            if (rowIndex < 0) {
+                setFilterError("Select a sale to delete.");
+                return;
+            }
+
+            const row = $("#salesGrid").jqxGrid("getrowdata", rowIndex);
+            if (!row?.id) {
+                return;
+            }
+
+            const label = row.sale_no || ("#" + row.id);
+            if (!confirm(`Delete sale ${label}? This will reverse inventory and stock movements.`)) {
+                return;
+            }
+
+            setFilterError("");
+            $.ajax({
+                url: `${API_URLS.sales}/${row.id}`,
+                method: "DELETE"
+            }).done(function () {
+                setFilterError("");
+                loadSales(saleListPage, saleListPageSize, false);
+            }).fail(function (xhr) {
+                setFilterError(xhr.responseJSON?.message || "Failed to delete sale.");
+            });
+        }
+
         $(function () {
             initWidgets();
             clearSaleInfo();
@@ -412,6 +440,7 @@
                 const row = event.args?.row;
                 loadSaleItems(Number(row?.id || 0), row);
             });
+            $("#deleteSaleBtn").on("click", deleteSelectedSale);
         });
     </script>
 <?= $this->endSection() ?>

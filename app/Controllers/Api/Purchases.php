@@ -204,6 +204,54 @@ class Purchases extends BaseController
         ]);
     }
 
+    public function delete(int $id): ResponseInterface
+    {
+        $purchaseModel = new PurchaseModel();
+        $purchase      = $purchaseModel->find($id);
+
+        if ($purchase === null) {
+            return $this->response->setStatusCode(404)->setJSON(['message' => 'Purchase not found.']);
+        }
+
+        $items = (new PurchaseItemModel())->where('purchase_id', $id)->findAll();
+        $db    = db_connect();
+        $db->transBegin();
+
+        try {
+            foreach ($items as $item) {
+                $this->reversePurchaseStock(
+                    $db,
+                    (int) ($item['product_variant_id'] ?? 0),
+                    (int) ($item['qty'] ?? 0)
+                );
+            }
+
+            $db->table('stock_movements')
+                ->where('reference_type', 'purchase')
+                ->where('reference_id', $id)
+                ->delete();
+
+            $purchaseModel->delete($id);
+
+            if ($db->transStatus() === false) {
+                throw new RuntimeException('Failed to delete purchase.');
+            }
+
+            $db->transCommit();
+
+            return $this->response->setJSON(['message' => 'Purchase deleted successfully.']);
+        } catch (Throwable $e) {
+            $db->transRollback();
+
+            $status = $e instanceof RuntimeException ? 422 : 500;
+
+            return $this->response->setStatusCode($status)->setJSON([
+                'message' => $e->getMessage() !== '' ? $e->getMessage() : 'Failed to delete purchase.',
+                'error'   => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function create(): ResponseInterface
     {
         $payload = $this->request->getJSON(true);
@@ -507,37 +555,6 @@ class Purchases extends BaseController
         return $this->response->setJSON(['data' => $rows]);
     }
 
-    public function inventory(): ResponseInterface
-    {
-        $productName   = trim((string) ($this->request->getGet('product_name') ?? ''));
-        $productNumber = trim((string) ($this->request->getGet('product_number') ?? ''));
-
-        $builder = db_connect()->table('inventory')
-            ->select(
-                "inventory.id, inventory.variant_id, inventory.warehouse_id, inventory.quantity, inventory.reserved_quantity, inventory.updated_at, " .
-                "product_variants.sku, product_variants.cost_price, product_variants.selling_price, " .
-                "product_variants.size AS size_value, product_variants.style, " .
-                "products.name AS product_name, products.serial_number AS product_number, products.brand, " .
-                "warehouses.name AS warehouse_name, warehouses.location AS warehouse_location"
-            )
-            ->join('product_variants', 'product_variants.id = inventory.variant_id')
-            ->join('products', 'products.id = product_variants.product_id')
-            ->join('warehouses', 'warehouses.id = inventory.warehouse_id')
-            ->where('product_variants.is_active', 1)
-            ->orderBy('products.name', 'ASC');
-
-        if ($productName !== '') {
-            $builder->like('products.name', $productName);
-        }
-        if ($productNumber !== '') {
-            $builder->like('products.serial_number', $productNumber);
-        }
-
-        $rows = $builder->get(5000)->getResultArray();
-
-        return $this->response->setJSON(['data' => $rows]);
-    }
-
     public function stock(): ResponseInterface
     {
         return $this->inventory();
@@ -674,6 +691,62 @@ class Purchases extends BaseController
             'stock_qty'     => 0,
             'is_active'     => 1,
         ]);
+    }
+
+    private function reversePurchaseStock(BaseConnection $db, int $variantId, int $qty): void
+    {
+        if ($variantId < 1 || $qty < 1) {
+            return;
+        }
+
+        $rows = $db->table('inventory')
+            ->select('id, quantity')
+            ->where('variant_id', $variantId)
+            ->where('quantity >', 0)
+            ->orderBy('quantity', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $available = 0;
+        foreach ($rows as $row) {
+            $available += (int) ($row['quantity'] ?? 0);
+        }
+
+        if ($available < $qty) {
+            throw new RuntimeException(
+                'Cannot delete purchase: not enough inventory on hand to reverse received stock.'
+            );
+        }
+
+        $remaining = $qty;
+        foreach ($rows as $row) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $deduct = min($remaining, (int) ($row['quantity'] ?? 0));
+            $db->table('inventory')
+                ->set('quantity', 'quantity - ' . $deduct, false)
+                ->set('updated_at', date('Y-m-d H:i:s'))
+                ->where('id', (int) $row['id'])
+                ->update();
+            $remaining -= $deduct;
+        }
+
+        $variant = $db->table('product_variants')
+            ->select('stock_qty')
+            ->where('id', $variantId)
+            ->get()
+            ->getFirstRow('array');
+
+        if (! is_array($variant) || (int) ($variant['stock_qty'] ?? 0) < $qty) {
+            throw new RuntimeException('Cannot delete purchase: variant stock is insufficient to reverse.');
+        }
+
+        $db->table('product_variants')
+            ->set('stock_qty', 'stock_qty - ' . $qty, false)
+            ->where('id', $variantId)
+            ->update();
     }
 
     private function generateVariantSku(BaseConnection $db, array $product, string $sizeValue): string

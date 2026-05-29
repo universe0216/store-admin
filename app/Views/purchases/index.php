@@ -18,15 +18,11 @@
                         <!-- <h2 class="h5 fw-semibold mb-3">Purchase List</h2> -->
                         <div class="row g-3 align-items-end mb-3">
                             <div class="col-12 col-md-3">
-                                <label class="form-label text-secondary mb-1" for="purchaseProductSearch">Product Name</label>
                                 <input type="text" id="purchaseProductSearch" class="form-control" placeholder="Search by product name">
                             </div>
-                            <div class="col-12 col-md-3">
-                                <label class="form-label text-secondary mb-1">From</label>
-                                <div id="purchaseDateFrom"></div>
-                            </div>
-                            <div class="col-12 col-md-3">
-                                <label class="form-label text-secondary mb-1">To</label>
+                            <div class="col-12 col-md-6 d-flex align-items-center gap-2">
+                                <div id="purchaseDateFrom"></div> 
+                                <span class="text-secondary">~</span>
                                 <div id="purchaseDateTo"></div>
                             </div>
                             <div class="col-12 col-md-3 d-flex gap-2 justify-content-end">
@@ -63,6 +59,7 @@
                             </div>
                             <div id="purchaseFilterError" class="text-danger mt-2"></div>
                         </div>
+                       
                         <div id="purchasesGrid"></div>
                     </div>
                 </div>
@@ -71,6 +68,9 @@
                 <div class="card shadow-sm h-100">
                     <div class="card-body p-4"> 
                         <!-- <h2 class="h5 fw-semibold mb-3">Purchase Items</h2> -->
+                        <div class="d-flex justify-content-end mb-4">
+                            <button type="button" id="deletePurchaseBtn" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </div>
                         <div id="purchaseInfoPanel" class="border rounded bg-light p-3 mb-3 small">
                             <div class="row g-2">
                                 <div class="col-6 col-md-4">
@@ -210,8 +210,8 @@
         }
 
         function initWidgets() {
-            $("#purchaseDateFrom").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
-            $("#purchaseDateTo").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+            $("#purchaseDateFrom").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+            $("#purchaseDateTo").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
 
             purchaseGridAdapter = new $.jqx.dataAdapter(purchaseGridSource);
 
@@ -384,6 +384,35 @@
             loadPurchases(0, purchaseListPageSize, true);
         }
 
+        function deleteSelectedPurchase() {
+            const rowIndex = $("#purchasesGrid").jqxGrid("getselectedrowindex");
+            if (rowIndex < 0) {
+                setFilterError("Select a purchase to delete.");
+                return;
+            }
+
+            const row = $("#purchasesGrid").jqxGrid("getrowdata", rowIndex);
+            if (!row?.id) {
+                return;
+            }
+
+            const label = row.purchase_no || ("#" + row.id);
+            if (!confirm(`Delete purchase ${label}? This will reverse inventory and stock movements.`)) {
+                return;
+            }
+
+            setFilterError("");
+            $.ajax({
+                url: `${API_URLS.purchases}/${row.id}`,
+                method: "DELETE"
+            }).done(function (res) {
+                setFilterError("");
+                loadPurchases(purchaseListPage, purchaseListPageSize, false);
+            }).fail(function (xhr) {
+                setFilterError(xhr.responseJSON?.message || "Failed to delete purchase.");
+            });
+        }
+
         $(function() {
             initWidgets();
             clearPurchaseInfo();
@@ -419,6 +448,7 @@
                 const row = event.args?.row;
                 loadPurchaseItems(Number(row?.id || 0), row);
             });
+            $("#deletePurchaseBtn").on("click", deleteSelectedPurchase);
         });
     </script>
 <?= $this->endSection() ?>
