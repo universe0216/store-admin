@@ -5,6 +5,7 @@
 <?= $this->section('pageStyles') ?>
 <style>
     #saleHeaderForm .jqx-numberinput input,
+    #saleSummaryForm .jqx-numberinput input,
     #discountTotalInput input,
     #paidAmountInput input {
         height: 100% !important;
@@ -15,47 +16,55 @@
     #stockGrid .jqx-grid-cell-hover {
         cursor: pointer;
     }
+    .sale-summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.4rem 0;
+    }
+    .sale-summary-row .summary-label {
+        color: #6c757d;
+    }
+    .sale-summary-row .summary-value {
+        min-width: 140px;
+        text-align: right;
+    }
+    .sale-summary-row .summary-value input.form-control,
+    .sale-summary-row .summary-value .jqx-numberinput {
+        text-align: right;
+    }
+    #saleSummaryForm .jqx-numberinput {
+        width: 140px !important;
+    }
+    #saleSummaryForm hr {
+        margin: 0.75rem 0;
+        opacity: 0.15;
+    }
 </style>
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
     <div class="container-fluid py-4 px-5">
-        <div class="mb-4 d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="h3 fw-bold mb-1">New Sale</h1>
-            </div>
-            <a href="<?= site_url('sells') ?>" class="btn btn-outline-secondary">Back to Sales</a>
-        </div>
-
-        <div id="saleHeaderForm" class="card shadow-sm mb-4">
+        <div class="card shadow-sm mb-4">
             <div class="card-body p-4">
-                <!-- <h2 class="h6 fw-semibold mb-3">Sale Details</h2> -->
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <label class="form-label text-secondary mb-1">Sale Date</label>
-                        <div id="saleDateInput"></div>
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1 class="h4 fw-bold mb-0">New Sale</h1>
+                </div>
+                <div id="saleHeaderForm" class="row g-3">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <label class="form-label text-secondary mb-1">Sale Warehouse</label>
                         <div id="saleWarehouseDropdown"></div>
                     </div>
-                    <div class="col-12 col-md-6 col-lg-4">
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Sale Date</label>
+                        <div id="saleDateInput"></div>
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
                         <label class="form-label text-secondary mb-1">Customer Name</label>
                         <input type="text" id="customerNameInput" class="form-control" placeholder="Optional">
                     </div>
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <label class="form-label text-secondary mb-1">Sub Total</label>
-                        <input id="subTotalDisplay" type="text" class="form-control bg-light" readonly value="0.00">
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <label class="form-label text-secondary mb-1">Discount</label>
-                        <div id="discountTotalInput"></div>
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-4">
-                        <label class="form-label text-secondary mb-1">Paid Amount</label>
-                        <div id="paidAmountInput"></div>
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-4">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <label class="form-label text-secondary mb-1">Payment Method</label>
                         <select id="paymentMethodSelect" class="form-select">
                             <option value="cash">Cash</option>
@@ -64,9 +73,6 @@
                             <option value="check">Check</option>
                             <option value="other">Other</option>
                         </select>
-                    </div>
-                    <div class="col-12 d-flex align-items-end justify-content-lg-end">
-                        <button type="button" id="saveSaleBtn" class="btn btn-success">Save Sale</button>
                     </div>
                 </div>
             </div>
@@ -78,16 +84,14 @@
             <div class="col-12 col-lg-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-body p-4">
-                        <!-- <h2 class="h6 fw-semibold mb-2">Warehouse Stock</h2> -->
+                        <h2 class="h6 fw-semibold mb-3">Warehouse Stock</h2>
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-5">
-                                <!-- <label class="form-label text-secondary mb-1">Filter by Warehouse</label> -->
                                 <div id="stockWarehouseDropdown"></div>
                             </div>
                             <div class="col-12 col-md-7">
-                                <!-- <label class="form-label text-secondary mb-1" for="stockSearchInput">Search</label> -->
                                 <div class="d-flex gap-2">
-                                    <input type="text" id="stockSearchInput" class="form-control" placeholder="Search by Product name or product number">
+                                    <input type="text" id="stockSearchInput" class="form-control" placeholder="Search by product name or product number">
                                     <button type="button" id="clearStockFiltersBtn" class="btn btn-outline-secondary btn-sm text-nowrap">Clear</button>
                                 </div>
                             </div>
@@ -96,14 +100,51 @@
                     </div>
                 </div>
             </div>
+
             <div class="col-12 col-lg-6">
-                <div class="card shadow-sm h-100">
+                <div class="card shadow-sm">
                     <div class="card-body p-4">
-                        <h2 class="h6 fw-semibold mb-3">Sale Items</h2>
+                        <h2 class="h6 fw-semibold mb-3">Sale Items (<span id="saleItemsCount">0</span>)</h2>
                         <div id="saleItemsGrid"></div>
                     </div>
                 </div>
+
+                <div id="saleSummaryForm" class="card shadow-sm mt-4">
+                    <div class="card-body p-4">
+                        <h2 class="h6 fw-semibold mb-3">Sale Summary</h2>
+                        <div class="sale-summary-row">
+                            <span class="summary-label">Subtotal</span>
+                            <div class="summary-value">
+                                <input id="subTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
+                            </div>
+                        </div>
+                        <div class="sale-summary-row">
+                            <span class="summary-label">Discount</span>
+                            <div class="summary-value">
+                                <div id="discountTotalInput"></div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="sale-summary-row">
+                            <span class="summary-label fw-semibold text-dark">Grand Total</span>
+                            <div class="summary-value">
+                                <input id="grandTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end fw-semibold" readonly value="0.00">
+                            </div>
+                        </div>
+                        <div class="sale-summary-row">
+                            <span class="summary-label">Paid Amount</span>
+                            <div class="summary-value">
+                                <div id="paidAmountInput"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <a href="<?= site_url('sells') ?>" class="btn btn-outline-secondary">Cancel</a>
+            <button type="button" id="saveSaleBtn" class="btn btn-success">Save Sale</button>
         </div>
     </div>
 <?= $this->endSection() ?>
@@ -165,7 +206,6 @@
             spinButtons: true,
             value: 0
         });
-        $("#saveSaleBtn").jqxButton({ width: 160, height: 38, theme: "base" });
 
         $("#stockGrid").jqxGrid({
             width: "100%",
@@ -304,18 +344,21 @@
         }
 
         $("#subTotalDisplay").val(subTotal.toFixed(2));
+        const grandTotal = Number(Math.max(0, subTotal - discount).toFixed(2));
+        $("#grandTotalDisplay").val(grandTotal.toFixed(2));
         saleTotalsCalcLock = false;
 
-        return { subTotal, discount, paid };
+        return { subTotal, discount, paid, grandTotal };
     }
 
     function updateSaleTotalsFooter() {
         const rows = saleItems || [];
+        $("#saleItemsCount").text(rows.length);
         const totalQty = rows.reduce((sum, r) => sum + Number(r.qty || 0), 0);
         const totals = recalcSaleTotals("items");
-        const paid = totals ? totals.paid : getSaleSubTotal();
+        const grandTotal = totals ? totals.grandTotal : getSaleSubTotal();
         $("#saleItemsTotalsFooter").text(
-            `Total Qty: ${totalQty} | Grand Total: ${paid.toFixed(2)}`
+            `Total Qty: ${totalQty} | Grand Total: ${grandTotal.toFixed(2)}`
         );
     }
 

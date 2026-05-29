@@ -36,27 +36,42 @@
     #unitPriceInput {
         min-width: 0;
     }
+    .purchase-summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.4rem 0;
+    }
+    .purchase-summary-row .summary-label {
+        color: #6c757d;
+    }
+    .purchase-summary-row .summary-value {
+        min-width: 140px;
+        text-align: right;
+    }
+    .purchase-summary-row .summary-value input.form-control,
+    .purchase-summary-row .summary-value .jqx-numberinput {
+        text-align: right;
+    }
+    #purchaseSummaryForm .jqx-numberinput {
+        width: 140px !important;
+    }
+    #purchaseSummaryForm hr {
+        margin: 0.75rem 0;
+        opacity: 0.15;
+    }
 </style>
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
     <div class="container-fluid py-4 px-5">
-        <div class="mb-4 d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="h3 fw-bold mb-1">New Purchase</h1>
-                <!-- <p class="text-muted mb-0">Create purchase transaction.</p> -->
-            </div>
-            <a href="<?= site_url('purchases') ?>" class="btn btn-outline-secondary">Back to List</a>
-        </div>
-
-        <div id="purchaseHeaderForm" class="card shadow-sm mb-4">
+        <div class="card shadow-sm mb-4">
             <div class="card-body p-4">
-                <h2 class="h6 fw-semibold mb-3">Purchase Details</h2>
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Purchase Date</label>
-                        <div id="purchaseDate"></div>
-                    </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1 class="h4 fw-bold mb-0">New Purchase</h1>
+                </div>
+                <div id="purchaseHeaderForm" class="row g-3">
                     <div class="col-12 col-md-6 col-lg-3">
                         <label class="form-label text-secondary mb-1">Supplier</label>
                         <div id="supplierDropdown"></div>
@@ -66,20 +81,8 @@
                         <div id="purchaseWarehouseDropdown"></div>
                     </div>
                     <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Transfer Fee</label>
-                        <div id="transferFeeInput"></div>
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Sub Total</label>
-                        <input id="subTotalDisplay" type="text" class="form-control bg-light" readonly value="0.00">
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Discount</label>
-                        <div id="discountTotalInput"></div>
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Paid Amount</label>
-                        <div id="paidAmountInput"></div>
+                        <label class="form-label text-secondary mb-1">Purchase Date</label>
+                        <div id="purchaseDate"></div>
                     </div>
                     <div class="col-12 col-md-6 col-lg-3">
                         <label class="form-label text-secondary mb-1">Payment Method</label>
@@ -90,18 +93,6 @@
                             <option value="check">Check</option>
                             <option value="other">Other</option>
                         </select>
-                    </div>
-                    <div class="col-12 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Notes</label>
-                        <input id="notesInput" type="text" class="form-control">
-                    </div>
-                    
-                    <div class="col-12 col-lg-6 d-flex flex-column align-items-lg-end justify-content-end">
-                        <label class="form-label text-secondary mb-1">Total Paid (Paid + Transfer Fee)</label>
-                        <input id="totalPaidDisplay" type="text" class="form-control bg-light text-end" readonly value="0.00" style="max-width: 220px;">
-                    </div>
-                    <div class="col-12 col-lg-3 d-flex align-items-end justify-content-lg-end">
-                        <input type="button" id="savePurchaseBtn" value="Save Purchase" class="btn btn-primary">
                     </div>
                 </div>
             </div>
@@ -115,15 +106,15 @@
                     <div class="card-body p-4">
                         <h2 class="h6 fw-semibold mb-3">Add Product</h2>
                         <form id="purchaseItemForm" class="row g-3">
-                            <div class="col-12 col-md-6">
+                            <div class="col-12">
                                 <label class="form-label text-secondary mb-1">Name</label>
                                 <input type="text" id="productNameInput" class="form-control" placeholder="Product name">
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12">
                                 <label class="form-label text-secondary mb-1">Serial Number</label>
                                 <input type="text" id="productSerialInput" class="form-control" placeholder="Serial number">
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12">
                                 <label class="form-label text-secondary mb-1">Category</label>
                                 <div id="categoryDropDownButton" style="width: 100%;">
                                     <div id="categoryTree"></div>
@@ -145,7 +136,7 @@
                                 <label class="form-label text-secondary mb-1">Sets Count</label>
                                 <div id="setsCountInput"></div>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12">
                                 <label class="form-label text-secondary mb-1">
                                     Unit Price
                                     <span id="unitPriceRateLink" class="text-primary ms-2 d-none" role="button" tabindex="0"></span>
@@ -177,8 +168,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-12 col-md-6 d-flex align-items-end">
-                                <button type="button" id="addProductsBtn" class="btn btn-sm btn-primary">Add Product</button>
+                            <div class="col-12">
+                                <button type="button" id="addProductsBtn" class="btn btn-primary">+ Add Product</button>
                             </div>
                         </form>
                     </div>
@@ -186,13 +177,65 @@
             </div>
 
             <div class="col-12 col-lg-6">
-                <div class="card shadow-sm h-100">
+                <div class="card shadow-sm">
                     <div class="card-body p-4">
-                        <h2 class="h6 fw-semibold mb-3">Purchase Items</h2>
+                        <h2 class="h6 fw-semibold mb-3">Purchase Items (<span id="purchaseItemsCount">0</span>)</h2>
                         <div id="itemsGrid"></div>
                     </div>
                 </div>
+
+                <div id="purchaseSummaryForm" class="card shadow-sm mt-4">
+                    <div class="card-body p-4">
+                        <h2 class="h6 fw-semibold mb-3">Purchase Summary</h2>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label">Subtotal</span>
+                            <div class="summary-value">
+                                <input id="subTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
+                            </div>
+                        </div>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label">Discount</span>
+                            <div class="summary-value">
+                                <div id="discountTotalInput"></div>
+                            </div>
+                        </div>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label">Transfer Fee</span>
+                            <div class="summary-value">
+                                <div id="transferFeeInput"></div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label fw-semibold text-dark">Grand Total</span>
+                            <div class="summary-value">
+                                <input id="grandTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end fw-semibold" readonly value="0.00">
+                            </div>
+                        </div>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label">Paid Amount</span>
+                            <div class="summary-value">
+                                <div id="paidAmountInput"></div>
+                            </div>
+                        </div>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label">Total Paid (Paid + Transfer Fee)</span>
+                            <div class="summary-value">
+                                <input id="totalPaidDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="form-label text-secondary mb-1">Notes</label>
+                            <input id="notesInput" type="text" class="form-control">
+                        </div>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <a href="<?= site_url('purchases') ?>" class="btn btn-outline-secondary">Cancel</a>
+            <button type="button" id="savePurchaseBtn" class="btn btn-primary">Save Purchase</button>
         </div>
     </div>
 
@@ -708,6 +751,7 @@
 
         function updateGridFooterTotals() {
             const totals = getGridTotals();
+            $("#purchaseItemsCount").text(totals.totalCount);
             $("#itemsGridTotalsFooter").text(
                 `Total Counts: ${totals.totalCount} | Sum Total Price: ${totals.totalPriceSum.toFixed(2)}`
             );
@@ -752,6 +796,7 @@
 
             const grandTotal = Number((subTotal - discount + transferFee).toFixed(2));
             const totalPaid = Number((paid + transferFee).toFixed(2));
+            $("#grandTotalDisplay").val(grandTotal.toFixed(2));
             $("#totalPaidDisplay").val(totalPaid.toFixed(2));
 
             totalsCalcLock = false;

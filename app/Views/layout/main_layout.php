@@ -64,6 +64,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="<?= site_url('inventory') ?>">Inventory</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('inventory/sales-statistics') ?>">Sales Monthly Statistics</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('transfers') ?>">Transfer</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('transfers/create') ?>">New Transfer</a></li>
                         </ul>

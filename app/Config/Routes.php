@@ -12,6 +12,7 @@ $routes->get('sells', 'Sells::index');
 $routes->get('sells/create', 'Sells::create');
 $routes->get('stock', 'Stock::index');
 $routes->get('inventory', 'Inventory::index');
+$routes->get('inventory/sales-statistics', 'Inventory::salesStatistics');
 $routes->get('transfers', 'Transfers::index');
 $routes->get('transfers/create', 'Transfers::create');
 $routes->get('suppliers', 'Suppliers::index');
