@@ -12,6 +12,7 @@ class SaleModel extends BaseModel
         'sale_no',
         'sale_date',
         'customer_name',
+        'warehouse_id',
         'sub_total',
         'discount_total',
         'grand_total',

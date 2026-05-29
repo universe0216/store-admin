@@ -7,35 +7,95 @@
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h3 fw-bold mb-1">Sales History</h1>
-                <p class="text-muted mb-0">Monitor sales transactions.</p>
             </div>
             <a href="<?= site_url('sells/create') ?>" class="btn btn-primary">New Sale</a>
         </div>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
-                
-                <div class="row g-3 align-items-end">
-                    <div class="col-12 col-lg-4">
-                        <label class="form-label text-secondary mb-1" for="saleSearchInput">Product</label>
-                        <input type="text" id="saleSearchInput" class="form-control" placeholder="Product name or product number">
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Since</label>
-                        <div id="saleDateFrom"></div>
-                    </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Until</label>
-                        <div id="saleDateTo"></div>
-                    </div>
-                    <div class="col-12 col-lg-2 d-flex gap-2">
-                        <button type="button" id="applySaleFiltersBtn" class="btn btn-primary flex-grow-1">Search</button>
-                        <button type="button" id="clearSaleFiltersBtn" class="btn btn-outline-secondary">Clear</button>
+        <div class="row g-3">
+            <div class="col-12 col-xl-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="row g-3 align-items-end mb-3">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label text-secondary mb-1" for="saleProductSearch">Product Name</label>
+                                <input type="text" id="saleProductSearch" class="form-control" placeholder="Search by product name">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label text-secondary mb-1">From</label>
+                                <div id="saleDateFrom"></div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label text-secondary mb-1">To</label>
+                                <div id="saleDateTo"></div>
+                            </div>
+                            <div class="col-12 col-md-3 d-flex gap-2 justify-content-end">
+                                <button type="button" id="applySaleFiltersBtn" class="btn btn-primary btn-sm">Search</button>
+                                <button type="button" id="clearSaleFiltersBtn" class="btn btn-outline-secondary btn-sm">Clear</button>
+                            </div>
+                        </div>
+                        <div id="saleFilterMessage" class="border rounded bg-light p-3 mb-3 small">
+                            <div class="row g-2">
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Total Sales</span>
+                                    <div id="metricTotalSales" class="fw-semibold">0</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Total Sale Items</span>
+                                    <div id="metricTotalSaleItems" class="fw-semibold">0</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Total Amount</span>
+                                    <div id="metricTotalAmount" class="fw-semibold">0.00</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Total Cost</span>
+                                    <div id="metricTotalCost" class="fw-semibold">0.00</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Total Profit</span>
+                                    <div id="metricTotalProfit" class="fw-semibold">0.00</div>
+                                </div>
+                            </div>
+                            <div id="saleFilterError" class="text-danger mt-2"></div>
+                        </div>
+                        <div id="salesGrid"></div>
                     </div>
                 </div>
-                <div id="saleFilterMessage" class="small fw-semibold mt-2"></div>
-           
-                <div id="salesGrid"></div>
+            </div>
+            <div class="col-12 col-xl-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div id="saleInfoPanel" class="border rounded bg-light p-3 mb-3 small">
+                            <div class="row g-2">
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Warehouse</span>
+                                    <div id="infoWarehouse" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Date</span>
+                                    <div id="infoSaleDate" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Customer</span>
+                                    <div id="infoCustomer" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Total Amount</span>
+                                    <div id="infoTotalAmount" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Total Cost</span>
+                                    <div id="infoTotalCost" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Profit</span>
+                                    <div id="infoProfit" class="fw-semibold">—</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="saleItemsGrid"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -43,100 +103,315 @@
 
 <?= $this->section('pageScripts') ?>
 <script>
-    const API_URLS = {
-        sales: "<?= site_url('api/sales') ?>"
-    };
+        const API_URLS = {
+            sales: "<?= site_url('api/sales') ?>"
+        };
+        const SALE_PAGE_SIZE = 20;
+        let saleListPage = 0;
+        let saleListPageSize = SALE_PAGE_SIZE;
+        let saleListTotal = 0;
+        let saleListLoading = false;
+        let suppressSalePageEvent = false;
 
-    function setFilterMessage(msg, isError = false) {
-        const box = $("#saleFilterMessage");
-        box.text(msg || "");
-        box.removeClass("text-success text-danger");
-        if (msg) {
-            box.addClass(isError ? "text-danger" : "text-success");
-        }
-    }
-
-    function initWidgets() {
-        $("#saleDateFrom").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
-        $("#saleDateTo").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
-
-        $("#salesGrid").jqxGrid({
-            width: "100%",
-            height: 520,
-            columnsresize: true,
-            source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" }),
-            columns: [
-                { text: "ID", datafield: "id", width: 80 },
-                { text: "Sale No", datafield: "sale_no", width: 180 },
-                { text: "Date", datafield: "sale_date", width: 180 },
-                { text: "Customer", datafield: "customer_name", width: 180 },
-                { text: "Sub Total", datafield: "sub_total", width: 120, cellsformat: "f2", cellsalign: "right" },
-                { text: "Grand Total", datafield: "grand_total", cellsformat: "f2", cellsalign: "right" }
+        const salesGridSource = {
+            localdata: [],
+            datatype: "array",
+            totalrecords: 0,
+            datafields: [
+                { name: "id", type: "number" },
+                { name: "sale_no", type: "string" },
+                { name: "sale_date", type: "string" },
+                { name: "customer_name", type: "string" },
+                { name: "warehouse_name", type: "string" },
+                { name: "grand_total", type: "number" },
+                { name: "sub_total", type: "number" }
             ]
-        });
-    }
+        };
+        let salesGridAdapter = null;
 
-    function getDateFilterValue(selector) {
-        const date = $(selector).jqxDateTimeInput("getDate");
-        if (!date) {
-            return "";
-        }
-        return $(selector).jqxDateTimeInput("getText");
-    }
-
-    function getFilterParams() {
-        const params = {};
-        const q = String($("#saleSearchInput").val() || "").trim();
-        const dateFrom = getDateFilterValue("#saleDateFrom");
-        const dateTo = getDateFilterValue("#saleDateTo");
-
-        if (q !== "") {
-            params.q = q;
-        }
-        if (dateFrom) {
-            params.date_from = dateFrom;
-        }
-        if (dateTo) {
-            params.date_to = dateTo;
+        function formatMoney(value) {
+            return Number(value || 0).toFixed(2);
         }
 
-        return params;
-    }
+        function renderSaleSummary(summary) {
+            const s = summary || {};
+            $("#metricTotalSales").text(Number(s.total_sales || 0));
+            $("#metricTotalSaleItems").text(Number(s.total_sale_items || 0));
+            $("#metricTotalAmount").text(formatMoney(s.total_amount));
+            $("#metricTotalCost").text(formatMoney(s.total_cost));
+            $("#metricTotalProfit").text(formatMoney(s.total_profit));
+            $("#saleFilterError").text("");
+        }
 
-    function loadSales() {
-        setFilterMessage("");
+        function setFilterError(msg) {
+            $("#saleFilterError").text(msg || "");
+        }
 
-        return $.getJSON(API_URLS.sales, getFilterParams()).done(function (res) {
-            const rows = res.data || [];
-            $("#salesGrid").jqxGrid({
-                source: new $.jqx.dataAdapter({ localdata: rows, datatype: "array" })
-            });
-            setFilterMessage(rows.length ? `${rows.length} sale(s) found.` : "No sales match your filters.");
-        }).fail(function (xhr) {
-            const msg = xhr.responseJSON?.message || "Failed to load sales.";
-            setFilterMessage(msg, true);
-        });
-    }
+        function clearSaleInfo() {
+            $("#infoWarehouse").text("—");
+            $("#infoSaleDate").text("—");
+            $("#infoCustomer").text("—");
+            $("#infoTotalAmount").text("—");
+            $("#infoTotalCost").text("—");
+            $("#infoProfit").text("—");
+        }
 
-    function clearFilters() {
-        $("#saleSearchInput").val("");
-        $("#saleDateFrom").jqxDateTimeInput("val", null);
-        $("#saleDateTo").jqxDateTimeInput("val", null);
-        loadSales();
-    }
-
-    $(function() {
-        initWidgets();
-        loadSales();
-
-        $("#applySaleFiltersBtn").on("click", loadSales);
-        $("#clearSaleFiltersBtn").on("click", clearFilters);
-        $("#saleSearchInput").on("keydown", function (e) {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                loadSales();
+        function setSaleInfo(sale, metrics) {
+            if (!sale) {
+                clearSaleInfo();
+                return;
             }
+
+            const m = metrics || {};
+            $("#infoWarehouse").text(sale.warehouse_name || "—");
+            $("#infoSaleDate").text(sale.sale_date || "—");
+            $("#infoCustomer").text(sale.customer_name || "—");
+            $("#infoTotalAmount").text(formatMoney(m.total_amount ?? sale.grand_total));
+            $("#infoTotalCost").text(formatMoney(m.total_cost));
+            $("#infoProfit").text(formatMoney(m.total_profit));
+        }
+
+        function getDateFilterValue(selector) {
+            const date = $(selector).jqxDateTimeInput("getDate");
+            if (!date) {
+                return "";
+            }
+            return $(selector).jqxDateTimeInput("getText");
+        }
+
+        function getFilterParams(page, perPage) {
+            const params = {
+                page: (page ?? saleListPage) + 1,
+                per_page: perPage ?? saleListPageSize
+            };
+            const productName = String($("#saleProductSearch").val() || "").trim();
+            const dateFrom = getDateFilterValue("#saleDateFrom");
+            const dateTo = getDateFilterValue("#saleDateTo");
+
+            if (productName !== "") {
+                params.product_name = productName;
+            }
+            if (dateFrom) {
+                params.date_from = dateFrom;
+            }
+            if (dateTo) {
+                params.date_to = dateTo;
+            }
+
+            return params;
+        }
+
+        function initWidgets() {
+            $("#saleDateFrom").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+            $("#saleDateTo").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+
+            salesGridAdapter = new $.jqx.dataAdapter(salesGridSource);
+
+            $("#salesGrid").jqxGrid({
+                width: "100%",
+                height: 380,
+                columnsresize: true,
+                selectionmode: "singlerow",
+                pageable: true,
+                pagesize: SALE_PAGE_SIZE,
+                pagesizeoptions: ["10", "20", "50", "100"],
+                virtualmode: true,
+                rendergridrows: function () {
+                    return salesGridSource.localdata;
+                },
+                source: salesGridAdapter,
+                columns: [
+                    { text: "ID", datafield: "id", width: 50 },
+                    { text: "Sale No", datafield: "sale_no", width: 180 },
+                    { text: "Date", datafield: "sale_date", width: 100 },
+                    { text: "Customer", datafield: "customer_name", width: 140 },
+                    { text: "Warehouse", datafield: "warehouse_name", width: 120 },
+                    { text: "Grand Total", datafield: "grand_total", cellsformat: "f2", cellsalign: "right" }
+                ]
+            });
+
+            $("#saleItemsGrid").jqxGrid({
+                width: "100%",
+                height: 320,
+                columnsresize: true,
+                source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" }),
+                columns: [
+                    { text: "Product", datafield: "product_name", width: 160 },
+                    { text: "Product Number", datafield: "product_number", width: 120 },
+                    { text: "Brand", datafield: "brand", width: 100 },
+                    { text: "SKU", datafield: "sku", width: 100 },
+                    { text: "Size", datafield: "size_value", width: 80 },
+                    { text: "Qty", datafield: "qty", width: 70, cellsalign: "right" },
+                    { text: "Unit Price", datafield: "unit_price", width: 100, cellsformat: "f2", cellsalign: "right" },
+                    { text: "Unit Cost", datafield: "unit_cost", width: 100, cellsformat: "f2", cellsalign: "right" },
+                    { text: "Line Total", datafield: "line_total", cellsformat: "f2", cellsalign: "right" }
+                ]
+            });
+        }
+
+        function updateSalesGridSource(rows, total, syncPage) {
+            saleListTotal = total;
+            suppressSalePageEvent = true;
+
+            salesGridSource.localdata = rows;
+            salesGridSource.totalrecords = total;
+            salesGridAdapter.dataBind();
+            $("#salesGrid").jqxGrid("updatebounddata");
+
+            if (syncPage) {
+                const paging = $("#salesGrid").jqxGrid("getpaginginformation");
+                if (!paging || paging.pagenum !== saleListPage) {
+                    $("#salesGrid").jqxGrid("gotopage", saleListPage);
+                }
+            }
+
+            window.setTimeout(function () {
+                suppressSalePageEvent = false;
+            }, 0);
+        }
+
+        function loadSales(page, perPage, resetPage) {
+            setFilterError("");
+
+            if (resetPage) {
+                saleListPage = 0;
+                if ($("#salesGrid").data("jqxGrid")) {
+                    suppressSalePageEvent = true;
+                    $("#salesGrid").jqxGrid("gotopage", 0);
+                    window.setTimeout(function () {
+                        suppressSalePageEvent = false;
+                    }, 0);
+                }
+            } else if (page !== undefined && page !== null) {
+                saleListPage = page;
+            }
+            if (perPage !== undefined && perPage !== null) {
+                saleListPageSize = perPage;
+            }
+
+            const requestPage = saleListPage;
+            const requestSize = saleListPageSize;
+            saleListLoading = true;
+
+            return $.getJSON(API_URLS.sales, getFilterParams(requestPage, requestSize))
+                .done(function (res) {
+                    const rows = res.data || [];
+                    const pagination = res.pagination || {};
+                    const total = Number(pagination.total || 0);
+
+                    saleListPage = Math.max(0, Number(pagination.page || 1) - 1);
+                    saleListPageSize = Number(pagination.per_page || requestSize);
+                    updateSalesGridSource(rows, total, true);
+                    renderSaleSummary(res.summary);
+
+                    if (rows.length > 0) {
+                        $("#salesGrid").jqxGrid("selectrow", 0);
+                        loadSaleItems(Number(rows[0].id), rows[0]);
+                    } else {
+                        clearSaleInfo();
+                        $("#saleItemsGrid").jqxGrid({
+                            source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" })
+                        });
+                    }
+                })
+                .fail(function (xhr) {
+                    const msg = xhr.responseJSON?.message || "Failed to load sales.";
+                    setFilterError(msg);
+                    renderSaleSummary(null);
+                })
+                .always(function () {
+                    saleListLoading = false;
+                });
+        }
+
+        function loadSaleItems(saleId, saleRow) {
+            if (!saleId) {
+                clearSaleInfo();
+                $("#saleItemsGrid").jqxGrid({
+                    source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" })
+                });
+                return;
+            }
+
+            if (saleRow) {
+                setSaleInfo(saleRow, {
+                    total_amount: saleRow.grand_total,
+                    total_cost: saleRow.total_cost,
+                    total_profit: saleRow.total_profit
+                });
+            }
+
+            $.getJSON(`${API_URLS.sales}/${saleId}`).done(function (res) {
+                const sale = res.data?.sale;
+                const metrics = res.data?.metrics;
+                if (sale) {
+                    setSaleInfo(sale, metrics);
+                }
+
+                const items = (res.data?.items || []).map(item => ({
+                    product_name: item.product_name || "",
+                    product_number: item.product_number || "",
+                    brand: item.brand || "",
+                    sku: item.sku || "",
+                    size_value: item.size_value || "",
+                    qty: Number(item.qty || 0),
+                    unit_price: Number(item.unit_price || 0),
+                    unit_cost: Number(item.unit_cost || 0),
+                    line_total: Number(item.line_total || 0)
+                }));
+                $("#saleItemsGrid").jqxGrid({
+                    source: new $.jqx.dataAdapter({ localdata: items, datatype: "array" })
+                });
+            }).fail(function () {
+                clearSaleInfo();
+                $("#saleItemsGrid").jqxGrid({
+                    source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" })
+                });
+            });
+        }
+
+        function clearFilters() {
+            $("#saleProductSearch").val("");
+            $("#saleDateFrom").jqxDateTimeInput("val", null);
+            $("#saleDateTo").jqxDateTimeInput("val", null);
+            loadSales(0, saleListPageSize, true);
+        }
+
+        $(function () {
+            initWidgets();
+            clearSaleInfo();
+            renderSaleSummary(null);
+            loadSales(0, SALE_PAGE_SIZE, true);
+
+            $("#applySaleFiltersBtn").on("click", function () {
+                loadSales(0, saleListPageSize, true);
+            });
+            $("#clearSaleFiltersBtn").on("click", clearFilters);
+            $("#saleProductSearch").on("keydown", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    loadSales(0, saleListPageSize, true);
+                }
+            });
+
+            $("#salesGrid").on("pagechanged", function (event) {
+                if (suppressSalePageEvent) {
+                    return;
+                }
+                loadSales(event.args.pagenum, event.args.pagesize, false);
+            });
+
+            $("#salesGrid").on("pagesizechanged", function (event) {
+                if (suppressSalePageEvent) {
+                    return;
+                }
+                loadSales(0, event.args.pagesize, true);
+            });
+
+            $("#salesGrid").on("rowselect", function (event) {
+                const row = event.args?.row;
+                loadSaleItems(Number(row?.id || 0), row);
+            });
         });
-    });
-</script>
+    </script>
 <?= $this->endSection() ?>

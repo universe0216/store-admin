@@ -48,6 +48,7 @@ $routes->group('api', static function ($routes): void {
     $routes->get('stock', 'Api\Purchases::stock');
     $routes->put('stock/warehouse', 'Api\Purchases::updateVariantWarehouse');
     $routes->get('sales', 'Api\Sells::index');
+    $routes->get('sales/(:num)', 'Api\Sells::show/$1');
     $routes->post('sales', 'Api\Sells::create');
     $routes->get('warehouse-products', 'Api\Sells::productsByWarehouse');
 });
