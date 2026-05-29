@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= $this->renderSection('title') ?: 'Purchase Management' ?></title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/styles/jqx.base.css">
+    <link href="<?= base_url('assets/css/bootstrap.min.css') ?>" rel="stylesheet">
+    <link rel="stylesheet" href="<?= base_url('assets/jqwidgets/styles/jqx.base.css') ?>">
 
     <style>
         .jqx-widget,
@@ -79,30 +79,30 @@
         </div>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxcore.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxdata.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxbuttons.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxscrollbar.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxlistbox.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxpanel.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxdropdownbutton.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxtree.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxdropdownlist.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxmenu.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.pager.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.edit.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.filter.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxdatatable.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxtreegrid.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.selection.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.columnsresize.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxdatetimeinput.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxcalendar.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxnumberinput.js"></script>
-    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxinput.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="<?= base_url('assets/js/jquery.min.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxcore.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxdata.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxbuttons.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxscrollbar.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxlistbox.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxpanel.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxdropdownbutton.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxtree.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxdropdownlist.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxmenu.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxgrid.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxgrid.pager.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxgrid.edit.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxgrid.filter.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxdatatable.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxtreegrid.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxgrid.selection.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxgrid.columnsresize.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxdatetimeinput.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxcalendar.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxnumberinput.js') ?>"></script>
+    <script src="<?= base_url('assets/jqwidgets/jqxinput.js') ?>"></script>
+    <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
 
     <?= $this->renderSection('pageScripts') ?>
 </body>
