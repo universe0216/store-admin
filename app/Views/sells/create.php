@@ -4,7 +4,9 @@
 
 <?= $this->section('pageStyles') ?>
 <style>
-    #saleHeaderForm .jqx-numberinput input {
+    #saleHeaderForm .jqx-numberinput input,
+    #discountTotalInput input,
+    #paidAmountInput input {
         height: 100% !important;
         line-height: 34px !important;
         padding-top: 0 !important;
@@ -34,12 +36,24 @@
                         <div id="saleDateInput"></div>
                     </div>
                     <div class="col-12 col-md-6 col-lg-4">
-                        <label class="form-label text-secondary mb-1">Warehouse</label>
-                        <div id="warehouseDropdown"></div>
+                        <label class="form-label text-secondary mb-1">Sale Warehouse</label>
+                        <div id="saleWarehouseDropdown"></div>
                     </div>
                     <div class="col-12 col-md-6 col-lg-4">
                         <label class="form-label text-secondary mb-1">Customer Name</label>
                         <input type="text" id="customerNameInput" class="form-control" placeholder="Optional">
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <label class="form-label text-secondary mb-1">Sub Total</label>
+                        <input id="subTotalDisplay" type="text" class="form-control bg-light" readonly value="0.00">
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <label class="form-label text-secondary mb-1">Discount</label>
+                        <div id="discountTotalInput"></div>
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <label class="form-label text-secondary mb-1">Paid Amount</label>
+                        <div id="paidAmountInput"></div>
                     </div>
                     <div class="col-12 d-flex align-items-end justify-content-lg-end">
                         <button type="button" id="saveSaleBtn" class="btn btn-success">Save Sale</button>
@@ -55,8 +69,18 @@
                 <div class="card shadow-sm h-100">
                     <div class="card-body p-4">
                         <h2 class="h6 fw-semibold mb-2">Warehouse Stock</h2>
-                        <div class="mb-3">
-                            <input type="text" id="stockSearchInput" class="form-control" placeholder="Search product name or product number">
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-5">
+                                <label class="form-label text-secondary mb-1">Filter by Warehouse</label>
+                                <div id="stockWarehouseDropdown"></div>
+                            </div>
+                            <div class="col-12 col-md-7">
+                                <label class="form-label text-secondary mb-1" for="stockSearchInput">Search</label>
+                                <div class="d-flex gap-2">
+                                    <input type="text" id="stockSearchInput" class="form-control" placeholder="Product name or product number">
+                                    <button type="button" id="clearStockFiltersBtn" class="btn btn-outline-secondary btn-sm text-nowrap">Clear</button>
+                                </div>
+                            </div>
                         </div>
                         <div id="stockGrid"></div>
                     </div>
@@ -84,8 +108,9 @@
 
     let stockSource = [];
     let saleItems = [];
-    let lastWarehouseId = 0;
+    let lastSaleWarehouseId = 0;
     let stockSearchTerm = "";
+    let saleTotalsCalcLock = false;
 
     function setMessage(msg, isError = false) {
         const box = $("#saleMessageBox");
@@ -96,12 +121,39 @@
 
     function initWidgets() {
         $("#saleDateInput").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd" });
-        $("#warehouseDropdown").jqxDropDownList({
+        $("#saleWarehouseDropdown").jqxDropDownList({
             width: "100%",
             height: 34,
             displayMember: "name",
             valueMember: "id",
-            placeHolder: "Select warehouse"
+            placeHolder: "Select sale warehouse"
+        });
+        $("#stockWarehouseDropdown").jqxDropDownList({
+            width: "100%",
+            height: 34,
+            displayMember: "name",
+            valueMember: "id",
+            placeHolder: "All warehouses"
+        });
+        $("#discountTotalInput").jqxNumberInput({
+            width: "100%",
+            height: 34,
+            decimalDigits: 2,
+            digits: 12,
+            min: 0,
+            inputMode: "simple",
+            spinButtons: true,
+            value: 0
+        });
+        $("#paidAmountInput").jqxNumberInput({
+            width: "100%",
+            height: 34,
+            decimalDigits: 2,
+            digits: 12,
+            min: 0,
+            inputMode: "simple",
+            spinButtons: true,
+            value: 0
         });
         $("#saveSaleBtn").jqxButton({ width: 160, height: 38, theme: "base" });
 
@@ -113,9 +165,10 @@
             columnsresize: true,
             enablehover: true,
             columns: [
-                { text: "Product", datafield: "product_name", width: 140 },
-                { text: "Product No.", datafield: "product_number", width: 110 },
-                { text: "SKU", datafield: "sku", width: 100 },
+                { text: "Warehouse", datafield: "warehouse_name", width: 100 },
+                { text: "Product", datafield: "product_name", width: 130 },
+                { text: "Product No.", datafield: "product_number", width: 100 },
+                { text: "Style", datafield: "style", width: 90 },
                 { text: "Size", datafield: "size_value", width: 70 },
                 { text: "Brand", datafield: "brand", width: 90 },
                 { text: "Available", datafield: "remaining_qty", width: 90, cellsalign: "right" },
@@ -199,22 +252,69 @@
         $("#stockSearchInput").val("");
     }
 
+    function clearStockFilters() {
+        clearStockSearch();
+        $("#stockWarehouseDropdown").jqxDropDownList("clearSelection");
+        loadStock();
+    }
+
     function refreshSaleGrid() {
         $("#saleItemsGrid").jqxGrid({ source: new $.jqx.dataAdapter({ localdata: saleItems, datatype: "array" }) });
         updateSaleTotalsFooter();
     }
 
+    function getSaleSubTotal() {
+        return (saleItems || []).reduce((sum, r) => sum + Number(r.line_total || 0), 0);
+    }
+
+    function recalcSaleTotals(changedField) {
+        if (saleTotalsCalcLock) {
+            return null;
+        }
+
+        const subTotal = getSaleSubTotal();
+        saleTotalsCalcLock = true;
+
+        let discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
+        let paid = Number($("#paidAmountInput").jqxNumberInput("val") || 0);
+
+        if (changedField === "items") {
+            paid = subTotal;
+            discount = 0;
+            $("#paidAmountInput").jqxNumberInput("val", paid);
+            $("#discountTotalInput").jqxNumberInput("val", discount);
+        } else if (changedField === "paid") {
+            discount = Number(Math.max(0, subTotal - paid).toFixed(2));
+            $("#discountTotalInput").jqxNumberInput("val", discount);
+        } else if (changedField === "discount") {
+            paid = Number(Math.max(0, subTotal - discount).toFixed(2));
+            $("#paidAmountInput").jqxNumberInput("val", paid);
+        }
+
+        $("#subTotalDisplay").val(subTotal.toFixed(2));
+        saleTotalsCalcLock = false;
+
+        return { subTotal, discount, paid };
+    }
+
     function updateSaleTotalsFooter() {
         const rows = saleItems || [];
         const totalQty = rows.reduce((sum, r) => sum + Number(r.qty || 0), 0);
-        const totalAmount = rows.reduce((sum, r) => sum + Number(r.line_total || 0), 0);
+        const totals = recalcSaleTotals("items");
+        const paid = totals ? totals.paid : getSaleSubTotal();
         $("#saleItemsTotalsFooter").text(
-            `Total Qty: ${totalQty} | Grand Total: ${totalAmount.toFixed(2)}`
+            `Total Qty: ${totalQty} | Grand Total: ${paid.toFixed(2)}`
         );
     }
 
     function findStockByVariant(variantId) {
         return stockSource.find(s => Number(s.variant_id) === Number(variantId));
+    }
+
+    function remainingQtyForVariant(variantId) {
+        return stockSource
+            .filter(s => Number(s.variant_id) === Number(variantId))
+            .reduce((sum, s) => sum + Number(s.remaining_qty || 0), 0);
     }
 
     function findSaleItem(variantId) {
@@ -223,7 +323,8 @@
 
     function addOneToSale(stockRow) {
         const variantId = Number(stockRow.variant_id);
-        const stock = findStockByVariant(variantId);
+        const stock = stockSource.find(s => Number(s.inventory_id) === Number(stockRow.inventory_id))
+            || findStockByVariant(variantId);
         if (!stock || Number(stock.remaining_qty) < 1) {
             setMessage("No stock available for this product.", true);
             return;
@@ -261,14 +362,13 @@
 
         const variantId = Number(gridRow.variant_id);
         const saleRow = findSaleItem(variantId);
-        const stock = findStockByVariant(variantId);
-        if (!saleRow || !stock) {
+        if (!saleRow) {
             return;
         }
 
         const oldQty = Number(saleRow.qty);
         const newQty = Math.max(1, Number(gridRow.qty || 1));
-        const maxQty = Number(saleRow.qty) + Number(stock.remaining_qty);
+        const maxQty = oldQty + remainingQtyForVariant(variantId);
         const adjustedQty = Math.min(newQty, maxQty);
 
         if (adjustedQty !== newQty) {
@@ -276,13 +376,37 @@
         }
 
         const qtyDelta = adjustedQty - oldQty;
-        stock.remaining_qty = Number(stock.remaining_qty) - qtyDelta;
+        adjustVariantRemainingQty(variantId, -qtyDelta);
         saleRow.qty = adjustedQty;
         saleRow.unit_price = Number(Number(gridRow.unit_price || 0).toFixed(2));
         saleRow.line_total = Number((saleRow.qty * saleRow.unit_price).toFixed(2));
 
         refreshStockGrid();
         refreshSaleGrid();
+    }
+
+    function adjustVariantRemainingQty(variantId, delta) {
+        let change = Number(delta);
+        if (change === 0) {
+            return;
+        }
+
+        for (const stock of stockSource) {
+            if (Number(stock.variant_id) !== Number(variantId)) {
+                continue;
+            }
+            if (change < 0) {
+                const take = Math.min(Number(stock.remaining_qty), -change);
+                stock.remaining_qty = Number(stock.remaining_qty) - take;
+                change += take;
+            } else {
+                stock.remaining_qty = Number(stock.remaining_qty) + change;
+                change = 0;
+            }
+            if (change === 0) {
+                break;
+            }
+        }
     }
 
     function removeSelectedSaleItem() {
@@ -297,10 +421,7 @@
             return;
         }
 
-        const stock = findStockByVariant(row.variant_id);
-        if (stock) {
-            stock.remaining_qty = Number(stock.remaining_qty) + Number(row.qty || 0);
-        }
+        adjustVariantRemainingQty(row.variant_id, Number(row.qty || 0));
 
         saleItems = saleItems.filter(s => Number(s.variant_id) !== Number(row.variant_id));
         refreshStockGrid();
@@ -311,38 +432,35 @@
     function loadWarehouses() {
         return $.getJSON(API_URLS.warehouses).done(function(res) {
             const rows = res.data || [];
-            $("#warehouseDropdown").jqxDropDownList({ source: rows });
-            if (rows.length > 0) {
-                $("#warehouseDropdown").jqxDropDownList("selectIndex", 0);
-            }
+            $("#saleWarehouseDropdown").jqxDropDownList({ source: rows });
+            $("#stockWarehouseDropdown").jqxDropDownList({ source: rows });
+            $("#saleWarehouseDropdown").jqxDropDownList("clearSelection");
+            $("#stockWarehouseDropdown").jqxDropDownList("clearSelection");
         });
     }
 
-    function loadStockByWarehouse() {
-        const selected = $("#warehouseDropdown").jqxDropDownList("getSelectedItem");
-        const warehouseId = selected ? Number(selected.value) : 0;
-        saleItems = [];
-        clearStockSearch();
+    function getStockWarehouseFilterId() {
+        const selected = $("#stockWarehouseDropdown").jqxDropDownList("getSelectedItem");
+        return selected ? Number(selected.value) : 0;
+    }
 
-        if (!warehouseId) {
-            stockSource = [];
-            refreshStockGrid();
-            refreshSaleGrid();
-            return;
-        }
+    function loadStock() {
+        const warehouseId = getStockWarehouseFilterId();
+        const params = warehouseId > 0 ? { warehouse_id: warehouseId } : {};
 
-        lastWarehouseId = warehouseId;
-
-        $.getJSON(API_URLS.warehouseProducts, { warehouse_id: warehouseId }).done(function(res) {
+        $.getJSON(API_URLS.warehouseProducts, params).done(function(res) {
             stockSource = (res.data || []).map(p => {
                 const qty = Number(p.quantity || 0);
                 const unitPrice = Number(p.selling_price || p.cost_price || 0);
                 return {
                     inventory_id: Number(p.inventory_id || 0),
                     variant_id: Number(p.variant_id),
+                    warehouse_id: Number(p.warehouse_id || 0),
+                    warehouse_name: p.warehouse_name || "",
                     product_name: p.product_name || "",
                     product_number: p.product_number || "",
                     sku: p.sku || "",
+                    style: p.style || "",
                     size_value: p.size_value || "",
                     brand: p.brand || "",
                     original_qty: qty,
@@ -350,19 +468,21 @@
                     unit_price: unitPrice
                 };
             });
+            for (const item of saleItems) {
+                adjustVariantRemainingQty(item.variant_id, -Number(item.qty || 0));
+            }
             refreshStockGrid();
-            refreshSaleGrid();
-            setMessage(stockSource.length ? "" : "No stock in this warehouse.");
+            setMessage(stockSource.length ? "" : "No stock found.");
         }).fail(function(xhr) {
-            setMessage(xhr.responseJSON?.message || "Failed to load warehouse stock.", true);
+            setMessage(xhr.responseJSON?.message || "Failed to load stock.", true);
         });
     }
 
     function saveSale() {
-        const warehouseItem = $("#warehouseDropdown").jqxDropDownList("getSelectedItem");
+        const warehouseItem = $("#saleWarehouseDropdown").jqxDropDownList("getSelectedItem");
         const warehouseId = warehouseItem ? Number(warehouseItem.value) : 0;
         if (!warehouseId) {
-            setMessage("Please select warehouse.", true);
+            setMessage("Please select sale warehouse.", true);
             return;
         }
         if (saleItems.length === 0) {
@@ -380,6 +500,8 @@
             warehouse_id: warehouseId,
             sale_date: saleDate,
             customer_name: String($("#customerNameInput").val() || "").trim(),
+            discount_total: Number($("#discountTotalInput").jqxNumberInput("val") || 0),
+            paid_total: Number($("#paidAmountInput").jqxNumberInput("val") || 0),
             items: saleItems.map(r => ({
                 variant_id: Number(r.variant_id),
                 qty: Number(r.qty),
@@ -410,24 +532,41 @@
 
     $(function() {
         initWidgets();
-        loadWarehouses().done(loadStockByWarehouse);
-        $("#warehouseDropdown").on("select", function (event) {
+        loadWarehouses().done(loadStock);
+        $("#stockWarehouseDropdown").on("select", function () {
+            loadStock();
+        });
+        $("#stockWarehouseDropdown").on("unselect", function () {
+            loadStock();
+        });
+        $("#saleWarehouseDropdown").on("select", function (event) {
             const newWarehouseId = Number(event.args?.item?.value || 0);
-            if (saleItems.length > 0 && !confirm("Changing warehouse will clear sale items. Continue?")) {
-                const items = $("#warehouseDropdown").jqxDropDownList("getItems") || [];
-                const prevIndex = items.findIndex(item => Number(item.value) === lastWarehouseId);
+            if (saleItems.length > 0 && newWarehouseId !== lastSaleWarehouseId &&
+                !confirm("Changing sale warehouse may affect stock deduction. Continue?")) {
+                const items = $("#saleWarehouseDropdown").jqxDropDownList("getItems") || [];
+                const prevIndex = items.findIndex(item => Number(item.value) === lastSaleWarehouseId);
                 if (prevIndex >= 0) {
-                    $("#warehouseDropdown").jqxDropDownList("selectIndex", prevIndex);
+                    $("#saleWarehouseDropdown").jqxDropDownList("selectIndex", prevIndex);
+                } else {
+                    $("#saleWarehouseDropdown").jqxDropDownList("clearSelection");
                 }
                 return;
             }
-            loadStockByWarehouse();
+            lastSaleWarehouseId = newWarehouseId;
         });
         $("#saveSaleBtn").on("click", saveSale);
         $("#stockSearchInput").on("input", function () {
             stockSearchTerm = String($(this).val() || "");
             refreshStockGrid();
         });
+        $("#clearStockFiltersBtn").on("click", clearStockFilters);
+        $("#discountTotalInput").on("valueChanged", function () {
+            recalcSaleTotals("discount");
+        });
+        $("#paidAmountInput").on("valueChanged", function () {
+            recalcSaleTotals("paid");
+        });
+        recalcSaleTotals("items");
     });
 </script>
 <?= $this->endSection() ?>

@@ -79,24 +79,25 @@ class Sells extends BaseController
     public function productsByWarehouse(): ResponseInterface
     {
         $warehouseId = (int) ($this->request->getGet('warehouse_id') ?? 0);
-        if ($warehouseId < 1) {
-            return $this->response->setStatusCode(422)->setJSON(['message' => 'warehouse_id is required.']);
-        }
 
-        $rows = db_connect()->table('inventory')
+        $builder = db_connect()->table('inventory')
             ->select(
                 'inventory.id AS inventory_id, inventory.variant_id, inventory.warehouse_id, inventory.quantity, ' .
-                'product_variants.sku, product_variants.cost_price, product_variants.selling_price, ' .
+                'product_variants.sku, product_variants.style, product_variants.cost_price, product_variants.selling_price, ' .
                 'product_variants.size AS size_value, products.name AS product_name, ' .
-                'products.serial_number AS product_number, products.brand'
+                'products.serial_number AS product_number, products.brand, warehouses.name AS warehouse_name'
             )
             ->join('product_variants', 'product_variants.id = inventory.variant_id')
             ->join('products', 'products.id = product_variants.product_id')
-            ->where('inventory.warehouse_id', $warehouseId)
+            ->join('warehouses', 'warehouses.id = inventory.warehouse_id')
             ->where('inventory.quantity >', 0)
-            ->orderBy('products.name', 'ASC')
-            ->get()
-            ->getResultArray();
+            ->orderBy('products.name', 'ASC');
+
+        if ($warehouseId > 0) {
+            $builder->where('inventory.warehouse_id', $warehouseId);
+        }
+
+        $rows = $builder->get()->getResultArray();
 
         return $this->response->setJSON(['data' => $rows]);
     }
@@ -166,6 +167,16 @@ class Sells extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'No valid sale items.']);
         }
 
+        $discountTotal = max(0, (float) ($payload['discount_total'] ?? 0));
+        $paidTotal     = (float) ($payload['paid_total'] ?? ($subTotal - $discountTotal));
+        if ($paidTotal < 0) {
+            $paidTotal = 0;
+        }
+        if ($discountTotal > $subTotal) {
+            $discountTotal = $subTotal;
+            $paidTotal     = 0;
+        }
+
         $db->transBegin();
 
         try {
@@ -175,8 +186,8 @@ class Sells extends BaseController
                 'customer_name'  => $customerName !== '' ? $customerName : null,
                 'warehouse_id'   => $warehouseId,
                 'sub_total'      => $subTotal,
-                'discount_total' => 0,
-                'grand_total'    => $subTotal,
+                'discount_total' => $discountTotal,
+                'grand_total'    => $paidTotal,
                 'payment_method' => 'cash',
             ]);
 

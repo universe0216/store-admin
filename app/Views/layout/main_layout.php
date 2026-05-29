@@ -19,7 +19,7 @@
 </head>
 <body class="bg-light text-dark">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
+        <div class="container-fluid px-5">
             <a class="navbar-brand" href="<?= site_url('/') ?>">Store App</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -40,14 +40,31 @@
                             <li><a class="dropdown-item" href="<?= site_url('currencies') ?>">Currencies</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= site_url('purchases') ?>">Purchase</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Purchase
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="<?= site_url('purchases') ?>">Purchase</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('purchases/create') ?>">New Purchase</a></li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= site_url('sells') ?>">Sells</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Sells
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="<?= site_url('sells') ?>">Sells</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('sells/create') ?>">New Sell</a></li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= site_url('stock') ?>">Stock</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Stock
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="<?= site_url('inventory') ?>">Inventory</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>
