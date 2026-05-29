@@ -9,6 +9,7 @@ use App\Models\PurchaseItemModel;
 use App\Models\PurchaseModel;
 use App\Models\StockMovementModel;
 use App\Models\SupplierModel;
+use App\Models\TaggingModel;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\ResponseInterface;
 use RuntimeException;
@@ -440,6 +441,7 @@ class Purchases extends BaseController
                 throw new RuntimeException('Failed to save purchase transaction.');
             }
 
+
             $db->transCommit();
 
             return $this->response->setStatusCode(201)->setJSON([
@@ -524,6 +526,15 @@ class Purchases extends BaseController
             'description'   => null,
             'is_active'     => 1,
         ]);
+
+        $tagIds = $payload['tags'] ?? [];
+        if (is_array($tagIds) && $tagIds !== []) {
+            (new TaggingModel())->syncEntityTags(
+                'products',
+                $id,
+                array_map('intval', $tagIds)
+            );
+        }   
 
         return $this->response->setStatusCode(201)->setJSON([
             'message' => 'Product created successfully.',

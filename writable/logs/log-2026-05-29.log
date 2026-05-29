@@ -121,3 +121,96 @@ in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
 13 SYSTEMPATH\Boot.php(442): CodeIgniter\CLI\Console->run()
 14 SYSTEMPATH\Boot.php(166): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
 15 ROOTPATH\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+CRITICAL - 2026-05-29 16:57:14 --> ParseError: syntax error, unexpected token "->"
+[Method: GET, Route: api/tags]
+in APPPATH\Controllers\Api\Tags.php on line 15.
+ 1 SYSTEMPATH\Autoloader\Autoloader.php(295): CodeIgniter\Autoloader\Autoloader->includeFile('C:\\Users\\aaa\\Documents\\projects\\htdocs\\codeigniter4\\app\\Controllers\\Api\\Tags.php')
+ 2 SYSTEMPATH\Autoloader\Autoloader.php(271): CodeIgniter\Autoloader\Autoloader->loadInNamespace('App\\Controllers\\Api\\Tags')
+ 3 [internal function]: CodeIgniter\Autoloader\Autoloader->loadClass('App\\Controllers\\Api\\Tags')
+ 4 SYSTEMPATH\Router\Router.php(792): class_exists('\\App\\Controllers\\Api\\Tags')
+ 5 SYSTEMPATH\Router\Router.php(230): CodeIgniter\Router\Router->processRouteAttributes()
+ 6 SYSTEMPATH\CodeIgniter.php(829): CodeIgniter\Router\Router->handle('api/tags')
+ 7 SYSTEMPATH\CodeIgniter.php(441): CodeIgniter\CodeIgniter->tryToRouteIt(Object(CodeIgniter\Router\RouteCollection))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 16:57:23 --> ParseError: syntax error, unexpected token "->"
+[Method: POST, Route: api/tags]
+in APPPATH\Controllers\Api\Tags.php on line 15.
+ 1 SYSTEMPATH\Autoloader\Autoloader.php(295): CodeIgniter\Autoloader\Autoloader->includeFile('C:\\Users\\aaa\\Documents\\projects\\htdocs\\codeigniter4\\app\\Controllers\\Api\\Tags.php')
+ 2 SYSTEMPATH\Autoloader\Autoloader.php(271): CodeIgniter\Autoloader\Autoloader->loadInNamespace('App\\Controllers\\Api\\Tags')
+ 3 [internal function]: CodeIgniter\Autoloader\Autoloader->loadClass('App\\Controllers\\Api\\Tags')
+ 4 SYSTEMPATH\Router\Router.php(792): class_exists('\\App\\Controllers\\Api\\Tags')
+ 5 SYSTEMPATH\Router\Router.php(230): CodeIgniter\Router\Router->processRouteAttributes()
+ 6 SYSTEMPATH\CodeIgniter.php(829): CodeIgniter\Router\Router->handle('api/tags')
+ 7 SYSTEMPATH\CodeIgniter.php(441): CodeIgniter\CodeIgniter->tryToRouteIt(Object(CodeIgniter\Router\RouteCollection))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 16:57:26 --> ParseError: syntax error, unexpected token "->"
+[Method: POST, Route: api/tags]
+in APPPATH\Controllers\Api\Tags.php on line 15.
+ 1 SYSTEMPATH\Autoloader\Autoloader.php(295): CodeIgniter\Autoloader\Autoloader->includeFile('C:\\Users\\aaa\\Documents\\projects\\htdocs\\codeigniter4\\app\\Controllers\\Api\\Tags.php')
+ 2 SYSTEMPATH\Autoloader\Autoloader.php(271): CodeIgniter\Autoloader\Autoloader->loadInNamespace('App\\Controllers\\Api\\Tags')
+ 3 [internal function]: CodeIgniter\Autoloader\Autoloader->loadClass('App\\Controllers\\Api\\Tags')
+ 4 SYSTEMPATH\Router\Router.php(792): class_exists('\\App\\Controllers\\Api\\Tags')
+ 5 SYSTEMPATH\Router\Router.php(230): CodeIgniter\Router\Router->processRouteAttributes()
+ 6 SYSTEMPATH\CodeIgniter.php(829): CodeIgniter\Router\Router->handle('api/tags')
+ 7 SYSTEMPATH\CodeIgniter.php(441): CodeIgniter\CodeIgniter->tryToRouteIt(Object(CodeIgniter\Router\RouteCollection))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 16:57:37 --> ParseError: syntax error, unexpected token "->"
+[Method: POST, Route: api/tags]
+in APPPATH\Controllers\Api\Tags.php on line 15.
+ 1 SYSTEMPATH\Autoloader\Autoloader.php(295): CodeIgniter\Autoloader\Autoloader->includeFile('C:\\Users\\aaa\\Documents\\projects\\htdocs\\codeigniter4\\app\\Controllers\\Api\\Tags.php')
+ 2 SYSTEMPATH\Autoloader\Autoloader.php(271): CodeIgniter\Autoloader\Autoloader->loadInNamespace('App\\Controllers\\Api\\Tags')
+ 3 [internal function]: CodeIgniter\Autoloader\Autoloader->loadClass('App\\Controllers\\Api\\Tags')
+ 4 SYSTEMPATH\Router\Router.php(792): class_exists('\\App\\Controllers\\Api\\Tags')
+ 5 SYSTEMPATH\Router\Router.php(230): CodeIgniter\Router\Router->processRouteAttributes()
+ 6 SYSTEMPATH\CodeIgniter.php(829): CodeIgniter\Router\Router->handle('api/tags')
+ 7 SYSTEMPATH\CodeIgniter.php(441): CodeIgniter\CodeIgniter->tryToRouteIt(Object(CodeIgniter\Router\RouteCollection))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 16:59:30 --> ParseError: syntax error, unexpected token "->"
+[Method: GET, Route: api/tags]
+in APPPATH\Controllers\Api\Tags.php on line 15.
+ 1 SYSTEMPATH\Autoloader\Autoloader.php(295): CodeIgniter\Autoloader\Autoloader->includeFile('C:\\Users\\aaa\\Documents\\projects\\htdocs\\codeigniter4\\app\\Controllers\\Api\\Tags.php')
+ 2 SYSTEMPATH\Autoloader\Autoloader.php(271): CodeIgniter\Autoloader\Autoloader->loadInNamespace('App\\Controllers\\Api\\Tags')
+ 3 [internal function]: CodeIgniter\Autoloader\Autoloader->loadClass('App\\Controllers\\Api\\Tags')
+ 4 SYSTEMPATH\Router\Router.php(792): class_exists('\\App\\Controllers\\Api\\Tags')
+ 5 SYSTEMPATH\Router\Router.php(230): CodeIgniter\Router\Router->processRouteAttributes()
+ 6 SYSTEMPATH\CodeIgniter.php(829): CodeIgniter\Router\Router->handle('api/tags')
+ 7 SYSTEMPATH\CodeIgniter.php(441): CodeIgniter\CodeIgniter->tryToRouteIt(Object(CodeIgniter\Router\RouteCollection))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 16:59:37 --> ParseError: syntax error, unexpected token "->"
+[Method: GET, Route: api/tags]
+in APPPATH\Controllers\Api\Tags.php on line 15.
+ 1 SYSTEMPATH\Autoloader\Autoloader.php(295): CodeIgniter\Autoloader\Autoloader->includeFile('C:\\Users\\aaa\\Documents\\projects\\htdocs\\codeigniter4\\app\\Controllers\\Api\\Tags.php')
+ 2 SYSTEMPATH\Autoloader\Autoloader.php(271): CodeIgniter\Autoloader\Autoloader->loadInNamespace('App\\Controllers\\Api\\Tags')
+ 3 [internal function]: CodeIgniter\Autoloader\Autoloader->loadClass('App\\Controllers\\Api\\Tags')
+ 4 SYSTEMPATH\Router\Router.php(792): class_exists('\\App\\Controllers\\Api\\Tags')
+ 5 SYSTEMPATH\Router\Router.php(230): CodeIgniter\Router\Router->processRouteAttributes()
+ 6 SYSTEMPATH\CodeIgniter.php(829): CodeIgniter\Router\Router->handle('api/tags')
+ 7 SYSTEMPATH\CodeIgniter.php(441): CodeIgniter\CodeIgniter->tryToRouteIt(Object(CodeIgniter\Router\RouteCollection))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 17:00:11 --> Error: Call to a member function orderBy() on array
+[Method: GET, Route: api/tags]
+in APPPATH\Controllers\Api\Tags.php on line 21.
+ 1 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Tags->index()
+ 2 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Tags))
+ 3 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 4 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 6 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))

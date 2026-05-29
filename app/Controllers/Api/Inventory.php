@@ -25,6 +25,7 @@ class Inventory extends BaseController
             ?? ''
         ));
         $warehouseId = (int) ($this->request->getGet('warehouse_id') ?? 0);
+        $tagIds      = $this->parseTagIds($this->request->getGet('tag_ids'));
 
         $builder = db_connect()->table('inventory')
             ->select(
@@ -51,6 +52,22 @@ class Inventory extends BaseController
                 ->orLike('products.serial_number', $search)
                 ->orLike('product_variants.style', $search)
                 ->groupEnd();
+        }
+
+        if ($tagIds !== []) {
+            $productIds = db_connect()->table('taggings')
+                ->select('entity_id')
+                ->where('entity_type', 'products')
+                ->whereIn('tag_id', $tagIds)
+                ->get()
+                ->getResultArray();
+            $productIds = array_values(array_unique(array_map('intval', array_column($productIds, 'entity_id'))));
+
+            if ($productIds === []) {
+                return $this->response->setJSON(['data' => []]);
+            }
+
+            $builder->whereIn('products.id', $productIds);
         }
 
         $rows = $builder->get(5000)->getResultArray();
@@ -87,5 +104,21 @@ class Inventory extends BaseController
                 'selling_price' => $sellingPrice,
             ],
         ]);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function parseTagIds(mixed $value): array
+    {
+        if (is_string($value)) {
+            $value = explode(',', $value);
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $value), static fn (int $id): bool => $id > 0)));
     }
 }

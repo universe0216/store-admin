@@ -32,14 +32,17 @@
 
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <div class="row g-2 mb-3">
-                    <div class="col-12 col-md-4">
+                <div class="row g-2 mb-3 align-items-center">
+                    <div class="col-12 col-md-3">
                         <input type="text" id="filterSearch" class="form-control" placeholder="Search by product name, serial number, or style">
                     </div>
-                    <div class="col-12 col-md-3">
+                    <div class="col-12 col-md-2">
                         <select id="filterWarehouse" class="form-select">
                             <option value="">All warehouses</option>
                         </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <div id="filterTags"></div>
                     </div>
                     <div class="col-12 col-md-auto">
                         <button type="button" id="applyInventoryFilterBtn" class="btn btn-primary">Filter</button>
@@ -68,10 +71,13 @@
 <script>
         const API_URLS = {
             inventory: "<?= site_url('api/inventory') ?>",
-            warehouses: "<?= site_url('api/warehouses') ?>"
+            warehouses: "<?= site_url('api/warehouses') ?>",
+            tags: "<?= site_url('api/tags') ?>"
         };
 
         let savingSellingPrice = false;
+        let filterTagIds = new Set();
+        let filterTagSyncLock = false;
 
         function setInventoryMessage(msg, isError = false) {
             const box = $("#inventoryMessage");
@@ -179,6 +185,64 @@
             $("#inventoryGrid").on("cellvaluechanged", onSellingPriceEdited);
         }
 
+        function getSelectedFilterTagIds() {
+            return Array.from(filterTagIds);
+        }
+
+        function syncFilterTagChecks() {
+            if (!$("#filterTags").data("jqxDropDownList")) {
+                return;
+            }
+
+            filterTagSyncLock = true;
+            const items = $("#filterTags").jqxDropDownList("getItems") || [];
+            items.forEach(function (item, index) {
+                const id = Number(item.value || 0);
+                if (filterTagIds.has(id)) {
+                    $("#filterTags").jqxDropDownList("checkIndex", index);
+                } else {
+                    $("#filterTags").jqxDropDownList("uncheckIndex", index);
+                }
+            });
+            filterTagSyncLock = false;
+        }
+
+        function initFilterTags() {
+            $("#filterTags").jqxDropDownList({
+                width: "100%",
+                height: 38,
+                displayMember: "name",
+                valueMember: "id",
+                placeHolder: "Filter by tags",
+                checkboxes: true,
+                source: []
+            });
+
+            $("#filterTags").on("checkChange", function (event) {
+                if (filterTagSyncLock) {
+                    return;
+                }
+
+                const id = Number(event.args?.item?.value || 0);
+                if (id < 1) {
+                    return;
+                }
+
+                if (event.args.checked) {
+                    filterTagIds.add(id);
+                } else {
+                    filterTagIds.delete(id);
+                }
+            });
+        }
+
+        function loadTags() {
+            return $.getJSON(API_URLS.tags).done(function (res) {
+                $("#filterTags").jqxDropDownList({ source: res.data || [] });
+                syncFilterTagChecks();
+            });
+        }
+
         function loadWarehouses() {
             return $.getJSON(API_URLS.warehouses).done(function (res) {
                 const $select = $("#filterWarehouse");
@@ -196,12 +260,16 @@
         function loadInventory() {
             const search = String($("#filterSearch").val() || "").trim();
             const warehouseId = String($("#filterWarehouse").val() || "").trim();
+            const tagIds = getSelectedFilterTagIds();
             const params = {};
             if (search) {
                 params.q = search;
             }
             if (warehouseId) {
                 params.warehouse_id = warehouseId;
+            }
+            if (tagIds.length) {
+                params.tag_ids = tagIds.join(",");
             }
 
             return $.getJSON(API_URLS.inventory, params).done(function(res) {
@@ -223,11 +291,14 @@
         $(function() {
             $(".toast-container").appendTo("body");
             initWidgets();
-            loadWarehouses().always(loadInventory);
+            initFilterTags();
+            $.when(loadWarehouses(), loadTags()).always(loadInventory);
             $("#applyInventoryFilterBtn").on("click", loadInventory);
             $("#resetInventoryFilterBtn").on("click", function () {
                 $("#filterSearch").val("");
                 $("#filterWarehouse").val("");
+                filterTagIds.clear();
+                syncFilterTagChecks();
                 loadInventory();
             });
             $("#filterSearch").on("keydown", function (event) {

@@ -60,4 +60,6 @@ $routes->group('api', static function ($routes): void {
     $routes->get('transfers/(:num)', 'Api\Transfers::show/$1');
     $routes->post('transfers', 'Api\Transfers::create');
     $routes->delete('transfers/(:num)', 'Api\Transfers::delete/$1');
+    $routes->get('tags', 'Api\Tags::index');
+    $routes->post('tags', 'Api\Tags::create');
 });

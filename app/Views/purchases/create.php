@@ -13,6 +13,22 @@
         padding-top: 0 !important;
         padding-bottom: 0 !important;
     }
+    .tag-chip-picker {
+        min-height: 42px;
+    }
+    #purchaseTagsChips {
+        min-height: 28px;
+    }
+    .tag-chip {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        padding: 0.35rem 0.5rem;
+    }
+    .tag-chip-remove {
+        width: 0.5rem;
+        height: 0.5rem;
+        opacity: 0.85;
+    }
 </style>
 <?= $this->endSection() ?>
 
@@ -62,6 +78,7 @@
                         <label class="form-label text-secondary mb-1">Notes</label>
                         <input id="notesInput" type="text" class="form-control">
                     </div>
+                    
                     <div class="col-12 col-lg-9 d-flex flex-column align-items-lg-end justify-content-end">
                         <label class="form-label text-secondary mb-1">Total Paid (Paid + Transfer Fee)</label>
                         <input id="totalPaidDisplay" type="text" class="form-control bg-light text-end" readonly value="0.00" style="max-width: 220px;">
@@ -123,6 +140,17 @@
                                 <label class="form-label text-secondary mb-1">Total Price</label>
                                 <div id="totalPriceInput"></div>
                             </div>
+                            <div class="col-12">
+                                <label class="form-label text-secondary mb-1">Tags</label>
+                                <div class="tag-chip-picker border rounded bg-white p-2">
+                                    <div id="purchaseTagsChips" class="d-flex flex-wrap gap-1 mb-2"></div>
+                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                        <div id="purchaseTagsDropdown" class="flex-grow-1" style="min-width: 200px;"></div>
+                                        <input type="text" id="newTagNameInput" class="form-control form-control-sm" placeholder="New tag name" style="max-width: 160px;">
+                                        <button type="button" id="createTagBtn" class="btn btn-sm btn-outline-primary text-nowrap">Add Tag</button>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="col-12 col-md-6 d-flex align-items-end">
                                 <button type="button" id="addProductsBtn" class="btn btn-sm btn-primary">Add Product</button>
                             </div>
@@ -174,13 +202,17 @@
             categories: "<?= site_url('api/categories') ?>",
             products: "<?= site_url('api/products') ?>",
             warehouses: "<?= site_url('api/warehouses') ?>",
-            purchases: "<?= site_url('api/purchases') ?>"
+            purchases: "<?= site_url('api/purchases') ?>",
+            tags: "<?= site_url('api/tags') ?>"
         };
 
         const items = [];
         let suppliers = [];
         let categories = [];
         let warehouses = [];
+        let allTags = [];
+        let selectedTagIds = new Set();
+        let tagSyncLock = false;
         let selectedSizeCount = 0;
         let selectedCategoryId = 0;
         let confirmPurchaseModal = null;
@@ -281,6 +313,7 @@
             });
             $("#savePurchaseBtn").jqxButton({ width: 160, height: 38, theme: "base" });
             $("#addProductsBtn").jqxButton({ width: 140, height: 34, theme: "base" });
+            initTagsPicker();
 
             $("#itemsGrid").jqxGrid({
                 width: "100%",
@@ -322,6 +355,147 @@
                     { text: "Units Count", datafield: "units_count", width: 95, editable: false, cellsalign: "right" },
                     { text: "Total Price", datafield: "total_price", width: 120, cellsformat: "f2", editable: false, cellsalign: "right" }
                 ]
+            });
+        }
+
+        function escapeHtml(text) {
+            return String(text || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function getSelectedTagIds() {
+            return Array.from(selectedTagIds);
+        }
+
+        function renderTagChips() {
+            const $container = $("#purchaseTagsChips").empty();
+            allTags
+                .filter(tag => selectedTagIds.has(Number(tag.id)))
+                .forEach(tag => {
+                    const bg = tag.color || "#0d6efd";
+                    const chip = $(`
+                        <span class="tag-chip badge d-inline-flex align-items-center gap-1 pe-2" data-tag-id="${Number(tag.id)}" style="background-color:${bg};">
+                            ${escapeHtml(tag.name)}
+                            <button type="button" class="tag-chip-remove btn-close btn-close-white" aria-label="Remove"></button>
+                        </span>
+                    `);
+                    chip.find(".tag-chip-remove").on("click", function () {
+                        removeSelectedTag(Number(tag.id));
+                    });
+                    $container.append(chip);
+                });
+        }
+
+        function removeSelectedTag(tagId) {
+            selectedTagIds.delete(Number(tagId));
+            syncTagDropdownChecks();
+            renderTagChips();
+        }
+
+        function addSelectedTag(tagId) {
+            if (Number(tagId) > 0) {
+                selectedTagIds.add(Number(tagId));
+                syncTagDropdownChecks();
+                renderTagChips();
+            }
+        }
+
+        function syncTagDropdownChecks() {
+            if (!$("#purchaseTagsDropdown").data("jqxDropDownList")) {
+                return;
+            }
+
+            tagSyncLock = true;
+            const items = $("#purchaseTagsDropdown").jqxDropDownList("getItems") || [];
+            items.forEach((item, index) => {
+                const id = Number(item.value);
+                if (selectedTagIds.has(id)) {
+                    $("#purchaseTagsDropdown").jqxDropDownList("checkIndex", index);
+                } else {
+                    $("#purchaseTagsDropdown").jqxDropDownList("uncheckIndex", index);
+                }
+            });
+            tagSyncLock = false;
+        }
+
+        function initTagsPicker() {
+            $("#purchaseTagsDropdown").jqxDropDownList({
+                width: "100%",
+                height: 34,
+                displayMember: "name",
+                valueMember: "id",
+                placeHolder: "Select tags",
+                checkboxes: true,
+                source: []
+            });
+
+            $("#purchaseTagsDropdown").on("checkChange", function (event) {
+                if (tagSyncLock) {
+                    return;
+                }
+
+                const id = Number(event.args?.item?.value || 0);
+                if (id < 1) {
+                    return;
+                }
+
+                if (event.args.checked) {
+                    selectedTagIds.add(id);
+                } else {
+                    selectedTagIds.delete(id);
+                }
+                renderTagChips();
+            });
+        }
+
+        function loadTags() {
+            return $.getJSON(API_URLS.tags).done(function (res) {
+                allTags = res.data || [];
+                $("#purchaseTagsDropdown").jqxDropDownList({ source: allTags });
+                syncTagDropdownChecks();
+                renderTagChips();
+            }).fail(function (xhr) {
+                $("#messageBox").text(xhr.responseJSON?.message || "Failed to load tags.");
+            });
+        }
+
+        function createTagFromInput() {
+            const name = String($("#newTagNameInput").val() || "").trim();
+            if (name === "") {
+                return;
+            }
+
+            const existing = allTags.find(t => String(t.name).toLowerCase() === name.toLowerCase());
+            if (existing) {
+                addSelectedTag(Number(existing.id));
+                $("#newTagNameInput").val("");
+                return;
+            }
+
+            $("#createTagBtn").prop("disabled", true);
+            $.ajax({
+                url: API_URLS.tags,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ name })
+            }).done(function (res) {
+                const tag = res.data;
+                if (!tag?.id) {
+                    return;
+                }
+
+                allTags.push(tag);
+                allTags.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+                $("#purchaseTagsDropdown").jqxDropDownList({ source: allTags });
+                addSelectedTag(Number(tag.id));
+                $("#newTagNameInput").val("");
+            }).fail(function (xhr) {
+                $("#messageBox").text(xhr.responseJSON?.message || "Failed to create tag.");
+            }).always(function () {
+                $("#createTagBtn").prop("disabled", false);
             });
         }
 
@@ -552,7 +726,8 @@
                     name,
                     serial_number: serialNumber,
                     category_id: Number(selectedCategoryId),
-                    brand: brand || null
+                    brand: brand || null,
+                    tags: getSelectedTagIds()
                 })
             }).done(function (res) {
                 const createdId = Number(res.data?.id || 0);
@@ -646,6 +821,7 @@
                 transfer_fee: transferFee,
                 discount_total: totalsSummary.discount,
                 paid_total: totalsSummary.paid,
+                // tag_ids: getSelectedTagIds(),
                 items: validItems
             };
             const totals = getGridTotals();
@@ -671,6 +847,7 @@
             loadSuppliers();
             loadCategories();
             loadWarehouses();
+            loadTags();
             confirmPurchaseModal = new bootstrap.Modal(document.getElementById("purchaseConfirmModal"));
 
             $("#categoryTree").on("select", function (event) {
@@ -705,6 +882,13 @@
             });
 
             $("#addProductsBtn").on("click", addProductToGrid);
+            $("#createTagBtn").on("click", createTagFromInput);
+            $("#newTagNameInput").on("keydown", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    createTagFromInput();
+                }
+            });
             recalcPurchaseTotals("items");
             $("#savePurchaseBtn").on("click", savePurchase);
         });
