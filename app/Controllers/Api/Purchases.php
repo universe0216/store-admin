@@ -18,14 +18,151 @@ class Purchases extends BaseController
 {
     public function index(): ResponseInterface
     {
-        $purchaseModel = new PurchaseModel();
-        $rows          = $purchaseModel
-            ->select('purchases.*, suppliers.name AS supplier_name')
-            ->join('suppliers', 'suppliers.id = purchases.supplier_id', 'left')
-            ->orderBy('purchases.id', 'DESC')
-            ->findAll(200);
+        $productName = trim((string) ($this->request->getGet('product_name') ?? ''));
+        $dateFrom    = trim((string) ($this->request->getGet('date_from') ?? ''));
+        $dateTo      = trim((string) ($this->request->getGet('date_to') ?? ''));
+        $page        = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage     = max(1, min(100, (int) ($this->request->getGet('per_page') ?? 20)));
+        $offset      = ($page - 1) * $perPage;
 
-        return $this->response->setJSON(['data' => $rows]);
+        $grouped = $productName !== '';
+        $builder = $this->buildPurchasesListBuilder($productName, $dateFrom, $dateTo);
+        $total   = $this->countPurchasesList($productName, $dateFrom, $dateTo, $grouped);
+
+        $rows = $builder
+            ->orderBy('purchases.id', 'DESC')
+            ->findAll($perPage, $offset);
+
+        $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 0;
+        $summary    = $this->getPurchasesListSummary($productName, $dateFrom, $dateTo);
+
+        return $this->response->setJSON([
+            'data'       => $rows,
+            'pagination' => [
+                'page'        => $page,
+                'per_page'    => $perPage,
+                'total'       => $total,
+                'total_pages' => $totalPages,
+            ],
+            'summary'    => $summary,
+        ]);
+    }
+
+    /**
+     * @return array{
+     *     total_purchases: int,
+     *     total_products: int,
+     *     total_product_variants: int,
+     *     total_paid_total: float,
+     *     total_transfer_fee: float,
+     *     total_grand_total: float
+     * }
+     */
+    private function getPurchasesListSummary(string $productName, string $dateFrom, string $dateTo): array
+    {
+        $empty = [
+            'total_purchases'        => 0,
+            'total_products'         => 0,
+            'total_product_variants' => 0,
+            'total_paid_total'       => 0.0,
+            'total_transfer_fee'     => 0.0,
+            'total_grand_total'      => 0.0,
+        ];
+
+        $subSql = $this->compiledPurchasesIdSubquery($productName, $dateFrom, $dateTo);
+        $db     = db_connect();
+
+        $purchaseAgg = $db->query(
+            "SELECT COUNT(*) AS total_purchases, " .
+            "COALESCE(SUM(paid_total), 0) AS total_paid_total, " .
+            "COALESCE(SUM(transfer_fee), 0) AS total_transfer_fee, " .
+            "COALESCE(SUM(grand_total), 0) AS total_grand_total " .
+            "FROM purchases WHERE id IN ({$subSql})"
+        )->getRowArray();
+
+        if (! is_array($purchaseAgg) || (int) ($purchaseAgg['total_purchases'] ?? 0) === 0) {
+            return $empty;
+        }
+
+        $itemAgg = $db->query(
+            'SELECT COUNT(DISTINCT products.id) AS total_products, ' .
+            'COUNT(DISTINCT purchase_items.product_variant_id) AS total_product_variants ' .
+            'FROM purchase_items ' .
+            'INNER JOIN product_variants ON product_variants.id = purchase_items.product_variant_id ' .
+            'INNER JOIN products ON products.id = product_variants.product_id ' .
+            "WHERE purchase_items.purchase_id IN ({$subSql})"
+        )->getRowArray();
+
+        return [
+            'total_purchases'        => (int) ($purchaseAgg['total_purchases'] ?? 0),
+            'total_products'         => (int) ($itemAgg['total_products'] ?? 0),
+            'total_product_variants' => (int) ($itemAgg['total_product_variants'] ?? 0),
+            'total_paid_total'       => (float) ($purchaseAgg['total_paid_total'] ?? 0),
+            'total_transfer_fee'     => (float) ($purchaseAgg['total_transfer_fee'] ?? 0),
+            'total_grand_total'      => (float) ($purchaseAgg['total_grand_total'] ?? 0),
+        ];
+    }
+
+    private function buildPurchasesListBuilder(string $productName, string $dateFrom, string $dateTo): PurchaseModel
+    {
+        return $this->applyPurchasesListFilters(
+            (new PurchaseModel())->select('purchases.*, suppliers.name AS supplier_name'),
+            $productName,
+            $dateFrom,
+            $dateTo
+        );
+    }
+
+    private function applyPurchasesListFilters(
+        PurchaseModel $model,
+        string $productName,
+        string $dateFrom,
+        string $dateTo
+    ): PurchaseModel {
+        $model->join('suppliers', 'suppliers.id = purchases.supplier_id', 'left');
+
+        if ($dateFrom !== '') {
+            $model->where('DATE(purchases.purchase_date) >=', $dateFrom);
+        }
+
+        if ($dateTo !== '') {
+            $model->where('DATE(purchases.purchase_date) <=', $dateTo);
+        }
+
+        if ($productName !== '') {
+            $model
+                ->join('purchase_items', 'purchase_items.purchase_id = purchases.id')
+                ->join('product_variants', 'product_variants.id = purchase_items.product_variant_id')
+                ->join('products', 'products.id = product_variants.product_id')
+                ->like('products.name', $productName)
+                ->groupBy('purchases.id');
+        }
+
+        return $model;
+    }
+
+    private function compiledPurchasesIdSubquery(string $productName, string $dateFrom, string $dateTo): string
+    {
+        $model = $this->applyPurchasesListFilters(new PurchaseModel(), $productName, $dateFrom, $dateTo);
+
+        return $model->builder()->select('purchases.id')->getCompiledSelect(false);
+    }
+
+    private function countPurchasesList(
+        string $productName,
+        string $dateFrom,
+        string $dateTo,
+        bool $grouped
+    ): int {
+        if (! $grouped) {
+            return $this->buildPurchasesListBuilder($productName, $dateFrom, $dateTo)->countAllResults();
+        }
+
+        $db       = db_connect();
+        $subSql   = $this->compiledPurchasesIdSubquery($productName, $dateFrom, $dateTo);
+        $countRow = $db->query("SELECT COUNT(*) AS aggregate FROM ({$subSql}) purchase_ids")->getRow();
+
+        return (int) ($countRow->aggregate ?? 0);
     }
 
     public function show(int $id): ResponseInterface
@@ -78,8 +215,10 @@ class Purchases extends BaseController
         $purchaseDate = (string) ($payload['purchase_date'] ?? '');
         $status       = 'received';
         $notes        = (string) ($payload['notes'] ?? '');
-        $transferFee  = max(0, (float) ($payload['transfer_fee'] ?? 0));
-        $items        = $payload['items'] ?? [];
+        $transferFee   = max(0, (float) ($payload['transfer_fee'] ?? 0));
+        $headerDiscount = (float) ($payload['discount_total'] ?? 0);
+        $paidTotal      = (float) ($payload['paid_total'] ?? 0);
+        $items         = $payload['items'] ?? [];
 
         if ($supplierId < 1 || $purchaseDate === '' || ! is_array($items) || $items === []) {
             return $this->response->setStatusCode(422)->setJSON([
@@ -180,7 +319,8 @@ class Purchases extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'No valid purchase items.']);
         }
 
-        $grandTotal = $subTotal - $discountTotal + $transferFee;
+        $discountTotal = $headerDiscount;
+        $grandTotal    = $subTotal - $discountTotal + $transferFee;
         $db->transBegin();
 
         try {
@@ -193,7 +333,7 @@ class Purchases extends BaseController
                 'discount_total' => $discountTotal,
                 'transfer_fee'   => $transferFee,
                 'grand_total'    => $grandTotal,
-                'paid_total'     => 0,
+                'paid_total'     => $paidTotal,
                 'notes'          => $notes !== '' ? $notes : null,
             ]);
 

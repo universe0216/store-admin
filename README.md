@@ -338,4 +338,17 @@ CREATE TABLE exchange_rates (
         ON UPDATE CASCADE
 );
 
+CREATE TABLE payment_methods (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_payment_methods_code (code)
+);
+
 ```

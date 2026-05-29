@@ -5,7 +5,9 @@
 <?= $this->section('pageStyles') ?>
 <style>
     #purchaseHeaderForm .jqx-numberinput input,
-    #purchaseItemForm .jqx-numberinput input {
+    #purchaseItemForm .jqx-numberinput input,
+    #discountTotalInput input,
+    #paidAmountInput input {
         height: 100% !important;
         line-height: 34px !important;
         padding-top: 0 !important;
@@ -44,13 +46,25 @@
                         <label class="form-label text-secondary mb-1">Transfer Fee</label>
                         <div id="transferFeeInput"></div>
                     </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Sub Total</label>
+                        <input id="subTotalDisplay" type="text" class="form-control bg-light" readonly value="0.00">
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Discount</label>
+                        <div id="discountTotalInput"></div>
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Paid Amount</label>
+                        <div id="paidAmountInput"></div>
+                    </div>
                     <div class="col-12 col-lg-3">
                         <label class="form-label text-secondary mb-1">Notes</label>
                         <input id="notesInput" type="text" class="form-control">
                     </div>
-                    <div class="col-12 col-lg-6">
-                        <label class="form-label text-secondary mb-1">Notes</label>
-                        <input id="notesInput" type="text" class="form-control">
+                    <div class="col-12 col-lg-9 d-flex flex-column align-items-lg-end justify-content-end">
+                        <label class="form-label text-secondary mb-1">Total Paid (Paid + Transfer Fee)</label>
+                        <input id="totalPaidDisplay" type="text" class="form-control bg-light text-end" readonly value="0.00" style="max-width: 220px;">
                     </div>
                     <div class="col-12 col-lg-3 d-flex align-items-end justify-content-lg-end">
                         <input type="button" id="savePurchaseBtn" value="Save Purchase" class="btn btn-primary">
@@ -139,7 +153,10 @@
                     <div class="mb-2">Total Units Count: <span id="confirmTotalUnitsCount" class="fw-semibold">0</span></div>
                     <div class="mb-2">Items Total: <span id="confirmTotalPriceSum" class="fw-semibold">0.00</span></div>
                     <div class="mb-2">Transfer Fee: <span id="confirmTransferFee" class="fw-semibold">0.00</span></div>
-                    <div>Grand Total: <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Discount: <span id="confirmDiscount" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Paid Amount: <span id="confirmPaidAmount" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Grand Total: <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -167,6 +184,7 @@
         let selectedSizeCount = 0;
         let selectedCategoryId = 0;
         let confirmPurchaseModal = null;
+        let totalsCalcLock = false;
         const FIXED_SIZES = [220, 225, 230, 235, 240, 245, 250].map(size => ({
             label: String(size),
             value: String(size)
@@ -181,6 +199,26 @@
                 height: 34,
                 decimalDigits: 2,
                 digits: 10,
+                min: 0,
+                inputMode: "simple",
+                spinButtons: true,
+                value: 0
+            });
+            $("#discountTotalInput").jqxNumberInput({
+                width: "100%",
+                height: 34,
+                decimalDigits: 2,
+                digits: 12,
+                min: -999999999,
+                inputMode: "simple",
+                spinButtons: true,
+                value: 0
+            });
+            $("#paidAmountInput").jqxNumberInput({
+                width: "100%",
+                height: 34,
+                decimalDigits: 2,
+                digits: 12,
                 min: 0,
                 inputMode: "simple",
                 spinButtons: true,
@@ -317,6 +355,52 @@
             $("#itemsGridTotalsFooter").text(
                 `Total Counts: ${totals.totalCount} | Sum Total Price: ${totals.totalPriceSum.toFixed(2)}`
             );
+            recalcPurchaseTotals("items");
+        }
+
+        function getPurchaseBaseAmount() {
+            const totals = getGridTotals();
+            const transferFee = Math.max(Number($("#transferFeeInput").jqxNumberInput("val") || 0), 0);
+
+            return {
+                subTotal: totals.totalPriceSum,
+                transferFee
+            };
+        }
+
+        function recalcPurchaseTotals(changedField) {
+            if (totalsCalcLock) {
+                return;
+            }
+
+            const { subTotal, transferFee } = getPurchaseBaseAmount();
+            totalsCalcLock = true;
+
+            let discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
+            let paid = Number($("#paidAmountInput").jqxNumberInput("val") || 0);
+
+            if (changedField === "items") {
+                paid = subTotal;
+                discount = 0;
+                $("#paidAmountInput").jqxNumberInput("val", paid);
+                $("#discountTotalInput").jqxNumberInput("val", discount);
+            } else if (changedField === "paid") {
+                discount = Number((subTotal - paid).toFixed(2));
+                $("#discountTotalInput").jqxNumberInput("val", discount);
+            } else if (changedField === "discount") {
+                paid = Number((subTotal - discount).toFixed(2));
+                $("#paidAmountInput").jqxNumberInput("val", paid);
+            }
+
+            $("#subTotalDisplay").val(subTotal.toFixed(2));
+
+            const grandTotal = Number((subTotal - discount + transferFee).toFixed(2));
+            const totalPaid = Number((paid + transferFee).toFixed(2));
+            $("#totalPaidDisplay").val(totalPaid.toFixed(2));
+
+            totalsCalcLock = false;
+
+            return { subTotal, transferFee, discount, paid, grandTotal, totalPaid };
         }
 
         function getGridTotals() {
@@ -553,20 +637,24 @@
                 return;
             }
 
-            const transferFee = Number($("#transferFeeInput").jqxNumberInput("val") || 0);
+            const { subTotal, transferFee } = getPurchaseBaseAmount();
+            const totalsSummary = recalcPurchaseTotals("discount");
             const payload = {
                 supplier_id: supplierId,
                 purchase_date: purchaseDate,
                 notes: $("#notesInput").val(),
                 transfer_fee: transferFee,
+                discount_total: totalsSummary.discount,
+                paid_total: totalsSummary.paid,
                 items: validItems
             };
             const totals = getGridTotals();
-            const grandTotal = totals.totalPriceSum + Math.max(transferFee, 0);
             $("#confirmTotalUnitsCount").text(totals.totalUnitsCount);
-            $("#confirmTotalPriceSum").text(totals.totalPriceSum.toFixed(2));
-            $("#confirmTransferFee").text(Math.max(transferFee, 0).toFixed(2));
-            $("#confirmGrandTotal").text(grandTotal.toFixed(2));
+            $("#confirmTotalPriceSum").text(subTotal.toFixed(2));
+            $("#confirmTransferFee").text(transferFee.toFixed(2));
+            $("#confirmDiscount").text(totalsSummary.discount.toFixed(2));
+            $("#confirmGrandTotal").text(totalsSummary.grandTotal.toFixed(2));
+            $("#confirmPaidAmount").text(totalsSummary.paid.toFixed(2));
             $("#confirmSavePurchaseBtn").off("click").on("click", function () {
                 if (confirmPurchaseModal) {
                     confirmPurchaseModal.hide();
@@ -606,8 +694,18 @@
 
             $("#setsCountInput").on("valueChanged", recalcTotalUnits);
             $("#unitPriceInput").on("valueChanged", recalcTotalPrice);
+            $("#transferFeeInput").on("valueChanged", function () {
+                recalcPurchaseTotals("transfer");
+            });
+            $("#discountTotalInput").on("valueChanged", function () {
+                recalcPurchaseTotals("discount");
+            });
+            $("#paidAmountInput").on("valueChanged", function () {
+                recalcPurchaseTotals("paid");
+            });
 
             $("#addProductsBtn").on("click", addProductToGrid);
+            recalcPurchaseTotals("items");
             $("#savePurchaseBtn").on("click", savePurchase);
         });
 </script>

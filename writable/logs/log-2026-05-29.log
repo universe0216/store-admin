@@ -225,3 +225,55 @@ WHERE `currencies`.`code` = :currencies.code:', [...], false)
 12 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
 13 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
 14 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 12:58:50 --> CodeIgniter\Exceptions\ModelException: You cannot use "getCompiledSelect()" in "App\Models\PurchaseModel". This is a method of the Query Builder Class.
+[Method: GET, Route: api/purchases]
+in SYSTEMPATH\Model.php on line 777.
+ 1 SYSTEMPATH\Model.php(777): CodeIgniter\Exceptions\ModelException::forMethodNotAvailable('App\\Models\\PurchaseModel', 'getCompiledSelect()')
+ 2 SYSTEMPATH\Model.php(757): CodeIgniter\Model->checkBuilderMethod('getCompiledSelect')
+ 3 APPPATH\Controllers\Api\Purchases.php(74): CodeIgniter\Model->__call('getCompiledSelect', [...])
+ 4 APPPATH\Controllers\Api\Purchases.php(37): App\Controllers\Api\Purchases->getPurchasesListSummary('', '2026-05-30', '2026-05-30')
+ 5 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Purchases->index()
+ 6 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Purchases))
+ 7 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+10 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 12:59:09 --> CodeIgniter\Exceptions\ModelException: You cannot use "getCompiledSelect()" in "App\Models\PurchaseModel". This is a method of the Query Builder Class.
+[Method: GET, Route: api/purchases]
+in SYSTEMPATH\Model.php on line 777.
+ 1 SYSTEMPATH\Model.php(777): CodeIgniter\Exceptions\ModelException::forMethodNotAvailable('App\\Models\\PurchaseModel', 'getCompiledSelect()')
+ 2 SYSTEMPATH\Model.php(757): CodeIgniter\Model->checkBuilderMethod('getCompiledSelect')
+ 3 APPPATH\Controllers\Api\Purchases.php(74): CodeIgniter\Model->__call('getCompiledSelect', [...])
+ 4 APPPATH\Controllers\Api\Purchases.php(37): App\Controllers\Api\Purchases->getPurchasesListSummary('', '2026-05-30', '2026-05-30')
+ 5 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Purchases->index()
+ 6 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Purchases))
+ 7 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+10 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 12:59:09 --> CodeIgniter\Exceptions\ModelException: You cannot use "getCompiledSelect()" in "App\Models\PurchaseModel". This is a method of the Query Builder Class.
+[Method: GET, Route: api/purchases]
+in SYSTEMPATH\Model.php on line 777.
+ 1 SYSTEMPATH\Model.php(777): CodeIgniter\Exceptions\ModelException::forMethodNotAvailable('App\\Models\\PurchaseModel', 'getCompiledSelect()')
+ 2 SYSTEMPATH\Model.php(757): CodeIgniter\Model->checkBuilderMethod('getCompiledSelect')
+ 3 APPPATH\Controllers\Api\Purchases.php(74): CodeIgniter\Model->__call('getCompiledSelect', [...])
+ 4 APPPATH\Controllers\Api\Purchases.php(37): App\Controllers\Api\Purchases->getPurchasesListSummary('', '2026-05-30', '2026-05-30')
+ 5 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Purchases->index()
+ 6 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Purchases))
+ 7 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+10 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 12:59:13 --> CodeIgniter\Exceptions\ModelException: You cannot use "getCompiledSelect()" in "App\Models\PurchaseModel". This is a method of the Query Builder Class.
+[Method: GET, Route: api/purchases]
+in SYSTEMPATH\Model.php on line 777.
+ 1 SYSTEMPATH\Model.php(777): CodeIgniter\Exceptions\ModelException::forMethodNotAvailable('App\\Models\\PurchaseModel', 'getCompiledSelect()')
+ 2 SYSTEMPATH\Model.php(757): CodeIgniter\Model->checkBuilderMethod('getCompiledSelect')
+ 3 APPPATH\Controllers\Api\Purchases.php(74): CodeIgniter\Model->__call('getCompiledSelect', [...])
+ 4 APPPATH\Controllers\Api\Purchases.php(37): App\Controllers\Api\Purchases->getPurchasesListSummary('', '2026-05-30', '2026-05-30')
+ 5 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Purchases->index()
+ 6 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Purchases))
+ 7 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+10 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))

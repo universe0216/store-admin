@@ -74,6 +74,7 @@
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxdropdownlist.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxmenu.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.js"></script>
+    <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.pager.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.edit.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxgrid.filter.js"></script>
     <script src="https://unpkg.com/jqwidgets-scripts@16.0.0/jqwidgets/jqxdatatable.js"></script>
