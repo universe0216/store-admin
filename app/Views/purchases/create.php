@@ -44,11 +44,15 @@
                         <label class="form-label text-secondary mb-1">Transfer Fee</label>
                         <div id="transferFeeInput"></div>
                     </div>
+                    <div class="col-12 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Notes</label>
+                        <input id="notesInput" type="text" class="form-control">
+                    </div>
                     <div class="col-12 col-lg-6">
                         <label class="form-label text-secondary mb-1">Notes</label>
                         <input id="notesInput" type="text" class="form-control">
                     </div>
-                    <div class="col-12 col-lg-6 d-flex align-items-end justify-content-lg-end">
+                    <div class="col-12 col-lg-3 d-flex align-items-end justify-content-lg-end">
                         <input type="button" id="savePurchaseBtn" value="Save Purchase" class="btn btn-primary">
                     </div>
                 </div>

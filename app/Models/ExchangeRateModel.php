@@ -2,22 +2,18 @@
 
 namespace App\Models;
 
-class ProductVariantModel extends BaseModel
+class ExchangeRateModel extends BaseModel
 {
-    protected $table            = 'product_variants';
+    protected $table            = 'exchange_rates';
     protected $primaryKey       = 'id';
     protected $returnType       = 'array';
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'product_id',
-        'sku',
-        'barcode',
-        'size',
-        'style',
-        'cost_price',
-        'selling_price',
-        'stock_qty',
-        'is_active',
+        'base_currency',
+        'quote_currency',
+        'rate',
+        'effective_at',
+        'source',
     ];
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -25,5 +21,5 @@ class ProductVariantModel extends BaseModel
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
+    protected $updatedField  = '';
 }

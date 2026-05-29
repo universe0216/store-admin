@@ -46,20 +46,15 @@ class Purchases extends BaseController
             ->select(
                 "products.id AS product_id, products.name AS product_name, products.serial_number AS product_number, " .
                 "products.brand AS brand, " .
-                "GROUP_CONCAT(DISTINCT CASE WHEN variant_attributes.name <> 'Size' " .
-                "THEN CONCAT(variant_attributes.name, ': ', variant_attribute_values.value) END " .
-                "ORDER BY variant_attributes.name, variant_attribute_values.value SEPARATOR ', ') AS style, " .
+                "GROUP_CONCAT(DISTINCT product_variants.style ORDER BY product_variants.style SEPARATOR ', ') AS style, " .
                 "purchase_items.unit_cost, " .
-                "GROUP_CONCAT(DISTINCT CASE WHEN variant_attributes.name = 'Size' THEN variant_attribute_values.value END ORDER BY variant_attribute_values.value SEPARATOR ', ') AS size_value, " .
+                "GROUP_CONCAT(DISTINCT product_variants.size ORDER BY product_variants.size SEPARATOR ', ') AS size_value, " .
                 "MAX(purchase_items.qty) AS sets_count, " .
                 "SUM(purchase_items.qty) AS units_count, " .
                 "SUM(purchase_items.line_total) AS total_price"
             )
             ->join('product_variants', 'product_variants.id = purchase_items.product_variant_id')
             ->join('products', 'products.id = product_variants.product_id')
-            ->join('product_variant_values', 'product_variant_values.product_variant_id = product_variants.id', 'left')
-            ->join('variant_attributes', 'variant_attributes.id = product_variant_values.attribute_id', 'left')
-            ->join('variant_attribute_values', 'variant_attribute_values.id = product_variant_values.attribute_value_id', 'left')
             ->where('purchase_items.purchase_id', $id)
             ->groupBy('products.id, products.name, products.serial_number, products.brand, purchase_items.unit_cost')
             ->findAll();
@@ -115,6 +110,7 @@ class Purchases extends BaseController
             $unitCost       = (float) ($item['unit_cost'] ?? 0);
             $discountAmount = 0.0;
             $sizes          = $item['sizes'] ?? [];
+            $style          = $item['style'] ?? '';
             $warehouseId    = (int) ($item['warehouse_id'] ?? 0);
 
             if ($productId > 0 && is_array($sizes) && $sizes !== [] && $setsCount > 0) {
@@ -134,6 +130,7 @@ class Purchases extends BaseController
                         $productVariantModel,
                         $product,
                         $sizeText,
+                        trim((string) $style),
                         $unitCost
                     );
                     if ($resolvedVariantId < 1) {
@@ -353,15 +350,11 @@ class Purchases extends BaseController
         $builder = (new ProductVariantModel())
             ->select(
                 "product_variants.id, product_variants.product_id, product_variants.sku, product_variants.stock_qty, " .
-                "product_variants.selling_price, products.name AS product_name, " .
-                "MAX(CASE WHEN variant_attributes.name = 'Size' THEN variant_attribute_values.value END) AS size_value"
+                "product_variants.selling_price, product_variants.size AS size_value, product_variants.style, " .
+                "products.name AS product_name"
             )
             ->join('products', 'products.id = product_variants.product_id')
-            ->join('product_variant_values', 'product_variant_values.product_variant_id = product_variants.id', 'left')
-            ->join('variant_attributes', 'variant_attributes.id = product_variant_values.attribute_id', 'left')
-            ->join('variant_attribute_values', 'variant_attribute_values.id = product_variant_values.attribute_value_id', 'left')
-            ->where('product_variants.is_active', 1)
-            ->groupBy('product_variants.id, product_variants.product_id, product_variants.sku, product_variants.stock_qty, product_variants.selling_price, products.name');
+            ->where('product_variants.is_active', 1);
 
         if ($productId > 0) {
             $builder->where('product_variants.product_id', $productId);
@@ -383,25 +376,14 @@ class Purchases extends BaseController
             ->select(
                 "inventory.id, inventory.variant_id, inventory.warehouse_id, inventory.quantity, inventory.reserved_quantity, inventory.updated_at, " .
                 "product_variants.sku, product_variants.cost_price, product_variants.selling_price, " .
+                "product_variants.size AS size_value, product_variants.style, " .
                 "products.name AS product_name, products.serial_number AS product_number, products.brand, " .
-                "warehouses.name AS warehouse_name, warehouses.location AS warehouse_location, " .
-                "MAX(CASE WHEN variant_attributes.name = 'Size' THEN variant_attribute_values.value END) AS size_value, " .
-                "GROUP_CONCAT(DISTINCT CASE WHEN variant_attributes.name <> 'Size' " .
-                "THEN CONCAT(variant_attributes.name, ': ', variant_attribute_values.value) END " .
-                "ORDER BY variant_attributes.name, variant_attribute_values.value SEPARATOR ', ') AS style"
+                "warehouses.name AS warehouse_name, warehouses.location AS warehouse_location"
             )
             ->join('product_variants', 'product_variants.id = inventory.variant_id')
             ->join('products', 'products.id = product_variants.product_id')
             ->join('warehouses', 'warehouses.id = inventory.warehouse_id')
-            ->join('product_variant_values', 'product_variant_values.product_variant_id = product_variants.id', 'left')
-            ->join('variant_attributes', 'variant_attributes.id = product_variant_values.attribute_id', 'left')
-            ->join('variant_attribute_values', 'variant_attribute_values.id = product_variant_values.attribute_value_id', 'left')
             ->where('product_variants.is_active', 1)
-            ->groupBy(
-                'inventory.id, inventory.variant_id, inventory.warehouse_id, inventory.quantity, inventory.reserved_quantity, inventory.updated_at, ' .
-                'product_variants.sku, product_variants.cost_price, product_variants.selling_price, products.name, products.serial_number, products.brand, ' .
-                'warehouses.name, warehouses.location'
-            )
             ->orderBy('products.name', 'ASC');
 
         if ($productName !== '') {
@@ -523,18 +505,15 @@ class Purchases extends BaseController
         ProductVariantModel $productVariantModel,
         array $product,
         string $sizeValue,
+        string $styleValue,
         float $unitCost
     ): int {
-        $sizeAttributeId = $this->getOrCreateSizeAttributeId($db);
-        $sizeValueId     = $this->getOrCreateSizeValueId($db, $sizeAttributeId, $sizeValue);
-
-        $existing = $db->table('product_variants pv')
-            ->select('pv.id')
-            ->join('product_variant_values pvv', 'pvv.product_variant_id = pv.id')
-            ->where('pv.product_id', (int) $product['id'])
-            ->where('pv.is_active', 1)
-            ->where('pvv.attribute_id', $sizeAttributeId)
-            ->where('pvv.attribute_value_id', $sizeValueId)
+        $existing = $db->table('product_variants')
+            ->select('id')
+            ->where('product_id', (int) $product['id'])
+            ->where('is_active', 1)
+            ->where('size', $sizeValue)
+            ->where('style', $styleValue)
             ->get()
             ->getFirstRow('array');
 
@@ -544,70 +523,17 @@ class Purchases extends BaseController
 
         $sku = $this->generateVariantSku($db, $product, $sizeValue);
 
-        $variantId = (int) $productVariantModel->createOne([
-            'product_id'     => (int) $product['id'],
-            'sku'            => $sku,
-            'barcode'        => null,
-            'cost_price'     => $unitCost,
-            'selling_price'  => 0,
-            'stock_qty'      => 0,
-            'is_active'      => 1,
+        return (int) $productVariantModel->createOne([
+            'product_id'    => (int) $product['id'],
+            'sku'           => $sku,
+            'barcode'       => null,
+            'size'          => $sizeValue,
+            'style'         => $styleValue,
+            'cost_price'    => $unitCost,
+            'selling_price' => 0,
+            'stock_qty'     => 0,
+            'is_active'     => 1,
         ]);
-
-        $db->table('product_variant_values')->insert([
-            'product_variant_id' => $variantId,
-            'attribute_id'       => $sizeAttributeId,
-            'attribute_value_id' => $sizeValueId,
-            'created_at'         => date('Y-m-d H:i:s'),
-            'updated_at'         => date('Y-m-d H:i:s'),
-        ]);
-
-        return $variantId;
-    }
-
-    private function getOrCreateSizeAttributeId(BaseConnection $db): int
-    {
-        $row = $db->table('variant_attributes')
-            ->select('id')
-            ->where('name', 'Size')
-            ->get()
-            ->getFirstRow('array');
-
-        if (is_array($row) && isset($row['id'])) {
-            return (int) $row['id'];
-        }
-
-        $db->table('variant_attributes')->insert([
-            'name'       => 'Size',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        return (int) $db->insertID();
-    }
-
-    private function getOrCreateSizeValueId(BaseConnection $db, int $attributeId, string $sizeValue): int
-    {
-        $row = $db->table('variant_attribute_values')
-            ->select('id')
-            ->where('attribute_id', $attributeId)
-            ->where('value', $sizeValue)
-            ->get()
-            ->getFirstRow('array');
-
-        if (is_array($row) && isset($row['id'])) {
-            return (int) $row['id'];
-        }
-
-        $db->table('variant_attribute_values')->insert([
-            'attribute_id' => $attributeId,
-            'value'        => $sizeValue,
-            'sort_order'   => 0,
-            'created_at'   => date('Y-m-d H:i:s'),
-            'updated_at'   => date('Y-m-d H:i:s'),
-        ]);
-
-        return (int) $db->insertID();
     }
 
     private function generateVariantSku(BaseConnection $db, array $product, string $sizeValue): string

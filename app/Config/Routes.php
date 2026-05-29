@@ -15,6 +15,7 @@ $routes->get('inventory', 'Inventory::index');
 $routes->get('suppliers', 'Suppliers::index');
 $routes->get('categories', 'Categories::index');
 $routes->get('warehouses', 'Warehouses::index');
+$routes->get('currencies', 'Currencies::index');
 
 $routes->group('api', static function ($routes): void {
     $routes->get('purchases', 'Api\Purchases::index');
@@ -35,6 +36,11 @@ $routes->group('api', static function ($routes): void {
     $routes->post('warehouses', 'Api\Warehouses::create');
     $routes->put('warehouses/(:num)', 'Api\Warehouses::update/$1');
     $routes->delete('warehouses/(:num)', 'Api\Warehouses::delete/$1');
+    $routes->get('currencies', 'Api\Currencies::index');
+    $routes->get('currencies/(:segment)', 'Api\Currencies::show/$1');
+    $routes->post('currencies', 'Api\Currencies::create');
+    $routes->put('currencies/(:segment)', 'Api\Currencies::update/$1');
+    $routes->delete('currencies/(:segment)', 'Api\Currencies::delete/$1');
     $routes->get('products', 'Api\Purchases::products');
     $routes->post('products', 'Api\Purchases::createProduct');
     $routes->get('product-variants', 'Api\Purchases::variants');

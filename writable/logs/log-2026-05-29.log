@@ -1,0 +1,227 @@
+ERROR - 2026-05-29 09:50:43 --> Table 'categories' already exists
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 4 SYSTEMPATH\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 5 APPPATH\Database\Migrations\2026-04-25-000001_CreateStoreSchema.php(34): CodeIgniter\Database\Forge->createTable('categories')
+ 6 SYSTEMPATH\Database\MigrationRunner.php(1014): App\Database\Migrations\CreateStoreSchema->up()
+ 7 SYSTEMPATH\Database\MigrationRunner.php(202): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+ 8 SYSTEMPATH\Commands\Database\Migrate.php(89): CodeIgniter\Database\MigrationRunner->latest(null)
+ 9 SYSTEMPATH\CLI\SignalTrait.php(245): CodeIgniter\Commands\Database\Migrate::CodeIgniter\Commands\Database\{closure}()
+10 SYSTEMPATH\Commands\Database\Migrate.php(88): CodeIgniter\Commands\Database\Migrate->withSignalsBlocked(Object(Closure))
+11 SYSTEMPATH\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run([])
+12 SYSTEMPATH\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', [])
+13 SYSTEMPATH\Boot.php(442): CodeIgniter\CLI\Console->run()
+14 SYSTEMPATH\Boot.php(166): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+15 ROOTPATH\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+ERROR - 2026-05-29 09:51:20 --> Table 'my_stock.currencies' doesn't exist
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000', [], false)
+ 5 SYSTEMPATH\Model.php(253): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\BaseModel.php(676): CodeIgniter\Model->doFindAll(1000, 0)
+ 7 APPPATH\Models\CurrencyModel.php(24): CodeIgniter\BaseModel->findAll(1000)
+ 8 APPPATH\Controllers\Api\Currencies.php(13): App\Models\CurrencyModel->listAll()
+ 9 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Currencies->index()
+10 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Currencies))
+11 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+12 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+13 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+14 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 09:51:20 --> CodeIgniter\Database\Exceptions\DatabaseException: Table 'my_stock.currencies' doesn't exist
+[Method: GET, Route: api/currencies]
+in SYSTEMPATH\Database\BaseConnection.php on line 865.
+ 1 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000', [], false)
+ 2 SYSTEMPATH\Model.php(253): CodeIgniter\Database\BaseBuilder->get()
+ 3 SYSTEMPATH\BaseModel.php(676): CodeIgniter\Model->doFindAll(1000, 0)
+ 4 APPPATH\Models\CurrencyModel.php(24): CodeIgniter\BaseModel->findAll(1000)
+ 5 APPPATH\Controllers\Api\Currencies.php(13): App\Models\CurrencyModel->listAll()
+ 6 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Currencies->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Currencies))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 09:51:20 --> [Caused by] CodeIgniter\Database\Exceptions\DatabaseException: Table 'my_stock.currencies' doesn't exist
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 310.
+ 1 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000')
+ 2 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000')
+ 3 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000', [], false)
+ 4 SYSTEMPATH\Model.php(253): CodeIgniter\Database\BaseBuilder->get()
+ 5 SYSTEMPATH\BaseModel.php(676): CodeIgniter\Model->doFindAll(1000, 0)
+ 6 APPPATH\Models\CurrencyModel.php(24): CodeIgniter\BaseModel->findAll(1000)
+ 7 APPPATH\Controllers\Api\Currencies.php(13): App\Models\CurrencyModel->listAll()
+ 8 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Currencies->index()
+ 9 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Currencies))
+10 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+11 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+13 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 09:51:20 --> [Caused by] mysqli_sql_exception: Table 'my_stock.currencies' doesn't exist
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `currencies`
+ORDER BY `code` ASC
+ LIMIT 1000', [], false)
+ 5 SYSTEMPATH\Model.php(253): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\BaseModel.php(676): CodeIgniter\Model->doFindAll(1000, 0)
+ 7 APPPATH\Models\CurrencyModel.php(24): CodeIgniter\BaseModel->findAll(1000)
+ 8 APPPATH\Controllers\Api\Currencies.php(13): App\Models\CurrencyModel->listAll()
+ 9 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Currencies->index()
+10 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Currencies))
+11 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+12 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+13 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+14 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+ERROR - 2026-05-29 09:51:52 --> Table 'my_stock.currencies' doesn't exist
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = \'RMB\'', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = \'RMB\'')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = \'RMB\'')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = :currencies.code:', [...], false)
+ 5 SYSTEMPATH\Model.php(192): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\BaseModel.php(615): CodeIgniter\Model->doFind(true, 'RMB')
+ 7 APPPATH\Models\CurrencyModel.php(31): CodeIgniter\BaseModel->find('RMB')
+ 8 APPPATH\Controllers\Api\Currencies.php(41): App\Models\CurrencyModel->findByCode('RMB')
+ 9 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Currencies->create()
+10 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Currencies))
+11 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+12 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+13 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+14 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 09:51:52 --> CodeIgniter\Database\Exceptions\DatabaseException: Table 'my_stock.currencies' doesn't exist
+[Method: POST, Route: api/currencies]
+in SYSTEMPATH\Database\BaseConnection.php on line 865.
+ 1 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = :currencies.code:', [...], false)
+ 2 SYSTEMPATH\Model.php(192): CodeIgniter\Database\BaseBuilder->get()
+ 3 SYSTEMPATH\BaseModel.php(615): CodeIgniter\Model->doFind(true, 'RMB')
+ 4 APPPATH\Models\CurrencyModel.php(31): CodeIgniter\BaseModel->find('RMB')
+ 5 APPPATH\Controllers\Api\Currencies.php(41): App\Models\CurrencyModel->findByCode('RMB')
+ 6 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Currencies->create()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Currencies))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 09:51:52 --> [Caused by] CodeIgniter\Database\Exceptions\DatabaseException: Table 'my_stock.currencies' doesn't exist
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 310.
+ 1 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = \'RMB\'')
+ 2 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = \'RMB\'')
+ 3 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = :currencies.code:', [...], false)
+ 4 SYSTEMPATH\Model.php(192): CodeIgniter\Database\BaseBuilder->get()
+ 5 SYSTEMPATH\BaseModel.php(615): CodeIgniter\Model->doFind(true, 'RMB')
+ 6 APPPATH\Models\CurrencyModel.php(31): CodeIgniter\BaseModel->find('RMB')
+ 7 APPPATH\Controllers\Api\Currencies.php(41): App\Models\CurrencyModel->findByCode('RMB')
+ 8 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Currencies->create()
+ 9 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Currencies))
+10 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+11 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+13 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-05-29 09:51:52 --> [Caused by] mysqli_sql_exception: Table 'my_stock.currencies' doesn't exist
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = \'RMB\'', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = \'RMB\'')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = \'RMB\'')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1649): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `currencies`
+WHERE `currencies`.`code` = :currencies.code:', [...], false)
+ 5 SYSTEMPATH\Model.php(192): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\BaseModel.php(615): CodeIgniter\Model->doFind(true, 'RMB')
+ 7 APPPATH\Models\CurrencyModel.php(31): CodeIgniter\BaseModel->find('RMB')
+ 8 APPPATH\Controllers\Api\Currencies.php(41): App\Models\CurrencyModel->findByCode('RMB')
+ 9 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Currencies->create()
+10 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Currencies))
+11 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+12 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+13 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+14 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))

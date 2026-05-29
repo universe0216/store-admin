@@ -299,4 +299,43 @@ CREATE TABLE stock_movements (
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 );
+
+CREATE TABLE currencies (
+    code CHAR(3) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    symbol VARCHAR(10) NOT NULL,
+    decimals TINYINT(1) UNSIGNED NOT NULL DEFAULT 2,
+    PRIMARY KEY (code)
+);
+
+CREATE TABLE exchange_rates (
+    id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    base_currency CHAR(3) NOT NULL,
+    quote_currency CHAR(3) NOT NULL,
+    rate DECIMAL(20,8) NOT NULL,
+    effective_at DATETIME NOT NULL,
+    source VARCHAR(100) NULL,
+    created_at DATETIME NULL,
+
+    PRIMARY KEY (id),
+
+    KEY idx_exchange_rates_pair_date (
+        base_currency,
+        quote_currency,
+        effective_at
+    ),
+
+    CONSTRAINT fk_exchange_rates_base_currency
+        FOREIGN KEY (base_currency)
+        REFERENCES currencies(code)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_exchange_rates_quote_currency
+        FOREIGN KEY (quote_currency)
+        REFERENCES currencies(code)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+);
+
 ```
