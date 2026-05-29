@@ -68,16 +68,16 @@
             <div class="col-12 col-lg-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-body p-4">
-                        <h2 class="h6 fw-semibold mb-2">Warehouse Stock</h2>
+                        <!-- <h2 class="h6 fw-semibold mb-2">Warehouse Stock</h2> -->
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-5">
-                                <label class="form-label text-secondary mb-1">Filter by Warehouse</label>
+                                <!-- <label class="form-label text-secondary mb-1">Filter by Warehouse</label> -->
                                 <div id="stockWarehouseDropdown"></div>
                             </div>
                             <div class="col-12 col-md-7">
-                                <label class="form-label text-secondary mb-1" for="stockSearchInput">Search</label>
+                                <!-- <label class="form-label text-secondary mb-1" for="stockSearchInput">Search</label> -->
                                 <div class="d-flex gap-2">
-                                    <input type="text" id="stockSearchInput" class="form-control" placeholder="Product name or product number">
+                                    <input type="text" id="stockSearchInput" class="form-control" placeholder="Search by Product name or product number">
                                     <button type="button" id="clearStockFiltersBtn" class="btn btn-outline-secondary btn-sm text-nowrap">Clear</button>
                                 </div>
                             </div>
@@ -172,7 +172,8 @@
                 { text: "Size", datafield: "size_value", width: 70 },
                 { text: "Brand", datafield: "brand", width: 90 },
                 { text: "Available", datafield: "remaining_qty", width: 90, cellsalign: "right" },
-                { text: "Unit Price", datafield: "unit_price", width: 100, cellsformat: "f2", cellsalign: "right" }
+                { text: "Cost Price", datafield: "cost_price", width: 100, cellsformat: "f2", cellsalign: "right" },
+                { text: "Sell Price", datafield: "selling_price", width: 100, cellsformat: "f2", cellsalign: "right" }
             ]
         });
 
@@ -204,7 +205,8 @@
                 { text: "SKU", datafield: "sku", width: 110, editable: false },
                 { text: "Size", datafield: "size_value", width: 70, editable: false },
                 { text: "Qty", datafield: "qty", width: 70, cellsalign: "right", columntype: "numberinput" },
-                { text: "Unit Price", datafield: "unit_price", width: 110, cellsformat: "f2", cellsalign: "right", columntype: "numberinput" },
+                { text: "Cost Price", datafield: "unit_cost", width: 110, cellsformat: "f2", cellsalign: "right", columntype: "numberinput" },
+                { text: "Sell Price", datafield: "unit_price", width: 110, cellsformat: "f2", cellsalign: "right", columntype: "numberinput" },
                 { text: "Line Total", datafield: "line_total", width: 110, cellsformat: "f2", cellsalign: "right", editable: false }
             ]
         });
@@ -217,7 +219,7 @@
         });
 
         $("#saleItemsGrid").on("cellvaluechanged", function (event) {
-            syncSaleItemFromGrid(event.args.rowindex);
+            syncSaleItemFromGrid(event.args.rowindex, event.args.datafield);
         });
     }
 
@@ -321,6 +323,31 @@
         return saleItems.find(s => Number(s.variant_id) === Number(variantId));
     }
 
+    function getZeroSellingPriceItems() {
+        return (saleItems || []).filter(function (r) {
+            return Number(r.unit_price || 0) <= 0;
+        });
+    }
+
+    function alertZeroSellingPriceItems() {
+        const items = getZeroSellingPriceItems();
+        if (items.length === 0) {
+            return false;
+        }
+
+        const labels = items.map(function (r) {
+            const name = String(r.product_name || "").trim();
+            const sku = String(r.sku || "").trim();
+            return name !== "" ? name : (sku !== "" ? sku : "Unknown product");
+        });
+
+        alert(
+            "One or more items have selling price 0:\n\n" +
+            labels.map(function (label) { return "- " + label; }).join("\n")
+        );
+        return true;
+    }
+
     function addOneToSale(stockRow) {
         const variantId = Number(stockRow.variant_id);
         const stock = stockSource.find(s => Number(s.inventory_id) === Number(stockRow.inventory_id))
@@ -333,7 +360,8 @@
         stock.remaining_qty = Number(stock.remaining_qty) - 1;
 
         let saleRow = findSaleItem(variantId);
-        const unitPrice = Number(stock.unit_price || 0);
+        const unitCost = Number(stock.cost_price || 0);
+        const unitPrice = Number(stock.selling_price || 0);
         if (saleRow) {
             saleRow.qty = Number(saleRow.qty) + 1;
             saleRow.line_total = Number((saleRow.qty * saleRow.unit_price).toFixed(2));
@@ -343,8 +371,9 @@
                 product_name: stock.product_name || "",
                 sku: stock.sku || "",
                 size_value: stock.size_value || "",
-                qty: 1,
+                unit_cost: unitCost,
                 unit_price: unitPrice,
+                qty: 1,
                 line_total: unitPrice
             });
         }
@@ -354,7 +383,7 @@
         setMessage("Item added to sale.");
     }
 
-    function syncSaleItemFromGrid(rowIndex) {
+    function syncSaleItemFromGrid(rowIndex, datafield) {
         const gridRow = $("#saleItemsGrid").jqxGrid("getrowdata", rowIndex);
         if (!gridRow) {
             return;
@@ -366,20 +395,28 @@
             return;
         }
 
-        const oldQty = Number(saleRow.qty);
-        const newQty = Math.max(1, Number(gridRow.qty || 1));
-        const maxQty = oldQty + remainingQtyForVariant(variantId);
-        const adjustedQty = Math.min(newQty, maxQty);
+        const field = String(datafield || "");
 
-        if (adjustedQty !== newQty) {
-            setMessage("Qty adjusted to available stock.", true);
+        if (field === "qty") {
+            const oldQty = Number(saleRow.qty);
+            const newQty = Math.max(1, Number(gridRow.qty || 1));
+            const maxQty = oldQty + remainingQtyForVariant(variantId);
+            const adjustedQty = Math.min(newQty, maxQty);
+
+            if (adjustedQty !== newQty) {
+                setMessage("Qty adjusted to available stock.", true);
+            }
+
+            const qtyDelta = adjustedQty - oldQty;
+            adjustVariantRemainingQty(variantId, -qtyDelta);
+            saleRow.qty = adjustedQty;
+        } else if (field === "unit_cost") {
+            saleRow.unit_cost = Number(Number(gridRow.unit_cost || 0).toFixed(2));
+        } else if (field === "unit_price") {
+            saleRow.unit_price = Number(Number(gridRow.unit_price || 0).toFixed(2));
         }
 
-        const qtyDelta = adjustedQty - oldQty;
-        adjustVariantRemainingQty(variantId, -qtyDelta);
-        saleRow.qty = adjustedQty;
-        saleRow.unit_price = Number(Number(gridRow.unit_price || 0).toFixed(2));
-        saleRow.line_total = Number((saleRow.qty * saleRow.unit_price).toFixed(2));
+        saleRow.line_total = Number((Number(saleRow.qty) * Number(saleRow.unit_price)).toFixed(2));
 
         refreshStockGrid();
         refreshSaleGrid();
@@ -451,7 +488,6 @@
         $.getJSON(API_URLS.warehouseProducts, params).done(function(res) {
             stockSource = (res.data || []).map(p => {
                 const qty = Number(p.quantity || 0);
-                const unitPrice = Number(p.selling_price || p.cost_price || 0);
                 return {
                     inventory_id: Number(p.inventory_id || 0),
                     variant_id: Number(p.variant_id),
@@ -463,9 +499,10 @@
                     style: p.style || "",
                     size_value: p.size_value || "",
                     brand: p.brand || "",
+                    cost_price: Number(p.cost_price || 0),
+                    selling_price: Number(p.selling_price || 0),
                     original_qty: qty,
-                    remaining_qty: qty,
-                    unit_price: unitPrice
+                    remaining_qty: qty
                 };
             });
             for (const item of saleItems) {
@@ -487,6 +524,10 @@
         }
         if (saleItems.length === 0) {
             setMessage("Add at least one item.", true);
+            return;
+        }
+
+        if (alertZeroSellingPriceItems()) {
             return;
         }
 

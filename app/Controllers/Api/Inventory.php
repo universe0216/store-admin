@@ -57,4 +57,35 @@ class Inventory extends BaseController
 
         return $this->response->setJSON(['data' => $rows]);
     }
+
+    public function updateSellingPrice(int $variantId): ResponseInterface
+    {
+        $payload = $this->request->getJSON(true);
+        if (! is_array($payload)) {
+            return $this->response->setStatusCode(400)->setJSON(['message' => 'Invalid JSON payload.']);
+        }
+
+        $sellingPrice = (float) ($payload['selling_price'] ?? -1);
+        if ($variantId < 1 || $sellingPrice < 0) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => 'variant_id and a non-negative selling_price are required.',
+            ]);
+        }
+
+        $variantModel = new ProductVariantModel();
+        $variant      = $variantModel->find($variantId);
+        if ($variant === null) {
+            return $this->response->setStatusCode(404)->setJSON(['message' => 'Product variant not found.']);
+        }
+
+        $variantModel->updateOne($variantId, ['selling_price' => $sellingPrice]);
+
+        return $this->response->setJSON([
+            'message' => 'Selling price updated successfully.',
+            'data'    => [
+                'variant_id'    => $variantId,
+                'selling_price' => $sellingPrice,
+            ],
+        ]);
+    }
 }

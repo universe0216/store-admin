@@ -46,6 +46,7 @@ $routes->group('api', static function ($routes): void {
     $routes->post('products', 'Api\Purchases::createProduct');
     $routes->get('product-variants', 'Api\Purchases::variants');
     $routes->get('inventory', 'Api\Inventory::index');
+    $routes->put('inventory/variant/(:num)/selling-price', 'Api\Inventory::updateSellingPrice/$1');
     $routes->get('stock', 'Api\Purchases::stock');
     $routes->put('stock/warehouse', 'Api\Purchases::updateVariantWarehouse');
     $routes->get('sales', 'Api\Sells::index');

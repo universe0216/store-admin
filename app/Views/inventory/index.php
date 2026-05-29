@@ -2,6 +2,22 @@
 
 <?= $this->section('title') ?>Inventory<?= $this->endSection() ?>
 
+<?= $this->section('pageStyles') ?>
+<style>
+    #inventoryGrid .jqx-grid-cell-edit .jqx-numberinput {
+        height: 100% !important;
+        margin: 0 !important;
+    }
+    #inventoryGrid .jqx-grid-cell-edit .jqx-numberinput input {
+        height: 100% !important;
+        margin: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        box-sizing: border-box;
+    }
+</style>
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
     <div class="container-fluid px-5 py-4">
         <div class="mb-4 d-flex justify-content-between align-items-center">
@@ -29,6 +45,7 @@
                         <button type="button" id="resetInventoryFilterBtn" class="btn btn-outline-secondary">Reset</button>
                     </div>
                 </div>
+                <div id="inventoryMessage" class="small fw-semibold mb-2"></div>
                 <div id="inventoryGrid"></div>
             </div>
         </div>
@@ -42,6 +59,15 @@
             warehouses: "<?= site_url('api/warehouses') ?>"
         };
 
+        function setInventoryMessage(msg, isError = false) {
+            const box = $("#inventoryMessage");
+            box.text(msg || "");
+            box.removeClass("text-success text-danger");
+            if (msg) {
+                box.addClass(isError ? "text-danger" : "text-success");
+            }
+        }
+
         function initWidgets() {
             $("#inventoryGrid").jqxGrid({
                 width: "100%",
@@ -49,6 +75,8 @@
                 columnsresize: true,
                 filterable: true,
                 showfilterrow: true,
+                editable: true,
+                editmode: "click",
                 source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" }),
                 columns: [
                     { text: "Inventory ID", datafield: "id", width: 90 },
@@ -64,8 +92,42 @@
                     { text: "Qty", datafield: "quantity", width: 90, cellsalign: "right" },
                     // { text: "Reserved", datafield: "reserved_quantity", width: 90, cellsalign: "right" },
                     { text: "Cost Price", datafield: "cost_price", width: 110, cellsformat: "f2", cellsalign: "right" },
-                    { text: "Selling Price", datafield: "selling_price", cellsformat: "f2", cellsalign: "right" }
+                    {
+                        text: "Selling Price",
+                        datafield: "selling_price",
+                        width: 120,
+                        cellsformat: "f2",
+                        cellsalign: "right",
+                        columntype: "numberinput",
+                        editable: true
+                    }
                 ]
+            });
+
+            $("#inventoryGrid").on("cellvaluechanged", function (event) {
+                if (event.args.datafield !== "selling_price") {
+                    return;
+                }
+
+                const row = $("#inventoryGrid").jqxGrid("getrowdata", event.args.rowindex);
+                const variantId = Number(row?.variant_id || 0);
+                const sellingPrice = Math.max(0, Number(event.args.value || 0));
+
+                if (variantId < 1) {
+                    return;
+                }
+
+                $.ajax({
+                    url: `${API_URLS.inventory}/variant/${variantId}/selling-price`,
+                    method: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify({ selling_price: sellingPrice })
+                }).done(function () {
+                    setInventoryMessage("Selling price saved.");
+                }).fail(function (xhr) {
+                    setInventoryMessage(xhr.responseJSON?.message || "Failed to update selling price.", true);
+                    loadInventory();
+                });
             });
         }
 
@@ -95,8 +157,15 @@
             }
 
             return $.getJSON(API_URLS.inventory, params).done(function(res) {
-                const source = { localdata: res.data || [], datatype: "array" };
+                const rows = (res.data || []).map(function (row) {
+                    return {
+                        ...row,
+                        selling_price: Number(row.selling_price || 0)
+                    };
+                });
+                const source = { localdata: rows, datatype: "array" };
                 $("#inventoryGrid").jqxGrid({ source: new $.jqx.dataAdapter(source) });
+                setInventoryMessage("");
             }).fail(function(xhr) {
                 const msg = xhr.responseJSON?.message || "Failed to load inventory.";
                 console.error(msg);
