@@ -22,4 +22,26 @@ class ExchangeRateModel extends BaseModel
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = '';
+
+    public function getLatestRate(string $baseCurrency, string $quoteCurrency): ?array
+    {
+        $row = $this->where('base_currency', strtoupper($baseCurrency))
+            ->where('quote_currency', strtoupper($quoteCurrency))
+            ->orderBy('effective_at', 'DESC')
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function saveRate(string $baseCurrency, string $quoteCurrency, float $rate, ?string $source = null): int
+    {
+        return $this->createOne([
+            'base_currency'  => strtoupper($baseCurrency),
+            'quote_currency' => strtoupper($quoteCurrency),
+            'rate'           => $rate,
+            'effective_at'   => date('Y-m-d H:i:s'),
+            'source'         => $source ?? 'manual',
+        ]);
+    }
 }

@@ -267,11 +267,19 @@ class Purchases extends BaseController
         $transferFee   = max(0, (float) ($payload['transfer_fee'] ?? 0));
         $headerDiscount = (float) ($payload['discount_total'] ?? 0);
         $paidTotal      = (float) ($payload['paid_total'] ?? 0);
+        $paymentMethod  = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
         $items         = $payload['items'] ?? [];
 
         if ($supplierId < 1 || $purchaseDate === '' || ! is_array($items) || $items === []) {
             return $this->response->setStatusCode(422)->setJSON([
                 'message' => 'supplier_id, purchase_date and at least one item are required.',
+            ]);
+        }
+
+        $allowedPaymentMethods = ['cash', 'bank_transfer', 'card', 'check', 'other'];
+        if (! in_array($paymentMethod, $allowedPaymentMethods, true)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => 'Invalid payment method.',
             ]);
         }
 
@@ -383,6 +391,7 @@ class Purchases extends BaseController
                 'transfer_fee'   => $transferFee,
                 'grand_total'    => $grandTotal,
                 'paid_total'     => $paidTotal,
+                'payment_method' => $paymentMethod,
                 'notes'          => $notes !== '' ? $notes : null,
             ]);
 

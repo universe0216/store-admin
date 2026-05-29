@@ -55,6 +55,16 @@
                         <label class="form-label text-secondary mb-1">Paid Amount</label>
                         <div id="paidAmountInput"></div>
                     </div>
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <label class="form-label text-secondary mb-1">Payment Method</label>
+                        <select id="paymentMethodSelect" class="form-select">
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="card">Card</option>
+                            <option value="check">Check</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
                     <div class="col-12 d-flex align-items-end justify-content-lg-end">
                         <button type="button" id="saveSaleBtn" class="btn btn-success">Save Sale</button>
                     </div>
@@ -543,6 +553,7 @@
             customer_name: String($("#customerNameInput").val() || "").trim(),
             discount_total: Number($("#discountTotalInput").jqxNumberInput("val") || 0),
             paid_total: Number($("#paidAmountInput").jqxNumberInput("val") || 0),
+            payment_method: String($("#paymentMethodSelect").val() || "cash"),
             items: saleItems.map(r => ({
                 variant_id: Number(r.variant_id),
                 qty: Number(r.qty),

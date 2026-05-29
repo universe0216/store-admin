@@ -44,6 +44,8 @@ $routes->group('api', static function ($routes): void {
     $routes->post('currencies', 'Api\Currencies::create');
     $routes->put('currencies/(:segment)', 'Api\Currencies::update/$1');
     $routes->delete('currencies/(:segment)', 'Api\Currencies::delete/$1');
+    $routes->get('exchange-rates/latest/(:segment)', 'Api\ExchangeRates::latest/$1');
+    $routes->post('exchange-rates', 'Api\ExchangeRates::create');
     $routes->get('products', 'Api\Purchases::products');
     $routes->post('products', 'Api\Purchases::createProduct');
     $routes->get('product-variants', 'Api\Purchases::variants');

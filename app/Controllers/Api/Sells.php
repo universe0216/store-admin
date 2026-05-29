@@ -161,11 +161,19 @@ class Sells extends BaseController
         $warehouseId  = (int) ($payload['warehouse_id'] ?? 0);
         $saleDate     = (string) ($payload['sale_date'] ?? '');
         $customerName = trim((string) ($payload['customer_name'] ?? ''));
+        $paymentMethod = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
         $items        = $payload['items'] ?? [];
 
         if ($warehouseId < 1 || $saleDate === '' || ! is_array($items) || $items === []) {
             return $this->response->setStatusCode(422)->setJSON([
                 'message' => 'warehouse_id, sale_date and at least one item are required.',
+            ]);
+        }
+
+        $allowedPaymentMethods = ['cash', 'bank_transfer', 'card', 'check', 'other'];
+        if (! in_array($paymentMethod, $allowedPaymentMethods, true)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => 'Invalid payment method.',
             ]);
         }
 
@@ -237,7 +245,7 @@ class Sells extends BaseController
                 'sub_total'      => $subTotal,
                 'discount_total' => $discountTotal,
                 'grand_total'    => $paidTotal,
-                'payment_method' => 'cash',
+                'payment_method' => $paymentMethod,
             ]);
 
             foreach ($normalized as $item) {

@@ -18,6 +18,7 @@ class PurchaseModel extends BaseModel
         'transfer_fee',
         'grand_total',
         'paid_total',
+        'payment_method',
         'notes',
     ];
     protected bool $allowEmptyInserts = false;

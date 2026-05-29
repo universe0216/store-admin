@@ -29,6 +29,13 @@
         height: 0.5rem;
         opacity: 0.85;
     }
+    #unitPriceRateLink {
+        cursor: pointer;
+        font-weight: 500;
+    }
+    #unitPriceInput {
+        min-width: 0;
+    }
 </style>
 <?= $this->endSection() ?>
 
@@ -74,12 +81,22 @@
                         <label class="form-label text-secondary mb-1">Paid Amount</label>
                         <div id="paidAmountInput"></div>
                     </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label text-secondary mb-1">Payment Method</label>
+                        <select id="paymentMethodSelect" class="form-select">
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="card">Card</option>
+                            <option value="check">Check</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
                     <div class="col-12 col-lg-3">
                         <label class="form-label text-secondary mb-1">Notes</label>
                         <input id="notesInput" type="text" class="form-control">
                     </div>
                     
-                    <div class="col-12 col-lg-9 d-flex flex-column align-items-lg-end justify-content-end">
+                    <div class="col-12 col-lg-6 d-flex flex-column align-items-lg-end justify-content-end">
                         <label class="form-label text-secondary mb-1">Total Paid (Paid + Transfer Fee)</label>
                         <input id="totalPaidDisplay" type="text" class="form-control bg-light text-end" readonly value="0.00" style="max-width: 220px;">
                     </div>
@@ -129,8 +146,17 @@
                                 <div id="setsCountInput"></div>
                             </div>
                             <div class="col-12 col-md-6">
-                                <label class="form-label text-secondary mb-1">Unit Price</label>
-                                <div id="unitPriceInput"></div>
+                                <label class="form-label text-secondary mb-1">
+                                    Unit Price
+                                    <span id="unitPriceRateLink" class="text-primary ms-2 d-none" role="button" tabindex="0"></span>
+                                </label>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <select id="unitPriceCurrency" class="form-select" style="max-width: 110px;">
+                                        <option value="USD">USD</option>
+                                    </select>
+                                    <span id="unitPriceUsdHint" class="text-muted small text-nowrap d-none"></span>
+                                    <input type="number" id="unitPriceInput" class="form-control flex-grow-1" min="0" step="0.01" value="0">
+                                </div>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label text-secondary mb-1">Total Units</label>
@@ -170,6 +196,30 @@
         </div>
     </div>
 
+    <div class="modal fade" id="exchangeRateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Exchange Rate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="exchangeRateInput" class="form-label text-secondary mb-1">
+                        1 USD = ?
+                    </label>
+                    <div class="input-group">
+                        <input type="number" id="exchangeRateInput" class="form-control" min="0" step="any" placeholder="0.00">
+                        <span class="input-group-text" id="exchangeRateCurrencyCode">CNY</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveExchangeRateBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="purchaseConfirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -203,24 +253,166 @@
             products: "<?= site_url('api/products') ?>",
             warehouses: "<?= site_url('api/warehouses') ?>",
             purchases: "<?= site_url('api/purchases') ?>",
-            tags: "<?= site_url('api/tags') ?>"
+            tags: "<?= site_url('api/tags') ?>",
+            currencies: "<?= site_url('api/currencies') ?>",
+            exchangeRates: "<?= site_url('api/exchange-rates') ?>"
         };
 
         const items = [];
         let suppliers = [];
         let categories = [];
         let warehouses = [];
+        let currencies = [];
         let allTags = [];
         let selectedTagIds = new Set();
         let tagSyncLock = false;
         let selectedSizeCount = 0;
         let selectedCategoryId = 0;
         let confirmPurchaseModal = null;
+        let exchangeRateModal = null;
+        let exchangeRatesByCurrency = {};
         let totalsCalcLock = false;
         const FIXED_SIZES = [220, 225, 230, 235, 240, 245, 250].map(size => ({
             label: String(size),
             value: String(size)
         }));
+
+        function getSelectedUnitCurrency() {
+            return String($("#unitPriceCurrency").val() || "USD").toUpperCase();
+        }
+
+        function getExchangeRateForCurrency(code) {
+            const currency = String(code || "").toUpperCase();
+            if (currency === "USD") {
+                return 1;
+            }
+            return Number(exchangeRatesByCurrency[currency] || 0);
+        }
+
+        function getUsdUnitPrice() {
+            const currency = getSelectedUnitCurrency();
+            const unitPrice = Number($("#unitPriceInput").val() || 0);
+            if (currency === "USD") {
+                return unitPrice;
+            }
+
+            const rate = getExchangeRateForCurrency(currency);
+            if (rate <= 0) {
+                return 0;
+            }
+
+            return Number((unitPrice / rate).toFixed(2));
+        }
+
+        function updateUnitPriceCurrencyUi() {
+            const currency = getSelectedUnitCurrency();
+            const $rateLink = $("#unitPriceRateLink");
+            const $usdHint = $("#unitPriceUsdHint");
+
+            if (currency === "USD") {
+                $rateLink.addClass("d-none").text("");
+                $usdHint.addClass("d-none").text("");
+                return;
+            }
+
+            const rate = getExchangeRateForCurrency(currency);
+            $rateLink.removeClass("d-none").text(rate > 0 ? `1 USD = ${rate} ${currency}` : "1 USD = ?");
+
+            const usdUnit = getUsdUnitPrice();
+            if (rate > 0) {
+                $usdHint.removeClass("d-none").text(`$${usdUnit.toFixed(2)}`);
+            } else {
+                $usdHint.addClass("d-none").text("");
+            }
+        }
+
+        function loadExchangeRateForCurrency(currency) {
+            const code = String(currency || "").toUpperCase();
+            if (code === "USD" || code === "") {
+                updateUnitPriceCurrencyUi();
+                return $.Deferred().resolve().promise();
+            }
+
+            return $.getJSON(`${API_URLS.exchangeRates}/latest/${encodeURIComponent(code)}`).done(function (res) {
+                const rate = Number(res.data?.rate || 0);
+                if (rate > 0) {
+                    exchangeRatesByCurrency[code] = rate;
+                } else {
+                    delete exchangeRatesByCurrency[code];
+                }
+                updateUnitPriceCurrencyUi();
+                recalcTotalPrice();
+            }).fail(function (xhr) {
+                $("#messageBox").text(xhr.responseJSON?.message || "Failed to load exchange rate.");
+            });
+        }
+
+        function openExchangeRateModal() {
+            const currency = getSelectedUnitCurrency();
+            if (currency === "USD") {
+                return;
+            }
+
+            $("#exchangeRateCurrencyCode").text(currency);
+            loadExchangeRateForCurrency(currency).always(function () {
+                $("#exchangeRateInput").val(getExchangeRateForCurrency(currency) || "");
+                exchangeRateModal.show();
+            });
+        }
+
+        function saveExchangeRateFromModal() {
+            const currency = getSelectedUnitCurrency();
+            const rate = Number($("#exchangeRateInput").val() || 0);
+            if (currency === "USD" || rate <= 0) {
+                $("#messageBox").text("Exchange rate must be greater than 0.");
+                return;
+            }
+
+            $("#saveExchangeRateBtn").prop("disabled", true);
+            $.ajax({
+                url: API_URLS.exchangeRates,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    quote_currency: currency,
+                    rate
+                })
+            }).done(function (res) {
+                exchangeRatesByCurrency[currency] = rate;
+                exchangeRateModal.hide();
+                updateUnitPriceCurrencyUi();
+                recalcTotalPrice();
+                $("#messageBox").text(res.message || "Exchange rate saved.");
+            }).fail(function (xhr) {
+                $("#messageBox").text(xhr.responseJSON?.message || "Failed to save exchange rate.");
+            }).always(function () {
+                $("#saveExchangeRateBtn").prop("disabled", false);
+            });
+        }
+
+        function loadCurrencies() {
+            return $.getJSON(API_URLS.currencies).done(function (res) {
+                currencies = res.data || [];
+                const $select = $("#unitPriceCurrency");
+                const current = $select.val();
+                $select.empty();
+
+                if (!currencies.some(row => String(row.code).toUpperCase() === "USD")) {
+                    $select.append('<option value="USD">USD</option>');
+                }
+
+                currencies.forEach(function (row) {
+                    $select.append(
+                        $("<option></option>").attr("value", row.code).text(row.code)
+                    );
+                });
+
+                $select.val(current || "USD");
+                updateUnitPriceCurrencyUi();
+            }).fail(function (xhr) {
+                $("#messageBox").text(xhr.responseJSON?.message || "Failed to load currencies.");
+            });
+        }
 
         function initWidgets() {
             $("#supplierDropdown").jqxDropDownList({ width: "100%", height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select supplier" });
@@ -272,16 +464,6 @@
                 height: 34,
                 decimalDigits: 0,
                 digits: 8,
-                min: 0,
-                inputMode: "simple",
-                spinButtons: true,
-                value: 0
-            });
-            $("#unitPriceInput").jqxNumberInput({
-                width: "100%",
-                height: 34,
-                decimalDigits: 2,
-                digits: 10,
                 min: 0,
                 inputMode: "simple",
                 spinButtons: true,
@@ -627,6 +809,7 @@
                     width: 270,
                     height: 260
                 });
+                $("#categoryTree").jqxTree("expandAll");
             }).fail(function(xhr) {
                 const msg = xhr.responseJSON?.message || "Failed to load categories.";
                 $("#messageBox").text(msg);
@@ -651,17 +834,8 @@
             $("#productSerialInput").val("");
             $("#productBrandInput").val("");
             $("#productStyleInput").val("");
-            selectedCategoryId = 0;
-            $("#categoryDropDownButton").jqxDropDownButton("setContent", '<div style="position: relative; margin-left: 3px; margin-top: 5px;" class="text-muted">Select category</div>');
-            $("#sizeSelector").jqxDropDownList("uncheckAll");
-            selectedSizeCount = 0;
-            $("#setsCountInput").jqxNumberInput("val", 0);
-            $("#unitPriceInput").jqxNumberInput("val", 0);
-            $("#totalUnitsInput").jqxNumberInput("val", 0);
-            $("#totalPriceInput").jqxNumberInput("val", 0);
-            if (warehouses.length > 0) {
-                $("#purchaseWarehouseDropdown").jqxDropDownList("selectIndex", 0);
-            }
+            $("#unitPriceInput").val(0);
+            recalcTotalUnits();
         }
 
         function recalcTotalUnits() {
@@ -672,10 +846,11 @@
         }
 
         function recalcTotalPrice() {
-            const unitPrice = Number($("#unitPriceInput").jqxNumberInput("val") || 0);
             const totalUnits = Number($("#totalUnitsInput").jqxNumberInput("val") || 0);
-            const totalPrice = Number((Math.max(unitPrice, 0) * Math.max(totalUnits, 0)).toFixed(2));
+            const usdUnitPrice = getUsdUnitPrice();
+            const totalPrice = Number((Math.max(usdUnitPrice, 0) * Math.max(totalUnits, 0)).toFixed(2));
             $("#totalPriceInput").jqxNumberInput("val", totalPrice);
+            updateUnitPriceCurrencyUi();
         }
 
         function addProductToGrid() {
@@ -685,9 +860,15 @@
             const styleValue = String($("#productStyleInput").val() || "").trim();
             const checkedSizes = $("#sizeSelector").jqxDropDownList("getCheckedItems") || [];
             const setsCount = Number($("#setsCountInput").jqxNumberInput("val") || 0);
-            const unitCost = Number($("#unitPriceInput").jqxNumberInput("val") || 0);
             const unitsCount = Number($("#totalUnitsInput").jqxNumberInput("val") || 0);
-            const totalPrice = Number($("#totalPriceInput").jqxNumberInput("val") || 0);
+            const selectedCurrency = getSelectedUnitCurrency();
+            if (selectedCurrency !== "USD" && getExchangeRateForCurrency(selectedCurrency) <= 0) {
+                $("#messageBox").text("Please set exchange rate.");
+                openExchangeRateModal();
+                return;
+            }
+            const unitCost = getUsdUnitPrice();
+            const totalPrice = Number((unitCost * unitsCount).toFixed(2));
             const selectedWarehouse = $("#purchaseWarehouseDropdown").jqxDropDownList("getSelectedItem");
             const warehouseId = Number(selectedWarehouse?.value || 0);
 
@@ -821,6 +1002,7 @@
                 transfer_fee: transferFee,
                 discount_total: totalsSummary.discount,
                 paid_total: totalsSummary.paid,
+                payment_method: String($("#paymentMethodSelect").val() || "cash"),
                 // tag_ids: getSelectedTagIds(),
                 items: validItems
             };
@@ -848,7 +1030,27 @@
             loadCategories();
             loadWarehouses();
             loadTags();
+            loadCurrencies();
             confirmPurchaseModal = new bootstrap.Modal(document.getElementById("purchaseConfirmModal"));
+            exchangeRateModal = new bootstrap.Modal(document.getElementById("exchangeRateModal"));
+
+            $("#unitPriceCurrency").on("change", function () {
+                loadExchangeRateForCurrency(getSelectedUnitCurrency());
+            });
+            $("#unitPriceRateLink").on("click keydown", function (event) {
+                if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") {
+                    return;
+                }
+                event.preventDefault();
+                openExchangeRateModal();
+            });
+            $("#saveExchangeRateBtn").on("click", saveExchangeRateFromModal);
+            $("#exchangeRateInput").on("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    saveExchangeRateFromModal();
+                }
+            });
 
             $("#categoryTree").on("select", function (event) {
                 const args = event.args;
@@ -870,7 +1072,10 @@
             });
 
             $("#setsCountInput").on("valueChanged", recalcTotalUnits);
-            $("#unitPriceInput").on("valueChanged", recalcTotalPrice);
+            $("#unitPriceInput").on("input change", function () {
+                updateUnitPriceCurrencyUi();
+                recalcTotalPrice();
+            });
             $("#transferFeeInput").on("valueChanged", function () {
                 recalcPurchaseTotals("transfer");
             });
