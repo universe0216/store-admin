@@ -351,4 +351,43 @@ CREATE TABLE payment_methods (
     UNIQUE KEY uk_payment_methods_code (code)
 );
 
+CREATE TABLE accounts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    code VARCHAR(20) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+
+    account_type ENUM(
+        'ASSET',
+        'LIABILITY',
+        'EQUITY',
+        'REVENUE',
+        'EXPENSE'
+    ) NOT NULL,
+
+    is_active BOOLEAN DEFAULT TRUE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE transactions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    transaction_date DATE NOT NULL,
+
+    account_code VARCHAR(50),
+
+    reference_no VARCHAR(50),
+
+    description TEXT,
+
+    debit DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    credit DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_transaction_date(transaction_date),
+    INDEX idx_reference_no(reference_no),
+    INDEX idx_transaction_type(transaction_type)
+);
 ```

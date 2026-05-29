@@ -3,6 +3,7 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Libraries\LedgerService;
 use App\Models\SaleItemModel;
 use App\Models\SaleModel;
 use App\Models\StockMovementModel;
@@ -132,6 +133,8 @@ class Sells extends BaseController
                 ->where('reference_id', $id)
                 ->delete();
 
+            (new LedgerService())->deleteByReference($db, (string) ($sale['sale_no'] ?? ''));
+
             $saleModel->delete($id);
 
             if ($db->transStatus() === false) {
@@ -237,8 +240,9 @@ class Sells extends BaseController
         $db->transBegin();
 
         try {
+            $saleNo = $this->generateSaleNo();
             $saleId = $saleModel->createOne([
-                'sale_no'        => $this->generateSaleNo(),
+                'sale_no'        => $saleNo,
                 'sale_date'      => $saleDate,
                 'customer_name'  => $customerName !== '' ? $customerName : null,
                 'warehouse_id'   => $warehouseId,
@@ -279,6 +283,15 @@ class Sells extends BaseController
                 ]);
             }
 
+            (new LedgerService())->recordSale(
+                $db,
+                $saleNo,
+                $saleDate,
+                $paidTotal,
+                $paymentMethod,
+                'Sale ' . $saleNo
+            );
+
             if ($db->transStatus() === false) {
                 throw new RuntimeException('Failed to save sale transaction.');
             }
@@ -287,13 +300,15 @@ class Sells extends BaseController
 
             return $this->response->setStatusCode(201)->setJSON([
                 'message' => 'Sale created successfully.',
-                'data'    => ['sale_id' => $saleId],
+                'data'    => ['sale_id' => $saleId, 'sale_no' => $saleNo],
             ]);
         } catch (Throwable $e) {
             $db->transRollback();
 
-            return $this->response->setStatusCode(500)->setJSON([
-                'message' => 'Failed to create sale.',
+            $status = $e instanceof RuntimeException ? 422 : 500;
+
+            return $this->response->setStatusCode($status)->setJSON([
+                'message' => $e->getMessage() !== '' ? $e->getMessage() : 'Failed to create sale.',
                 'error'   => $e->getMessage(),
             ]);
         }

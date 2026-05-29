@@ -3,6 +3,7 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Libraries\LedgerService;
 use App\Models\ProductModel;
 use App\Models\ProductVariantModel;
 use App\Models\PurchaseItemModel;
@@ -232,6 +233,8 @@ class Purchases extends BaseController
                 ->where('reference_id', $id)
                 ->delete();
 
+            (new LedgerService())->deleteByReference($db, (string) ($purchase['purchase_no'] ?? ''));
+
             $purchaseModel->delete($id);
 
             if ($db->transStatus() === false) {
@@ -381,8 +384,9 @@ class Purchases extends BaseController
         $db->transBegin();
 
         try {
+            $purchaseNo = $this->generatePurchaseNo();
             $purchaseId = $purchaseModel->createOne([
-                'purchase_no'    => $this->generatePurchaseNo(),
+                'purchase_no'    => $purchaseNo,
                 'purchase_date'  => $purchaseDate,
                 'supplier_id'    => $supplierId,
                 'status'         => $status,
@@ -446,22 +450,32 @@ class Purchases extends BaseController
                 }
             }
 
+            (new LedgerService())->recordPurchase(
+                $db,
+                $purchaseNo,
+                $purchaseDate,
+                $grandTotal,
+                $paymentMethod,
+                'Purchase ' . $purchaseNo
+            );
+
             if ($db->transStatus() === false) {
                 throw new RuntimeException('Failed to save purchase transaction.');
             }
-
 
             $db->transCommit();
 
             return $this->response->setStatusCode(201)->setJSON([
                 'message' => 'Purchase created successfully.',
-                'data'    => ['purchase_id' => $purchaseId],
+                'data'    => ['purchase_id' => $purchaseId, 'purchase_no' => $purchaseNo],
             ]);
         } catch (Throwable $e) {
             $db->transRollback();
 
-            return $this->response->setStatusCode(500)->setJSON([
-                'message' => 'Failed to create purchase.',
+            $status = $e instanceof RuntimeException ? 422 : 500;
+
+            return $this->response->setStatusCode($status)->setJSON([
+                'message' => $e->getMessage() !== '' ? $e->getMessage() : 'Failed to create purchase.',
                 'error'   => $e->getMessage(),
             ]);
         }

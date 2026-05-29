@@ -19,6 +19,7 @@ $routes->get('suppliers', 'Suppliers::index');
 $routes->get('categories', 'Categories::index');
 $routes->get('warehouses', 'Warehouses::index');
 $routes->get('currencies', 'Currencies::index');
+$routes->get('finance', 'Finance::index');
 
 $routes->group('api', static function ($routes): void {
     $routes->get('purchases', 'Api\Purchases::index');
@@ -65,4 +66,6 @@ $routes->group('api', static function ($routes): void {
     $routes->delete('transfers/(:num)', 'Api\Transfers::delete/$1');
     $routes->get('tags', 'Api\Tags::index');
     $routes->post('tags', 'Api\Tags::create');
+    $routes->get('transactions', 'Api\Transactions::index');
+    $routes->get('transactions/accounts', 'Api\Transactions::accounts');
 });
