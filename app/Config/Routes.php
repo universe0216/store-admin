@@ -12,6 +12,8 @@ $routes->get('sells', 'Sells::index');
 $routes->get('sells/create', 'Sells::create');
 $routes->get('stock', 'Stock::index');
 $routes->get('inventory', 'Inventory::index');
+$routes->get('transfers', 'Transfers::index');
+$routes->get('transfers/create', 'Transfers::create');
 $routes->get('suppliers', 'Suppliers::index');
 $routes->get('categories', 'Categories::index');
 $routes->get('warehouses', 'Warehouses::index');
@@ -54,4 +56,8 @@ $routes->group('api', static function ($routes): void {
     $routes->post('sales', 'Api\Sells::create');
     $routes->delete('sales/(:num)', 'Api\Sells::delete/$1');
     $routes->get('warehouse-products', 'Api\Sells::productsByWarehouse');
+    $routes->get('transfers', 'Api\Transfers::index');
+    $routes->get('transfers/(:num)', 'Api\Transfers::show/$1');
+    $routes->post('transfers', 'Api\Transfers::create');
+    $routes->delete('transfers/(:num)', 'Api\Transfers::delete/$1');
 });
