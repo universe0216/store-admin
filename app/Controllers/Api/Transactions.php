@@ -55,10 +55,30 @@ class Transactions extends BaseController
             ->get()
             ->getRowArray();
 
-        $balances     = $this->moneyAccountBalances($db, $accountCodes);
-        $totalBalance = 0.0;
+        $baseCurrency   = strtoupper($accounting->baseCurrency);
+        $balances       = $this->moneyAccountBalances($db, $accountCodes, $dateFrom, $dateTo, $referenceNo);
+        $totalBalance   = 0.0;
         foreach ($balances as $balance) {
             $totalBalance += (float) ($balance['balance'] ?? 0);
+        }
+
+        $summary = [
+            'total_debit'     => (float) ($totals['total_debit'] ?? 0),
+            'total_credit'    => (float) ($totals['total_credit'] ?? 0),
+            'total_balance'   => round($totalBalance, 2),
+            'accounts'        => $balances,
+            'currency_totals' => $this->currencyTotalsFromBalances($balances, $baseCurrency),
+        ];
+
+        $accountGroup = strtolower(trim((string) ($this->request->getGet('account_group') ?? '')));
+        if ($accountGroup === 'business_profit') {
+            $summary['business_profit'] = $this->computeBusinessProfit(
+                $db,
+                $accounting,
+                $dateFrom,
+                $dateTo,
+                $referenceNo
+            );
         }
 
         return $this->response->setJSON([
@@ -68,12 +88,7 @@ class Transactions extends BaseController
                 'per_page' => $perPage,
                 'total'    => $total,
             ],
-            'summary' => [
-                'total_debit'   => (float) ($totals['total_debit'] ?? 0),
-                'total_credit'  => (float) ($totals['total_credit'] ?? 0),
-                'total_balance' => round($totalBalance, 2),
-                'accounts'      => $balances,
-            ],
+            'summary' => $summary,
         ]);
     }
 
@@ -404,50 +419,199 @@ class Transactions extends BaseController
     }
 
     /**
+     * Accounts used for balance summary.
+     * With no filter: active ASSET accounts except inventory.
+     * With filter: all selected active accounts (including inventory and other types).
+     *
      * @param list<string> $selected
      *
      * @return list<string>
      */
-    private function resolveMoneyAccountCodes(array $selected, Accounting $accounting): array
+    private function resolveMoneyAccountCodes($db, array $selected, Accounting $accounting): array
     {
-        $moneyCodes = $accounting->moneyAccountCodes();
+        $builder = $db->table('accounts')
+            ->select('code')
+            ->where('is_active', 1);
 
-        if ($selected === []) {
-            return $moneyCodes;
+        if ($selected !== []) {
+            $builder->whereIn('code', $selected);
+        } else {
+            $builder->where('account_type', 'ASSET')
+                ->where('code !=', $accounting->inventoryAccount);
         }
 
-        return array_values(array_intersect($selected, $moneyCodes));
+        $codes = [];
+        foreach ($builder->orderBy('code', 'ASC')->get()->getResultArray() as $row) {
+            $code = trim((string) ($row['code'] ?? ''));
+            if ($code !== '') {
+                $codes[] = $code;
+            }
+        }
+
+        return $codes;
     }
 
     /**
-     * @param list<string> $accountCodes
+     * Sales revenue (ledger) minus COGS (ledger) minus purchase transfer fees.
      *
-     * @return list<array{code: string, name: string, balance: float}>
+     * @return array{
+     *     sales_revenue: float,
+     *     cost_of_goods: float,
+     *     transfer_fees: float,
+     *     net_profit: float
+     * }
      */
-    private function moneyAccountBalances($db, array $accountCodes): array
+    private function computeBusinessProfit(
+        $db,
+        Accounting $accounting,
+        string $dateFrom,
+        string $dateTo,
+        string $referenceNo
+    ): array {
+        $revenueCode = $db->escape($accounting->salesRevenueAccount);
+        $cogsCode    = $db->escape($accounting->cogsAccount);
+
+        $ledgerBuilder = $db->table('transactions t')
+            ->select(
+                "COALESCE(SUM(CASE WHEN t.account_code = {$revenueCode} THEN t.credit - t.debit ELSE 0 END), 0) AS sales_revenue, " .
+                "COALESCE(SUM(CASE WHEN t.account_code = {$cogsCode} THEN t.debit - t.credit ELSE 0 END), 0) AS cost_of_goods",
+                false
+            );
+        $this->applyTransactionFilters($ledgerBuilder, $dateFrom, $dateTo, $referenceNo, []);
+
+        $ledger = $ledgerBuilder->get()->getRowArray();
+        $salesRevenue = round((float) ($ledger['sales_revenue'] ?? 0), 2);
+        $costOfGoods  = round((float) ($ledger['cost_of_goods'] ?? 0), 2);
+
+        $transferFees = 0.0;
+        if ($db->tableExists('purchases') && $db->fieldExists('transfer_fee', 'purchases')) {
+            $purchaseBuilder = $db->table('purchases')
+                ->select('COALESCE(SUM(transfer_fee), 0) AS total_transfer_fee', false);
+            if ($dateFrom !== '') {
+                $purchaseBuilder->where('DATE(purchase_date) >=', $dateFrom);
+            }
+            if ($dateTo !== '') {
+                $purchaseBuilder->where('DATE(purchase_date) <=', $dateTo);
+            }
+            if ($referenceNo !== '' && $db->fieldExists('reference_no', 'purchases')) {
+                $purchaseBuilder->like('reference_no', $referenceNo);
+            }
+            $purchaseRow  = $purchaseBuilder->get()->getRowArray();
+            $transferFees = round((float) ($purchaseRow['total_transfer_fee'] ?? 0), 2);
+        }
+
+        return [
+            'sales_revenue'  => $salesRevenue,
+            'cost_of_goods'  => $costOfGoods,
+            'transfer_fees'  => $transferFees,
+            'net_profit'     => round($salesRevenue - $costOfGoods - $transferFees, 2),
+        ];
+    }
+
+    /**
+     * @param list<array{code: string, name: string, balance: float, currency_code: string, balance_original: float}> $balances
+     *
+     * @return list<array{currency: string, total_original: float}>
+     */
+    private function currencyTotalsFromBalances(array $balances, string $baseCurrency): array
     {
-        if ($accountCodes === []) {
+        $byCurrency = [];
+        foreach ($balances as $account) {
+            $currency = strtoupper(trim((string) ($account['currency_code'] ?? '')));
+            if ($currency === '' || $currency === $baseCurrency) {
+                continue;
+            }
+            $byCurrency[$currency] = ($byCurrency[$currency] ?? 0.0)
+                + (float) ($account['balance_original'] ?? 0);
+        }
+
+        ksort($byCurrency);
+        $totals = [];
+        foreach ($byCurrency as $currency => $amount) {
+            $totals[] = [
+                'currency'       => $currency,
+                'total_original' => round($amount, 2),
+            ];
+        }
+
+        return $totals;
+    }
+
+    /**
+     * @param list<string> $selectedAccountCodes
+     *
+     * @return list<array{code: string, name: string, balance: float, currency_code: string, balance_original: float}>
+     */
+    private function moneyAccountBalances(
+        $db,
+        array $selectedAccountCodes,
+        string $dateFrom = '',
+        string $dateTo = '',
+        string $referenceNo = ''
+    ): array {
+        $accounting = config(Accounting::class);
+        $base       = strtoupper($accounting->baseCurrency);
+        $codes      = $this->resolveMoneyAccountCodes($db, $selectedAccountCodes, $accounting);
+        if ($codes === []) {
             return [];
         }
 
-        $rows = $db->table('accounts a')
-            ->select(
-                'a.code, a.name, ' .
-                '(COALESCE(SUM(t.debit), 0) - COALESCE(SUM(t.credit), 0)) AS balance',
-                false
-            )
+        $hasOriginal = $db->fieldExists('original_amount', 'transactions');
+        $select      = 'a.code, a.name, a.currency_code, ' .
+            '(COALESCE(SUM(t.debit), 0) - COALESCE(SUM(t.credit), 0)) AS balance';
+        if ($hasOriginal) {
+            $select .= ', (COALESCE(SUM(CASE WHEN t.debit > 0 THEN t.original_amount ELSE 0 END), 0) ' .
+                '- COALESCE(SUM(CASE WHEN t.credit > 0 THEN t.original_amount ELSE 0 END), 0)) AS balance_original';
+        }
+
+        $builder = $db->table('accounts a')
+            ->select($select, false)
             ->join('transactions t', 't.account_code = a.code', 'left')
-            ->whereIn('a.code', $accountCodes)
-            ->groupBy('a.code, a.name')
+            ->whereIn('a.code', $codes);
+        $this->applyTransactionFilters($builder, $dateFrom, $dateTo, $referenceNo, []);
+
+        $rows = $builder
+            ->groupBy('a.code, a.name, a.currency_code')
             ->orderBy('a.code', 'ASC')
             ->get()
             ->getResultArray();
 
-        return array_map(static function (array $row): array {
+        $exchangeModel = new ExchangeRateModel();
+
+        return array_map(function (array $row) use ($base, $hasOriginal, $exchangeModel): array {
+            $currency   = strtoupper(trim((string) ($row['currency_code'] ?? '')));
+            if ($currency === '') {
+                $currency = $base;
+            }
+            $balanceUsd = round((float) ($row['balance'] ?? 0), 2);
+
+            if ($currency === $base) {
+                $balanceOriginal = $balanceUsd;
+            } elseif ($hasOriginal) {
+                $balanceOriginal = round((float) ($row['balance_original'] ?? 0), 2);
+                if (abs($balanceOriginal) < 0.005 && abs($balanceUsd) > 0.005) {
+                    $balanceOriginal = $this->convertUsdToCurrency(
+                        $balanceUsd,
+                        $currency,
+                        $base,
+                        $exchangeModel
+                    );
+                }
+            } else {
+                $balanceOriginal = $this->convertUsdToCurrency(
+                    $balanceUsd,
+                    $currency,
+                    $base,
+                    $exchangeModel
+                );
+            }
+
             return [
-                'code'    => (string) $row['code'],
-                'name'    => (string) ($row['name'] ?? ''),
-                'balance' => round((float) ($row['balance'] ?? 0), 2),
+                'code'              => (string) $row['code'],
+                'name'              => (string) ($row['name'] ?? ''),
+                'balance'           => $balanceUsd,
+                'currency_code'     => $currency,
+                'balance_original'  => $balanceOriginal,
             ];
         }, $rows);
     }

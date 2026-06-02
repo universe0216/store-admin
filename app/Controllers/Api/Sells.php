@@ -205,10 +205,10 @@ class Sells extends BaseController
             $inventory = $db->table('inventory')
                 ->select('id, quantity')
                 ->where('variant_id', $variantId)
-                ->get()
-                ->getFirstRow('array');
+                ->where('quantity >',0)
+                ->get()->getResultArray();
 
-            if (! is_array($inventory) || (int) ($inventory['quantity'] ?? 0) < $qty) {
+            if (count($inventory) === 0 || (int) ($inventory[0]['quantity'] ?? 0) < $qty) {
                 return $this->response->setStatusCode(422)->setJSON([
                     'message' => 'Insufficient inventory stock for one or more items.',
                 ]);

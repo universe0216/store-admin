@@ -9,6 +9,59 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class ExchangeRates extends BaseController
 {
+    public function index(): ResponseInterface
+    {
+        $base          = 'USD';
+        $quoteFilter   = strtoupper(trim((string) ($this->request->getGet('quote_currency') ?? '')));
+        $historyLimit  = max(1, min(100, (int) ($this->request->getGet('limit') ?? 50)));
+        $model         = new ExchangeRateModel();
+
+        if ($quoteFilter !== '') {
+            if (! preg_match('/^[A-Z]{3}$/', $quoteFilter)) {
+                return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid currency code.']);
+            }
+
+            $rows = $model->where('base_currency', $base)
+                ->where('quote_currency', $quoteFilter)
+                ->orderBy('effective_at', 'DESC')
+                ->orderBy('id', 'DESC')
+                ->findAll($historyLimit);
+
+            return $this->response->setJSON([
+                'data' => $rows,
+                'meta' => [
+                    'base_currency'  => $base,
+                    'quote_currency' => $quoteFilter,
+                ],
+            ]);
+        }
+
+        $currencies = (new CurrencyModel())->listAll();
+        $latest     = [];
+
+        foreach ($currencies as $currency) {
+            $code = strtoupper((string) ($currency['code'] ?? ''));
+            if ($code === '' || $code === $base) {
+                continue;
+            }
+
+            $row = $model->getLatestRate($base, $code);
+            $latest[] = [
+                'quote_currency' => $code,
+                'currency_name'  => (string) ($currency['name'] ?? ''),
+                'rate'           => $row !== null ? (float) ($row['rate'] ?? 0) : null,
+                'effective_at'   => $row['effective_at'] ?? null,
+                'source'         => $row['source'] ?? null,
+                'id'             => isset($row['id']) ? (int) $row['id'] : null,
+            ];
+        }
+
+        return $this->response->setJSON([
+            'data' => $latest,
+            'meta' => ['base_currency' => $base],
+        ]);
+    }
+
     public function latest(string $quoteCurrency): ResponseInterface
     {
         $quote = strtoupper(trim($quoteCurrency));

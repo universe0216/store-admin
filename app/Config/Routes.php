@@ -19,6 +19,7 @@ $routes->get('suppliers', 'Suppliers::index');
 $routes->get('categories', 'Categories::index');
 $routes->get('warehouses', 'Warehouses::index');
 $routes->get('currencies', 'Currencies::index');
+$routes->get('exchange-rates', 'ExchangeRates::index');
 $routes->get('accounts', 'Accounts::index');
 $routes->get('payment-methods', 'PaymentMethods::index');
 $routes->get('finance', 'Finance::index');
@@ -50,6 +51,7 @@ $routes->group('api', static function ($routes): void {
     $routes->put('currencies/(:segment)', 'Api\Currencies::update/$1');
     $routes->delete('currencies/(:segment)', 'Api\Currencies::delete/$1');
     $routes->get('accounts', 'Api\Accounts::index');
+    $routes->get('accounts/tags', 'Api\Accounts::tags');
     $routes->get('accounts/(:num)', 'Api\Accounts::show/$1');
     $routes->post('accounts', 'Api\Accounts::create');
     $routes->put('accounts/(:num)', 'Api\Accounts::update/$1');
@@ -59,6 +61,7 @@ $routes->group('api', static function ($routes): void {
     $routes->post('payment-methods', 'Api\PaymentMethods::create');
     $routes->put('payment-methods/(:num)', 'Api\PaymentMethods::update/$1');
     $routes->delete('payment-methods/(:num)', 'Api\PaymentMethods::delete/$1');
+    $routes->get('exchange-rates', 'Api\ExchangeRates::index');
     $routes->get('exchange-rates/latest/(:segment)', 'Api\ExchangeRates::latest/$1');
     $routes->post('exchange-rates', 'Api\ExchangeRates::create');
     $routes->get('products', 'Api\Purchases::products');

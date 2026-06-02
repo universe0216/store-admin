@@ -1,3 +1,6 @@
+<?php
+use App\Models\AccountModel;
+?>
 <?= $this->extend('layout/main_layout') ?>
 
 <?= $this->section('title') ?>Accounts<?= $this->endSection() ?>
@@ -21,6 +24,7 @@
                                     <th style="width: 90px;">Code</th>
                                     <th>Name</th>
                                     <th style="width: 120px;">Type</th>
+                                    <th style="width: 140px;">Tags</th>
                                     <th style="width: 80px;">Currency</th>
                                     <th style="width: 90px;">Active</th>
                                     <th style="width: 150px;">Actions</th>
@@ -52,6 +56,11 @@
                             <select id="currencyCodeInput" class="form-select" required>
                                 <option value="">Loading...</option>
                             </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Tags</label>
+                            <div id="tagsInputGroup" class="border rounded p-2 d-flex flex-wrap gap-2"></div>
+                            <div class="form-text">Select one or more tags.</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Account Type</label>
@@ -88,13 +97,58 @@
 <script>
     const ACCOUNTS_API_URL = "<?= site_url('api/accounts') ?>";
     const CURRENCIES_API_URL = "<?= site_url('api/currencies') ?>";
+    const ACCOUNT_TAGS = <?= json_encode(AccountModel::ACCOUNT_TAGS) ?>;
+    const DEFAULT_ACCOUNT_TAG = <?= json_encode(AccountModel::DEFAULT_ACCOUNT_TAG) ?>;
     let currenciesList = [];
+    let accountTags = ACCOUNT_TAGS.slice();
 
     function setMessage(message, isError = false) {
         const box = $("#messageBox");
         box.text(message || "");
         box.removeClass("text-success text-danger");
         box.addClass(isError ? "text-danger" : "text-success");
+    }
+
+    function normalizeTagsList(raw) {
+        if (Array.isArray(raw)) {
+            return raw.filter(function (t) { return String(t || "").trim() !== ""; });
+        }
+        if (raw) {
+            return [String(raw)];
+        }
+        return [DEFAULT_ACCOUNT_TAG];
+    }
+
+    function renderTagCheckboxes(selectedTags) {
+        const selected = new Set(normalizeTagsList(selectedTags));
+        const group = $("#tagsInputGroup");
+        group.empty();
+        accountTags.forEach(function (tag) {
+            const id = "accountTag_" + tag.replace(/[^A-Za-z0-9]/g, "_");
+            const checked = selected.has(tag) ? " checked" : "";
+            group.append(
+                `<div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input account-tag-check" type="checkbox" id="${id}" value="${tag}"${checked}>
+                    <label class="form-check-label" for="${id}">${tag}</label>
+                </div>`
+            );
+        });
+    }
+
+    function getSelectedTags() {
+        return $(".account-tag-check:checked").map(function () {
+            return String($(this).val() || "");
+        }).get();
+    }
+
+    function formatTagsDisplay(tags) {
+        const list = normalizeTagsList(tags);
+        if (!list.length) {
+            return `<span class="badge bg-secondary">${DEFAULT_ACCOUNT_TAG}</span>`;
+        }
+        return list.map(function (tag) {
+            return `<span class="badge bg-secondary me-1">${tag}</span>`;
+        }).join("");
     }
 
     function populateCurrencySelect(selectedCode) {
@@ -130,6 +184,7 @@
         $("#codeInput").val("").prop("readonly", false);
         $("#nameInput").val("");
         $("#accountTypeInput").val("ASSET");
+        renderTagCheckboxes([DEFAULT_ACCOUNT_TAG]);
         populateCurrencySelect();
         $("#isActiveInput").prop("checked", true);
         $("#formTitle").text("New Account");
@@ -141,7 +196,7 @@
         tbody.empty();
 
         if (!rows || rows.length === 0) {
-            tbody.append('<tr><td colspan="6" class="text-center text-muted">No accounts found.</td></tr>');
+            tbody.append('<tr><td colspan="7" class="text-center text-muted">No accounts found.</td></tr>');
             return;
         }
 
@@ -151,6 +206,7 @@
             tr.append(`<td>${row.code || ""}</td>`);
             tr.append(`<td>${row.name || ""}</td>`);
             tr.append(`<td>${row.account_type || ""}</td>`);
+            tr.append(`<td>${formatTagsDisplay(row.tags)}</td>`);
             tr.append(`<td>${row.currency_code || ""}</td>`);
             tr.append(`<td>${active ? "Yes" : "No"}</td>`);
             tr.append(
@@ -166,6 +222,9 @@
     function loadAccounts() {
         $.getJSON(ACCOUNTS_API_URL)
             .done(function(res) {
+                if (Array.isArray(res.meta?.tags) && res.meta.tags.length) {
+                    accountTags = res.meta.tags;
+                }
                 renderRows(res.data || []);
             })
             .fail(function(xhr) {
@@ -178,6 +237,7 @@
             code: $("#codeInput").val().trim(),
             name: $("#nameInput").val().trim(),
             account_type: $("#accountTypeInput").val(),
+            tags: getSelectedTags(),
             currency_code: $("#currencyCodeInput").val(),
             is_active: $("#isActiveInput").is(":checked") ? 1 : 0
         };
@@ -191,6 +251,7 @@
                 $("#codeInput").val(row.code || "").prop("readonly", true);
                 $("#nameInput").val(row.name || "");
                 $("#accountTypeInput").val(row.account_type || "ASSET");
+                renderTagCheckboxes(row.tags || row.tag || [DEFAULT_ACCOUNT_TAG]);
                 populateCurrencySelect(row.currency_code || "");
                 $("#isActiveInput").prop("checked", Number(row.is_active) === 1);
                 $("#formTitle").text("Edit Account");
@@ -220,6 +281,7 @@
     }
 
     $(function() {
+        renderTagCheckboxes([DEFAULT_ACCOUNT_TAG]);
         loadCurrencies().always(function() {
             loadAccounts();
             resetForm();
@@ -245,11 +307,16 @@
                 setMessage("Currency is required.", true);
                 return;
             }
+            if (!payload.tags.length) {
+                setMessage("Select at least one tag.", true);
+                return;
+            }
 
             const body = isEdit
                 ? {
                     name: payload.name,
                     account_type: payload.account_type,
+                    tags: payload.tags,
                     currency_code: payload.currency_code,
                     is_active: payload.is_active
                 }

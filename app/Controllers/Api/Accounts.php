@@ -13,7 +13,15 @@ class Accounts extends BaseController
     {
         $rows = (new AccountModel())->listAll();
 
-        return $this->response->setJSON(['data' => $rows]);
+        return $this->response->setJSON([
+            'data' => $rows,
+            'meta' => ['tags' => AccountModel::ACCOUNT_TAGS],
+        ]);
+    }
+
+    public function tags(): ResponseInterface
+    {
+        return $this->response->setJSON(['data' => AccountModel::ACCOUNT_TAGS]);
     }
 
     public function show(int $id): ResponseInterface
@@ -22,6 +30,9 @@ class Accounts extends BaseController
         if ($row === null) {
             return $this->response->setStatusCode(404)->setJSON(['message' => 'Account not found.']);
         }
+
+        $row['tags'] = AccountModel::normalizeTags($row['tags'] ?? $row['tag'] ?? null);
+        unset($row['tag']);
 
         return $this->response->setJSON(['data' => $row]);
     }
@@ -98,7 +109,7 @@ class Accounts extends BaseController
     /**
      * @param array<string, mixed> $payload
      *
-     * @return array{code?: string, name: string, account_type: string, currency_code: string, is_active: int}|ResponseInterface
+     * @return array{code?: string, name: string, account_type: string, tags: list<string>, currency_code: string, is_active: int}|ResponseInterface
      */
     private function validatePayload(array $payload, bool $isCreate): array|ResponseInterface
     {
@@ -133,6 +144,23 @@ class Accounts extends BaseController
             ]);
         }
         $data['account_type'] = $accountType;
+
+        $tagsRaw = $payload['tags'] ?? $payload['tag'] ?? [];
+        if (is_string($tagsRaw) && $tagsRaw !== '') {
+            $tagsRaw = [$tagsRaw];
+        }
+        if (! is_array($tagsRaw)) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => 'Tags must be an array of tag names.',
+            ]);
+        }
+        $tags = AccountModel::normalizeTags($tagsRaw);
+        if ($tags === []) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => 'Select at least one valid tag: ' . implode(', ', AccountModel::ACCOUNT_TAGS) . '.',
+            ]);
+        }
+        $data['tags'] = $tags;
 
         $currencyCode = strtoupper(trim((string) ($payload['currency_code'] ?? '')));
         if (! preg_match('/^[A-Z]{3}$/', $currencyCode)) {

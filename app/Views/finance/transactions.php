@@ -6,28 +6,27 @@
 <div class="container-fluid py-4 px-5">
     <div class="mb-4">
         <h1 class="h3 fw-bold mb-1">Transactions</h1>
-        <p class="text-muted mb-0">Cash and bank movements from purchases and sales.</p>
     </div>
 
     <div class="card shadow-sm">
         <div class="card-body p-4">
             <div class="row g-3 align-items-end mb-3">
-                <div class="col-12 col-md-3">
-                    <label class="form-label small text-secondary mb-1">Reference No</label>
-                    <input type="text" id="referenceNoFilter" class="form-control" placeholder="PO-... or SO-...">
+                <div class="col-12 col-md-2">
+                    <!-- <label class="form-label small text-secondary mb-1">Reference No</label> -->
+                    <input type="text" id="referenceNoFilter" class="form-control" placeholder="Search by reference no">
                 </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label small text-secondary mb-1">Accounts</label>
+                <div class="col-12 col-md-3 d-flex align-items-center gap-2">
+                    <label class="form-label small text-secondary mb-1">Accounts:</label>
                     <div id="accountCodeFilter"></div>
                 </div>
                 <div class="col-12 col-md-4 d-flex align-items-end gap-2">
                     <div>
-                        <label class="form-label small text-secondary mb-1 d-block">From</label>
+                        <!-- <label class="form-label small text-secondary mb-1 d-block">From</label> -->
                         <div id="dateFromFilter"></div>
                     </div>
                     <span class="text-secondary pb-2">~</span>
                     <div>
-                        <label class="form-label small text-secondary mb-1 d-block">To</label>
+                        <!-- <label class="form-label small text-secondary mb-1 d-block">To</label> -->
                         <div id="dateToFilter"></div>
                     </div>
                 </div>
@@ -37,12 +36,38 @@
                     <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary btn-sm">Clear</button>
                 </div>
             </div>
+            <div class="row mb-3">
+                <div class="col-12 d-flex flex-wrap align-items-center gap-3">
+                    <span class="text-secondary small">View</span>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="radio" name="accountGroupFilter" id="accountGroupAll" value="" checked>
+                        <label class="form-check-label small" for="accountGroupAll">All</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="radio" name="accountGroupFilter" id="accountGroupCapital" value="capital">
+                        <label class="form-check-label small" for="accountGroupCapital">Capital</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="radio" name="accountGroupFilter" id="accountGroupInventory" value="inventory">
+                        <label class="form-check-label small" for="accountGroupInventory">Inventory</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="radio" name="accountGroupFilter" id="accountGroupProfit" value="profit">
+                        <label class="form-check-label small" for="accountGroupProfit">Profit</label>
+                    </div>
+                    <div class="form-check form-check-inline mb-0">
+                        <input class="form-check-input" type="radio" name="accountGroupFilter" id="accountGroupBusinessProfit" value="business_profit">
+                        <label class="form-check-label small" for="accountGroupBusinessProfit">Business Profit</label>
+                    </div>
+                </div>
+            </div>
 
             <div id="summaryPanel" class="border rounded bg-light p-3 mb-3 small">
                 <div class="row g-2">
                     <div class="col-6 col-md-3">
                         <span class="text-secondary">Current Balance</span>
                         <div id="metricTotalBalance" class="fw-bold fs-5 text-primary">0.00</div>
+                        <div id="metricCurrencyTotals" class="text-secondary mt-1"></div>
                     </div>
                     <div class="col-6 col-md-3">
                         <span class="text-secondary">Period Debit</span>
@@ -58,6 +83,24 @@
                     </div>
                 </div>
                 <div id="accountBalancesRow" class="row g-2 mt-2 pt-2 border-top"></div>
+                <div id="businessProfitPanel" class="row g-2 mt-2 pt-2 border-top d-none">
+                    <div class="col-6 col-md-3">
+                        <span class="text-secondary">Sales Revenue</span>
+                        <div id="metricSalesRevenue" class="fw-semibold" style="color:#027a48;">0.00</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <span class="text-secondary">Cost of Goods</span>
+                        <div id="metricCostOfGoods" class="fw-semibold" style="color:#b42318;">0.00</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <span class="text-secondary">Transfer Fees</span>
+                        <div id="metricTransferFees" class="fw-semibold" style="color:#b42318;">0.00</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <span class="text-secondary">Net Business Profit</span>
+                        <div id="metricNetBusinessProfit" class="fw-bold fs-5 text-primary">0.00</div>
+                    </div>
+                </div>
                 <div id="filterError" class="text-danger mt-2"></div>
             </div>
 
@@ -190,6 +233,10 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('pageScripts') ?>
+<?php
+use Config\Accounting;
+$accountingConfig = config(Accounting::class);
+?>
 <script>
     const API_URLS = {
         transactions: "<?= site_url('api/transactions') ?>",
@@ -199,6 +246,9 @@
     };
 
     const BASE_CURRENCY = "USD";
+    const INVENTORY_ACCOUNT_CODE = "<?= esc($accountingConfig->inventoryAccount, 'js') ?>";
+    const SALES_REVENUE_ACCOUNT_CODE = "<?= esc($accountingConfig->salesRevenueAccount, 'js') ?>";
+    const COGS_ACCOUNT_CODE = "<?= esc($accountingConfig->cogsAccount, 'js') ?>";
 
     const PAGE_SIZE = 50;
     let listPage = 0;
@@ -206,12 +256,14 @@
     let listLoading = false;
     let suppressPageEvent = false;
     let accounts = [];
+    let accountsData = [];
     let paymentMethods = [];
     let newTransactionModal = null;
     let txnExchangeRateModal = null;
     let exchangeRatesByCurrency = {};
     let txnRateEditTarget = "payment";
     let swapToAmountManual = false;
+    let suppressAccountGroupReset = false;
 
     const gridSource = {
         localdata: [],
@@ -238,6 +290,35 @@
     function formatMoney(value) {
         const n = Number(value || 0);
         return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function isZeroAmount(value) {
+        return Math.abs(Number(value || 0)) < 0.005;
+    }
+
+    function formatRate(value) {
+        const n = Number(value || 0);
+        return n.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    }
+
+    function renderAmountCell(value, align, color, showAsNegative) {
+        let text = "";
+        if (!isZeroAmount(value)) {
+            text = formatMoney(value);
+            if (showAsNegative) {
+                text = "-" + text;
+            }
+        }
+        let style = "margin:6px 4px;text-align:" + (align || "right") + ";";
+        if (color) {
+            style += "color:" + color + ";font-weight:600;";
+        }
+        return '<div style="' + style + '">' + text + "</div>";
+    }
+
+    function renderRateCell(value) {
+        const text = isZeroAmount(value) ? "" : formatRate(value);
+        return '<div style="margin:6px 4px;text-align:right;">' + text + "</div>";
     }
 
     function getDateFilterValue(selector) {
@@ -270,6 +351,10 @@
         if (dateTo) {
             params.date_to = dateTo;
         }
+        const accountGroup = String($('input[name="accountGroupFilter"]:checked').val() || "");
+        if (accountGroup) {
+            params.account_group = accountGroup;
+        }
         return params;
     }
 
@@ -279,19 +364,48 @@
         $("#metricTotalCredit").text(formatMoney(summary?.total_credit));
         $("#metricTotalRows").text(String(total || 0));
 
+        const currencyTotals = $("#metricCurrencyTotals");
+        currencyTotals.empty();
+        (summary?.currency_totals || []).forEach(function (row) {
+            currencyTotals.append(
+                `<div>${row.currency} ${formatMoney(row.total_original)}</div>`
+            );
+        });
+
         const row = $("#accountBalancesRow");
         row.empty();
         (summary?.accounts || []).forEach(function (account) {
             const label = account.name
                 ? `${account.code} - ${account.name}`
                 : account.code;
+            const cur = String(account.currency_code || BASE_CURRENCY).toUpperCase();
+            let balanceHtml;
+            if (cur !== BASE_CURRENCY) {
+                balanceHtml =
+                    `<div class="fw-semibold">${formatMoney(account.balance_original)} ${cur}</div>` +
+                    `<div class="text-secondary small">${formatMoney(account.balance)} USD</div>`;
+            } else {
+                balanceHtml = `<div class="fw-semibold">${formatMoney(account.balance)}</div>`;
+            }
             row.append(
                 `<div class="col-6 col-md-3">
                     <span class="text-secondary">${label}</span>
-                    <div class="fw-semibold">${formatMoney(account.balance)}</div>
+                    ${balanceHtml}
                 </div>`
             );
         });
+
+        const bp = summary?.business_profit;
+        const $bpPanel = $("#businessProfitPanel");
+        if (bp) {
+            $bpPanel.removeClass("d-none");
+            $("#metricSalesRevenue").text(formatMoney(bp.sales_revenue));
+            $("#metricCostOfGoods").text(formatMoney(bp.cost_of_goods));
+            $("#metricTransferFees").text(formatMoney(bp.transfer_fees));
+            $("#metricNetBusinessProfit").text(formatMoney(bp.net_profit));
+        } else {
+            $bpPanel.addClass("d-none");
+        }
     }
 
     function updateGridSource(rows, total) {
@@ -354,9 +468,66 @@
         });
     }
 
+    function getAccountCodesForGroup(group) {
+        const key = String(group || "").toLowerCase();
+        if (!key) {
+            return [];
+        }
+
+        return accountsData
+            .filter(function (row) {
+                const type = String(row.account_type || "").toUpperCase();
+                const code = String(row.code || "");
+                if (key === "inventory") {
+                    return code === INVENTORY_ACCOUNT_CODE;
+                }
+                if (key === "capital") {
+                    return (type === "ASSET" && code !== INVENTORY_ACCOUNT_CODE) || type === "EQUITY";
+                }
+                if (key === "profit") {
+                    return type === "REVENUE" || type === "EXPENSE";
+                }
+                if (key === "business_profit") {
+                    return code === SALES_REVENUE_ACCOUNT_CODE || code === COGS_ACCOUNT_CODE;
+                }
+                return false;
+            })
+            .map(function (row) { return String(row.code); });
+    }
+
+    function setAccountFilterByCodes(codes) {
+        clearAccountFilter();
+        const dropdown = $("#accountCodeFilter");
+        const items = dropdown.jqxDropDownList("getItems") || [];
+        const codeSet = new Set(codes);
+        items.forEach(function (item, index) {
+            if (codeSet.has(String(item.value || ""))) {
+                dropdown.jqxDropDownList("checkIndex", index);
+            }
+        });
+    }
+
+    function applyAccountGroupFilter(group, reload) {
+        suppressAccountGroupReset = true;
+        if (!group) {
+            clearAccountFilter();
+        } else {
+            setAccountFilterByCodes(getAccountCodesForGroup(group));
+        }
+        suppressAccountGroupReset = false;
+        if (reload) {
+            loadTransactions(0, listPageSize, true);
+        }
+    }
+
+    function clearAccountGroupFilter() {
+        $("#accountGroupAll").prop("checked", true);
+    }
+
     function loadAccounts() {
         return $.getJSON(API_URLS.accounts).then(function (res) {
-            accounts = (res.data || []).map(function (row) {
+            accountsData = res.data || [];
+            accounts = accountsData.map(function (row) {
                 return {
                     label: `${row.code} - ${row.name}`,
                     value: row.code
@@ -856,7 +1027,9 @@
                     datafield: "original_amount",
                     width: 100,
                     cellsalign: "right",
-                    cellsformat: "f2"
+                    cellsrenderer: function (_row, _col, value) {
+                        return renderAmountCell(value, "right");
+                    }
                 },
                 { text: "Curr.", datafield: "currency", width: 55 },
                 {
@@ -864,21 +1037,27 @@
                     datafield: "exchange_rate",
                     width: 80,
                     cellsalign: "right",
-                    cellsformat: "f4"
+                    cellsrenderer: function (_row, _col, value) {
+                        return renderRateCell(value);
+                    }
                 },
                 {
                     text: "Debit (USD)",
                     datafield: "debit",
                     width: 110,
                     cellsalign: "right",
-                    cellsformat: "f2"
+                    cellsrenderer: function (_row, _col, value) {
+                        return renderAmountCell(value, "right", "#b42318");
+                    }
                 },
                 {
                     text: "Credit (USD)",
                     datafield: "credit",
                     width: 110,
                     cellsalign: "right",
-                    cellsformat: "f2"
+                    cellsrenderer: function (_row, _col, value) {
+                        return renderAmountCell(value, "right", "#027a48", true);
+                    }
                 },
                 { text: "Created", datafield: "created_at", width: 160 }
             ]
@@ -932,8 +1111,20 @@
             loadTransactions(0, listPageSize, true);
         });
 
+        $('input[name="accountGroupFilter"]').on("change", function () {
+            applyAccountGroupFilter(String($('input[name="accountGroupFilter"]:checked').val() || ""), true);
+        });
+
+        $("#accountCodeFilter").on("checkChange", function () {
+            if (suppressAccountGroupReset) {
+                return;
+            }
+            clearAccountGroupFilter();
+        });
+
         $("#clearFiltersBtn").on("click", function () {
             $("#referenceNoFilter").val("");
+            clearAccountGroupFilter();
             clearAccountFilter();
             $("#dateFromFilter").jqxDateTimeInput("setDate", null);
             $("#dateToFilter").jqxDateTimeInput("setDate", null);
