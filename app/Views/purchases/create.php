@@ -1048,6 +1048,7 @@
                 discount_total: totalsSummary.discount,
                 paid_total: totalsSummary.paid,
                 payment_method: String($("#paymentMethodSelect").val() || "cash"),
+                calculation_currency: getSelectedUnitCurrency(),
                 // tag_ids: getSelectedTagIds(),
                 items: validItems
             };

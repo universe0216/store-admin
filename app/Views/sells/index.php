@@ -201,8 +201,8 @@
         }
 
         function initWidgets() {
-            $("#saleDateFrom").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
-            $("#saleDateTo").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+            $("#saleDateFrom").jqxDateTimeInput({ width: 120, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+            $("#saleDateTo").jqxDateTimeInput({ width: 120, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
 
             salesGridAdapter = new $.jqx.dataAdapter(salesGridSource);
 
@@ -223,9 +223,9 @@
                     { text: "ID", datafield: "id", width: 50 },
                     { text: "Sale No", datafield: "sale_no", width: 180 },
                     { text: "Date", datafield: "sale_date", width: 100 },
-                    { text: "Customer", datafield: "customer_name", width: 140 },
                     { text: "Warehouse", datafield: "warehouse_name", width: 120 },
-                    { text: "Grand Total", datafield: "grand_total", cellsformat: "f2", cellsalign: "right" }
+                    { text: "Grand Total", datafield: "grand_total", cellsformat: "f2", cellsalign: "right" },
+                    { text: "Customer", datafield: "customer_name", width: 120 }
                 ]
             });
 

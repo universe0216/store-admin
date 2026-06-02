@@ -8,4 +8,9 @@ class Finance extends BaseController
     {
         return view('finance/transactions');
     }
+
+    public function balances(): string
+    {
+        return view('finance/balances');
+    }
 }

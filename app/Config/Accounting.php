@@ -6,11 +6,17 @@ use CodeIgniter\Config\BaseConfig;
 
 class Accounting extends BaseConfig
 {
+    /** Ledger base / reporting currency. */
+    public string $baseCurrency = 'USD';
+
     /** Inventory asset account (debited on purchase). */
     public string $inventoryAccount = '1200';
 
     /** Sales revenue account (credited on sale). */
     public string $salesRevenueAccount = '4000';
+
+    /** Cost of goods sold (debited on sale). */
+    public string $cogsAccount = '5000';
 
     /** Cash account (default payment). */
     public string $cashAccount = '1000';

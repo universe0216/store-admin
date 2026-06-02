@@ -165,6 +165,7 @@ class Sells extends BaseController
         $saleDate     = (string) ($payload['sale_date'] ?? '');
         $customerName = trim((string) ($payload['customer_name'] ?? ''));
         $paymentMethod = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
+        $currencyCode  = strtoupper(trim((string) ($payload['currency_code'] ?? '')));
         $items        = $payload['items'] ?? [];
 
         if ($warehouseId < 1 || $saleDate === '' || ! is_array($items) || $items === []) {
@@ -187,6 +188,7 @@ class Sells extends BaseController
 
         $normalized = [];
         $subTotal   = 0.0;
+        $cogsTotal  = 0.0;
 
         foreach ($items as $item) {
             if (! is_array($item)) {
@@ -202,7 +204,6 @@ class Sells extends BaseController
 
             $inventory = $db->table('inventory')
                 ->select('id, quantity')
-                ->where('warehouse_id', $warehouseId)
                 ->where('variant_id', $variantId)
                 ->get()
                 ->getFirstRow('array');
@@ -213,8 +214,17 @@ class Sells extends BaseController
                 ]);
             }
 
+            $variant = $db->table('product_variants')
+                ->select('cost_price')
+                ->where('id', $variantId)
+                ->get()
+                ->getFirstRow('array');
+            $unitCost = (float) ($variant['cost_price'] ?? 0);
+
             $lineTotal  = (float) ($qty * $unitPrice);
+            $lineCost   = (float) ($qty * $unitCost);
             $subTotal  += $lineTotal;
+            $cogsTotal += $lineCost;
             $normalized[] = [
                 'variant_id' => $variantId,
                 'qty'        => $qty,
@@ -264,7 +274,7 @@ class Sells extends BaseController
 
                 $db->table('inventory')
                     ->set('quantity', 'quantity - ' . (int) $item['qty'], false)
-                    ->where('warehouse_id', $warehouseId)
+                    // ->where('warehouse_id', $warehouseId)
                     ->where('variant_id', $item['variant_id'])
                     ->update();
 
@@ -283,13 +293,24 @@ class Sells extends BaseController
                 ]);
             }
 
-            (new LedgerService())->recordSale(
+            $ledger = new LedgerService();
+            $ledgerCurrency = $currencyCode !== '' ? $currencyCode : null;
+            $ledger->recordSale(
                 $db,
                 $saleNo,
                 $saleDate,
                 $paidTotal,
                 $paymentMethod,
-                'Sale ' . $saleNo
+                'Sale ' . $saleNo,
+                $ledgerCurrency
+            );
+            $ledger->recordSaleCogs(
+                $db,
+                $saleNo,
+                $saleDate,
+                $cogsTotal,
+                'COGS ' . $saleNo,
+                $ledgerCurrency
             );
 
             if ($db->transStatus() === false) {

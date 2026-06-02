@@ -377,7 +377,7 @@ CREATE TABLE transactions (
 
     account_code VARCHAR(50),
 
-    reference_no VARCHAR(50),
+    reference_no VARCHAR(50),  
 
     description TEXT,
 

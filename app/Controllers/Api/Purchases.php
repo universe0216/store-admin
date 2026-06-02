@@ -7,6 +7,7 @@ use App\Libraries\LedgerService;
 use App\Models\ProductModel;
 use App\Models\ProductVariantModel;
 use App\Models\PurchaseItemModel;
+use App\Models\PaymentMethodModel;
 use App\Models\PurchaseModel;
 use App\Models\StockMovementModel;
 use App\Models\SupplierModel;
@@ -270,8 +271,11 @@ class Purchases extends BaseController
         $transferFee   = max(0, (float) ($payload['transfer_fee'] ?? 0));
         $headerDiscount = (float) ($payload['discount_total'] ?? 0);
         $paidTotal      = (float) ($payload['paid_total'] ?? 0);
-        $paymentMethod  = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
-        $items         = $payload['items'] ?? [];
+        $paymentMethod = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
+        $calculationCurrency = strtoupper(trim((string) (
+            $payload['calculation_currency'] ?? $payload['currency_code'] ?? ''
+        )));
+        $items = $payload['items'] ?? [];
 
         if ($supplierId < 1 || $purchaseDate === '' || ! is_array($items) || $items === []) {
             return $this->response->setStatusCode(422)->setJSON([
@@ -279,8 +283,7 @@ class Purchases extends BaseController
             ]);
         }
 
-        $allowedPaymentMethods = ['cash', 'bank_transfer', 'card', 'check', 'other'];
-        if (! in_array($paymentMethod, $allowedPaymentMethods, true)) {
+        if (! $this->isValidPaymentMethod($paymentMethod)) {
             return $this->response->setStatusCode(422)->setJSON([
                 'message' => 'Invalid payment method.',
             ]);
@@ -456,7 +459,8 @@ class Purchases extends BaseController
                 $purchaseDate,
                 $grandTotal,
                 $paymentMethod,
-                'Purchase ' . $purchaseNo
+                'Purchase ' . $purchaseNo,
+                $calculationCurrency !== '' ? $calculationCurrency : null
             );
 
             if ($db->transStatus() === false) {
@@ -800,5 +804,19 @@ class Purchases extends BaseController
         } while (is_array($exists));
 
         return $sku;
+    }
+
+    private function isValidPaymentMethod(string $code): bool
+    {
+        $code = strtolower(trim($code));
+        if ($code === '') {
+            return false;
+        }
+
+        if (db_connect()->tableExists('payment_methods')) {
+            return (new PaymentMethodModel())->findByCode($code) !== null;
+        }
+
+        return in_array($code, ['cash', 'bank_transfer', 'card', 'check', 'other'], true);
     }
 }

@@ -19,7 +19,10 @@ $routes->get('suppliers', 'Suppliers::index');
 $routes->get('categories', 'Categories::index');
 $routes->get('warehouses', 'Warehouses::index');
 $routes->get('currencies', 'Currencies::index');
+$routes->get('accounts', 'Accounts::index');
+$routes->get('payment-methods', 'PaymentMethods::index');
 $routes->get('finance', 'Finance::index');
+$routes->get('finance/balances', 'Finance::balances');
 
 $routes->group('api', static function ($routes): void {
     $routes->get('purchases', 'Api\Purchases::index');
@@ -46,6 +49,16 @@ $routes->group('api', static function ($routes): void {
     $routes->post('currencies', 'Api\Currencies::create');
     $routes->put('currencies/(:segment)', 'Api\Currencies::update/$1');
     $routes->delete('currencies/(:segment)', 'Api\Currencies::delete/$1');
+    $routes->get('accounts', 'Api\Accounts::index');
+    $routes->get('accounts/(:num)', 'Api\Accounts::show/$1');
+    $routes->post('accounts', 'Api\Accounts::create');
+    $routes->put('accounts/(:num)', 'Api\Accounts::update/$1');
+    $routes->delete('accounts/(:num)', 'Api\Accounts::delete/$1');
+    $routes->get('payment-methods', 'Api\PaymentMethods::index');
+    $routes->get('payment-methods/(:num)', 'Api\PaymentMethods::show/$1');
+    $routes->post('payment-methods', 'Api\PaymentMethods::create');
+    $routes->put('payment-methods/(:num)', 'Api\PaymentMethods::update/$1');
+    $routes->delete('payment-methods/(:num)', 'Api\PaymentMethods::delete/$1');
     $routes->get('exchange-rates/latest/(:segment)', 'Api\ExchangeRates::latest/$1');
     $routes->post('exchange-rates', 'Api\ExchangeRates::create');
     $routes->get('products', 'Api\Purchases::products');
@@ -67,5 +80,7 @@ $routes->group('api', static function ($routes): void {
     $routes->get('tags', 'Api\Tags::index');
     $routes->post('tags', 'Api\Tags::create');
     $routes->get('transactions', 'Api\Transactions::index');
+    $routes->post('transactions', 'Api\Transactions::create');
     $routes->get('transactions/accounts', 'Api\Transactions::accounts');
+    $routes->get('transactions/balances', 'Api\Transactions::balances');
 });

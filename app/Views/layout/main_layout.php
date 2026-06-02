@@ -38,6 +38,8 @@
                             <li><a class="dropdown-item" href="<?= site_url('categories') ?>">Categories</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('warehouses') ?>">Warehouses</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('currencies') ?>">Currencies</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('accounts') ?>">Accounts</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('payment-methods') ?>">Payment Methods</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -75,6 +77,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="<?= site_url('finance') ?>">Transactions</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('finance/balances') ?>">Balances</a></li>
                         </ul>
                     </li>
                 </ul>

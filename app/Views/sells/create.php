@@ -631,24 +631,7 @@
         $("#stockWarehouseDropdown").on("select", function () {
             loadStock();
         });
-        $("#stockWarehouseDropdown").on("unselect", function () {
-            loadStock();
-        });
-        $("#saleWarehouseDropdown").on("select", function (event) {
-            const newWarehouseId = Number(event.args?.item?.value || 0);
-            if (saleItems.length > 0 && newWarehouseId !== lastSaleWarehouseId &&
-                !confirm("Changing sale warehouse may affect stock deduction. Continue?")) {
-                const items = $("#saleWarehouseDropdown").jqxDropDownList("getItems") || [];
-                const prevIndex = items.findIndex(item => Number(item.value) === lastSaleWarehouseId);
-                if (prevIndex >= 0) {
-                    $("#saleWarehouseDropdown").jqxDropDownList("selectIndex", prevIndex);
-                } else {
-                    $("#saleWarehouseDropdown").jqxDropDownList("clearSelection");
-                }
-                return;
-            }
-            lastSaleWarehouseId = newWarehouseId;
-        });
+
         $("#saveSaleBtn").on("click", saveSale);
         $("#stockSearchInput").on("input", function () {
             stockSearchTerm = String($(this).val() || "");

@@ -15,6 +15,9 @@ class TransactionModel extends BaseModel
         'description',
         'debit',
         'credit',
+        'original_amount',
+        'currency',
+        'exchange_rate',
         'created_at',
     ];
     protected $useTimestamps = false;

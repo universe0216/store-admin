@@ -31,7 +31,8 @@
                         <div id="dateToFilter"></div>
                     </div>
                 </div>
-                <div class="col-12 col-md-2 d-flex gap-2 justify-content-md-end">
+                <div class="col-12 col-md-2 d-flex gap-2 justify-content-md-end flex-wrap">
+                    <button type="button" id="newTransactionBtn" class="btn btn-success btn-sm">New Transaction</button>
                     <button type="button" id="applyFiltersBtn" class="btn btn-primary btn-sm">Search</button>
                     <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary btn-sm">Clear</button>
                 </div>
@@ -64,14 +65,140 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="newTransactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">New Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newTransactionForm" class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Type</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="entryType" id="entryTypeExpense" value="expense" checked>
+                                <label class="form-check-label" for="entryTypeExpense">Expense</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="entryType" id="entryTypeRevenue" value="revenue">
+                                <label class="form-check-label" for="entryTypeRevenue">Revenue</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="entryType" id="entryTypeSwap" value="swap">
+                                <label class="form-check-label" for="entryTypeSwap">Swap</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Date</label>
+                        <div id="newTransactionDate"></div>
+                    </div>
+                    <div class="col-12 col-md-6" id="newTransactionAmountGroup">
+                        <label class="form-label">
+                            Amount
+                            <span id="newTransactionRateLink" class="text-primary ms-2 d-none" role="button" tabindex="0"></span>
+                        </label>
+                        <input type="number" id="newTransactionAmount" class="form-control" min="0.01" step="0.01">
+                        <div class="form-text" id="newTransactionAmountHint">In payment account currency</div>
+                        <div id="newTransactionUsdHint" class="form-text text-muted d-none"></div>
+                    </div>
+                    <div class="col-12" id="expenseRevenueFields">
+                        <label class="form-label">Account</label>
+                        <select id="newTransactionAccount" class="form-select">
+                            <option value="">Select account</option>
+                        </select>
+                    </div>
+                    <div class="col-12" id="expenseRevenuePaymentField">
+                        <label class="form-label">Payment Method</label>
+                        <select id="newTransactionPaymentMethod" class="form-select">
+                            <option value="">Select payment method</option>
+                        </select>
+                    </div>
+                    <div id="swapFields" class="col-12 d-none">
+                        <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">From (payment leaves)</label>
+                            <select id="swapFromPaymentMethod" class="form-select">
+                                <option value="">Select payment method</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">To (payment receives)</label>
+                            <select id="swapToPaymentMethod" class="form-select">
+                                <option value="">Select payment method</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">
+                                From amount
+                                <span id="swapFromRateLink" class="text-primary ms-2 d-none" role="button" tabindex="0"></span>
+                            </label>
+                            <input type="number" id="swapFromAmount" class="form-control" min="0.01" step="0.01">
+                            <div class="form-text" id="swapFromAmountHint"></div>
+                        </div>
+                        <div class="col-12 col-md-6" id="swapToAmountGroup">
+                            <label class="form-label">
+                                To amount
+                                <span id="swapToRateLink" class="text-primary ms-2 d-none" role="button" tabindex="0"></span>
+                            </label>
+                            <input type="number" id="swapToAmount" class="form-control" min="0.01" step="0.01">
+                            <div class="form-text" id="swapToAmountHint"></div>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Description</label>
+                        <textarea id="newTransactionDescription" class="form-control" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <div id="newTransactionMessage" class="small fw-semibold"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="saveNewTransactionBtn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="txnExchangeRateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Exchange Rate</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="txnExchangeRateInput" class="form-label text-secondary mb-1">1 USD = ?</label>
+                <div class="input-group">
+                    <input type="number" id="txnExchangeRateInput" class="form-control" min="0" step="any" placeholder="0.00">
+                    <span class="input-group-text" id="txnExchangeRateCurrencyCode">CNY</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveTxnExchangeRateBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
 <?= $this->endSection() ?>
 
 <?= $this->section('pageScripts') ?>
 <script>
     const API_URLS = {
         transactions: "<?= site_url('api/transactions') ?>",
-        accounts: "<?= site_url('api/transactions/accounts') ?>"
+        accounts: "<?= site_url('api/transactions/accounts') ?>",
+        paymentMethods: "<?= site_url('api/payment-methods') ?>",
+        exchangeRates: "<?= site_url('api/exchange-rates') ?>"
     };
+
+    const BASE_CURRENCY = "USD";
 
     const PAGE_SIZE = 50;
     let listPage = 0;
@@ -79,6 +206,12 @@
     let listLoading = false;
     let suppressPageEvent = false;
     let accounts = [];
+    let paymentMethods = [];
+    let newTransactionModal = null;
+    let txnExchangeRateModal = null;
+    let exchangeRatesByCurrency = {};
+    let txnRateEditTarget = "payment";
+    let swapToAmountManual = false;
 
     const gridSource = {
         localdata: [],
@@ -94,6 +227,9 @@
             { name: "description", type: "string" },
             { name: "debit", type: "number" },
             { name: "credit", type: "number" },
+            { name: "original_amount", type: "number" },
+            { name: "currency", type: "string" },
+            { name: "exchange_rate", type: "number" },
             { name: "created_at", type: "string" }
         ]
     };
@@ -238,6 +374,449 @@
         });
     }
 
+    function setNewTransactionMessage(message, isError) {
+        const box = $("#newTransactionMessage");
+        box.text(message || "");
+        box.removeClass("text-success text-danger");
+        if (message) {
+            box.addClass(isError ? "text-danger" : "text-success");
+        }
+    }
+
+    function getSelectedEntryType() {
+        return String($('input[name="entryType"]:checked').val() || "expense");
+    }
+
+    function paymentMethodOptionLabel(row) {
+        const cur = String(row.account_currency || BASE_CURRENCY).toUpperCase();
+        return row.account_code
+            ? `${row.name || row.code} (${row.account_code}, ${cur})`
+            : (row.name || row.code);
+    }
+
+    function fillPaymentMethodSelect(select) {
+        select.find("option:not(:first)").remove();
+        paymentMethods.forEach(function (row) {
+            select.append(`<option value="${row.code}">${paymentMethodOptionLabel(row)}</option>`);
+        });
+    }
+
+    function loadModalAccounts() {
+        updateEntryTypeUi();
+        if (getSelectedEntryType() === "swap") {
+            return $.Deferred().resolve().promise();
+        }
+
+        const accountType = getSelectedEntryType() === "expense" ? "EXPENSE" : "REVENUE";
+        const select = $("#newTransactionAccount");
+        const current = select.val();
+        select.find("option:not(:first)").remove();
+
+        return $.getJSON(API_URLS.accounts, { account_type: accountType }).done(function (res) {
+            (res.data || []).forEach(function (row) {
+                select.append(
+                    `<option value="${row.code}">${row.code} — ${row.name || ""}</option>`
+                );
+            });
+            if (current && select.find(`option[value="${current}"]`).length) {
+                select.val(current);
+            }
+        });
+    }
+
+    function loadPaymentMethods() {
+        return $.getJSON(API_URLS.paymentMethods).done(function (res) {
+            paymentMethods = (res.data || []).filter(function (row) {
+                return Number(row.is_active) === 1 && row.account_id;
+            });
+            fillPaymentMethodSelect($("#newTransactionPaymentMethod"));
+            fillPaymentMethodSelect($("#swapFromPaymentMethod"));
+            fillPaymentMethodSelect($("#swapToPaymentMethod"));
+        });
+    }
+
+    function updateEntryTypeUi() {
+        const isSwap = getSelectedEntryType() === "swap";
+        $("#expenseRevenueFields, #expenseRevenuePaymentField, #newTransactionAmountGroup")
+            .toggleClass("d-none", isSwap);
+        $("#swapFields").toggleClass("d-none", !isSwap);
+        if (isSwap) {
+            updateSwapCurrencyUi();
+        } else {
+            updatePaymentCurrencyUi();
+        }
+    }
+
+    function getPaymentMethodByCode(code) {
+        const key = String(code || "");
+        return paymentMethods.find(function (row) { return row.code === key; }) || null;
+    }
+
+    function getSwapFromMethod() {
+        return getPaymentMethodByCode($("#swapFromPaymentMethod").val());
+    }
+
+    function getSwapToMethod() {
+        return getPaymentMethodByCode($("#swapToPaymentMethod").val());
+    }
+
+    function getSwapFromCurrency() {
+        return String(getSwapFromMethod()?.account_currency || BASE_CURRENCY).toUpperCase();
+    }
+
+    function getSwapToCurrency() {
+        return String(getSwapToMethod()?.account_currency || BASE_CURRENCY).toUpperCase();
+    }
+
+    function amountToUsd(amount, currency) {
+        if (currency === BASE_CURRENCY) {
+            return amount;
+        }
+        const rate = getExchangeRateForCurrency(currency);
+        return rate > 0 ? amount / rate : 0;
+    }
+
+    function usdToAmount(usd, currency) {
+        if (currency === BASE_CURRENCY) {
+            return usd;
+        }
+        const rate = getExchangeRateForCurrency(currency);
+        return rate > 0 ? usd * rate : 0;
+    }
+
+    function recalcSwapToAmount() {
+        if (swapToAmountManual) {
+            return;
+        }
+        const fromAmount = Number($("#swapFromAmount").val() || 0);
+        if (fromAmount <= 0) {
+            $("#swapToAmount").val("");
+            return;
+        }
+        const fromCur = getSwapFromCurrency();
+        const toCur = getSwapToCurrency();
+        const usd = amountToUsd(fromAmount, fromCur);
+        if (usd <= 0) {
+            return;
+        }
+        const toAmount = usdToAmount(usd, toCur);
+        if (toAmount > 0) {
+            $("#swapToAmount").val(toAmount.toFixed(2));
+        }
+    }
+
+    function updateSwapSideRateUi(currency, $rateLink, $hint, prefix) {
+        if (currency === BASE_CURRENCY) {
+            $rateLink.addClass("d-none").text("");
+            $hint.text(prefix + " in USD");
+            return;
+        }
+        const rate = getExchangeRateForCurrency(currency);
+        $hint.text(prefix + " in " + currency);
+        $rateLink
+            .removeClass("d-none")
+            .text(rate > 0 ? "1 USD = " + rate + " " + currency : "1 USD = ? " + currency);
+    }
+
+    function updateSwapCurrencyUi() {
+        const fromCur = getSwapFromCurrency();
+        const toCur = getSwapToCurrency();
+        updateSwapSideRateUi(fromCur, $("#swapFromRateLink"), $("#swapFromAmountHint"), "From amount");
+        updateSwapSideRateUi(toCur, $("#swapToRateLink"), $("#swapToAmountHint"), "To amount");
+        const sameCurrency = fromCur === toCur && fromCur !== "";
+        if (sameCurrency) {
+            $("#swapToAmountGroup").addClass("d-none");
+            const fromAmount = Number($("#swapFromAmount").val() || 0);
+            if (fromAmount > 0) {
+                $("#swapToAmount").val(fromAmount.toFixed(2));
+            }
+        } else {
+            $("#swapToAmountGroup").removeClass("d-none");
+            recalcSwapToAmount();
+        }
+    }
+
+    function loadExchangeRatesForSwap() {
+        const currencies = [getSwapFromCurrency(), getSwapToCurrency()]
+            .filter(function (c) { return c && c !== BASE_CURRENCY; });
+        const unique = currencies.filter(function (c, i, arr) { return arr.indexOf(c) === i; });
+        if (!unique.length) {
+            updateSwapCurrencyUi();
+            return $.Deferred().resolve().promise();
+        }
+        const requests = unique.map(function (currency) {
+            return $.getJSON(API_URLS.exchangeRates + "/latest/" + encodeURIComponent(currency))
+                .done(function (res) {
+                    const rate = Number(res.data?.rate || 0);
+                    if (rate > 0) {
+                        exchangeRatesByCurrency[currency] = rate;
+                    } else {
+                        delete exchangeRatesByCurrency[currency];
+                    }
+                });
+        });
+        return $.when.apply($, requests).always(updateSwapCurrencyUi);
+    }
+
+    function getTxnRateEditCurrency() {
+        if (txnRateEditTarget === "swapFrom") {
+            return getSwapFromCurrency();
+        }
+        if (txnRateEditTarget === "swapTo") {
+            return getSwapToCurrency();
+        }
+        return getPaymentCurrency();
+    }
+
+    function getSelectedPaymentMethod() {
+        const code = String($("#newTransactionPaymentMethod").val() || "");
+        return paymentMethods.find(function (row) { return row.code === code; }) || null;
+    }
+
+    function getPaymentCurrency() {
+        const method = getSelectedPaymentMethod();
+        return String(method?.account_currency || BASE_CURRENCY).toUpperCase();
+    }
+
+    function getExchangeRateForCurrency(code) {
+        const currency = String(code || "").toUpperCase();
+        if (currency === BASE_CURRENCY) {
+            return 1;
+        }
+        return Number(exchangeRatesByCurrency[currency] || 0);
+    }
+
+    function updatePaymentCurrencyUi() {
+        const currency = getPaymentCurrency();
+        const amount = Number($("#newTransactionAmount").val() || 0);
+        const $rateLink = $("#newTransactionRateLink");
+        const $usdHint = $("#newTransactionUsdHint");
+
+        if (currency === BASE_CURRENCY) {
+            $("#newTransactionAmountHint").text("Amount in USD");
+            $rateLink.addClass("d-none").text("");
+            $usdHint.addClass("d-none").text("");
+            return;
+        }
+
+        $("#newTransactionAmountHint").text("Amount in " + currency);
+        const rate = getExchangeRateForCurrency(currency);
+        $rateLink
+            .removeClass("d-none")
+            .text(rate > 0 ? "1 USD = " + rate + " " + currency : "1 USD = ? " + currency);
+
+        if (rate > 0 && amount > 0) {
+            $usdHint.removeClass("d-none").text("≈ $" + (amount / rate).toFixed(2) + " USD (ledger debit/credit)");
+        } else {
+            $usdHint.addClass("d-none").text("");
+        }
+    }
+
+    function loadExchangeRateForPaymentCurrency() {
+        const currency = getPaymentCurrency();
+        if (currency === BASE_CURRENCY || currency === "") {
+            updatePaymentCurrencyUi();
+            return $.Deferred().resolve().promise();
+        }
+
+        return $.getJSON(API_URLS.exchangeRates + "/latest/" + encodeURIComponent(currency))
+            .done(function (res) {
+                const rate = Number(res.data?.rate || 0);
+                if (rate > 0) {
+                    exchangeRatesByCurrency[currency] = rate;
+                } else {
+                    delete exchangeRatesByCurrency[currency];
+                }
+                updatePaymentCurrencyUi();
+            })
+            .fail(function () {
+                updatePaymentCurrencyUi();
+            });
+    }
+
+    function openTxnExchangeRateModal(target) {
+        txnRateEditTarget = target || "payment";
+        const currency = getTxnRateEditCurrency();
+        if (currency === BASE_CURRENCY) {
+            return;
+        }
+        $("#txnExchangeRateCurrencyCode").text(currency);
+        const loadPromise = txnRateEditTarget === "payment"
+            ? loadExchangeRateForPaymentCurrency()
+            : loadExchangeRatesForSwap();
+        loadPromise.always(function () {
+            $("#txnExchangeRateInput").val(getExchangeRateForCurrency(currency) || "");
+            txnExchangeRateModal.show();
+        });
+    }
+
+    function saveTxnExchangeRateFromModal() {
+        const currency = getTxnRateEditCurrency();
+        const rate = Number($("#txnExchangeRateInput").val() || 0);
+        if (currency === BASE_CURRENCY || rate <= 0) {
+            setNewTransactionMessage("Exchange rate must be greater than 0.", true);
+            return;
+        }
+
+        $("#saveTxnExchangeRateBtn").prop("disabled", true);
+        $.ajax({
+            url: API_URLS.exchangeRates,
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                quote_currency: currency,
+                rate: rate
+            })
+        }).done(function () {
+            exchangeRatesByCurrency[currency] = rate;
+            txnExchangeRateModal.hide();
+            setNewTransactionMessage("");
+            if (txnRateEditTarget === "payment") {
+                updatePaymentCurrencyUi();
+            } else {
+                swapToAmountManual = false;
+                updateSwapCurrencyUi();
+            }
+        }).fail(function (xhr) {
+            setNewTransactionMessage(xhr.responseJSON?.message || "Failed to save exchange rate.", true);
+        }).always(function () {
+            $("#saveTxnExchangeRateBtn").prop("disabled", false);
+        });
+    }
+
+    function resetNewTransactionForm() {
+        $('input[name="entryType"][value="expense"]').prop("checked", true);
+        $("#newTransactionDate").jqxDateTimeInput("setDate", new Date());
+        $("#newTransactionAmount").val("");
+        $("#newTransactionDescription").val("");
+        $("#newTransactionPaymentMethod").val("");
+        $("#swapFromPaymentMethod, #swapToPaymentMethod").val("");
+        $("#swapFromAmount, #swapToAmount").val("");
+        swapToAmountManual = false;
+        setNewTransactionMessage("");
+        loadModalAccounts();
+    }
+
+    function openNewTransactionModal() {
+        resetNewTransactionForm();
+        newTransactionModal.show();
+    }
+
+    function saveNewTransaction() {
+        const entryType = getSelectedEntryType();
+        const transactionDate = $("#newTransactionDate").jqxDateTimeInput("getText");
+        const description = String($("#newTransactionDescription").val() || "").trim();
+
+        if (!transactionDate) {
+            setNewTransactionMessage("Transaction date is required.", true);
+            return;
+        }
+
+        let payload;
+
+        if (entryType === "swap") {
+            const fromMethod = String($("#swapFromPaymentMethod").val() || "").trim();
+            const toMethod = String($("#swapToPaymentMethod").val() || "").trim();
+            const fromAmount = Number($("#swapFromAmount").val() || 0);
+            const toAmount = Number($("#swapToAmount").val() || 0);
+            const fromCur = getSwapFromCurrency();
+            const toCur = getSwapToCurrency();
+
+            if (!fromMethod || !toMethod) {
+                setNewTransactionMessage("Please select from and to payment methods.", true);
+                return;
+            }
+            if (fromMethod === toMethod) {
+                setNewTransactionMessage("From and to payment methods must be different.", true);
+                return;
+            }
+            if (fromAmount <= 0 || toAmount <= 0) {
+                setNewTransactionMessage("From and to amounts must be greater than 0.", true);
+                return;
+            }
+            if (fromCur !== BASE_CURRENCY && getExchangeRateForCurrency(fromCur) <= 0) {
+                setNewTransactionMessage("Set an exchange rate for " + fromCur + " before saving.", true);
+                return;
+            }
+            if (toCur !== BASE_CURRENCY && getExchangeRateForCurrency(toCur) <= 0) {
+                setNewTransactionMessage("Set an exchange rate for " + toCur + " before saving.", true);
+                return;
+            }
+
+            payload = {
+                entry_type: "swap",
+                from_payment_method: fromMethod,
+                to_payment_method: toMethod,
+                amount: fromAmount,
+                to_amount: toAmount,
+                transaction_date: transactionDate,
+                description: description
+            };
+            if (fromCur !== BASE_CURRENCY) {
+                payload.from_exchange_rate = getExchangeRateForCurrency(fromCur);
+            }
+            if (toCur !== BASE_CURRENCY) {
+                payload.to_exchange_rate = getExchangeRateForCurrency(toCur);
+            }
+        } else {
+            const accountCode = String($("#newTransactionAccount").val() || "").trim();
+            const paymentMethod = String($("#newTransactionPaymentMethod").val() || "").trim();
+            const amount = Number($("#newTransactionAmount").val() || 0);
+
+            if (!accountCode) {
+                setNewTransactionMessage("Please select an account.", true);
+                return;
+            }
+            if (!paymentMethod) {
+                setNewTransactionMessage("Please select a payment method.", true);
+                return;
+            }
+            if (amount <= 0) {
+                setNewTransactionMessage("Amount must be greater than 0.", true);
+                return;
+            }
+
+            const paymentCurrency = getPaymentCurrency();
+            const exchangeRate = getExchangeRateForCurrency(paymentCurrency);
+            if (paymentCurrency !== BASE_CURRENCY && exchangeRate <= 0) {
+                setNewTransactionMessage("Set an exchange rate for " + paymentCurrency + " before saving.", true);
+                return;
+            }
+
+            payload = {
+                entry_type: entryType,
+                account_code: accountCode,
+                payment_method: paymentMethod,
+                amount: amount,
+                transaction_date: transactionDate,
+                description: description
+            };
+            if (paymentCurrency !== BASE_CURRENCY) {
+                payload.exchange_rate = exchangeRate;
+            }
+        }
+
+        $("#saveNewTransactionBtn").prop("disabled", true);
+        setNewTransactionMessage("");
+
+        $.ajax({
+            url: API_URLS.transactions,
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(payload)
+        }).done(function (res) {
+            setNewTransactionMessage(res.message || "Transaction saved.");
+            loadTransactions(0, listPageSize, true);
+            window.setTimeout(function () {
+                newTransactionModal.hide();
+            }, 400);
+        }).fail(function (xhr) {
+            setNewTransactionMessage(xhr.responseJSON?.message || "Failed to save transaction.", true);
+        }).always(function () {
+            $("#saveNewTransactionBtn").prop("disabled", false);
+        });
+    }
+
     $(function () {
         $("#dateFromFilter").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
         $("#dateToFilter").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
@@ -255,20 +834,47 @@
             pagesizeoptions: ["20", "50", "100"],
             columnsresize: true,
             columns: [
+                {
+                    text: "#",
+                    width: 55,
+                    sortable: false,
+                    filterable: false,
+                    editable: false,
+                    menu: false,
+                    cellsrenderer: function (row) {
+                        const n = listPage * listPageSize + row + 1;
+                        return '<div style="margin:6px 4px;text-align:center;">' + n + "</div>";
+                    }
+                },
                 { text: "Date", datafield: "transaction_date", width: 110 },
                 { text: "Reference", datafield: "reference_no", width: 180 },
                 { text: "Account", datafield: "account_code", width: 90 },
                 { text: "Account Name", datafield: "account_name", width: 180 },
                 { text: "Description", datafield: "description", width: 260 },
                 {
-                    text: "Debit",
+                    text: "Original",
+                    datafield: "original_amount",
+                    width: 100,
+                    cellsalign: "right",
+                    cellsformat: "f2"
+                },
+                { text: "Curr.", datafield: "currency", width: 55 },
+                {
+                    text: "Rate",
+                    datafield: "exchange_rate",
+                    width: 80,
+                    cellsalign: "right",
+                    cellsformat: "f4"
+                },
+                {
+                    text: "Debit (USD)",
                     datafield: "debit",
                     width: 110,
                     cellsalign: "right",
                     cellsformat: "f2"
                 },
                 {
-                    text: "Credit",
+                    text: "Credit (USD)",
                     datafield: "credit",
                     width: 110,
                     cellsalign: "right",
@@ -286,8 +892,40 @@
             loadTransactions(paging.pagenum, paging.pagesize);
         });
 
+        $("#newTransactionDate").jqxDateTimeInput({
+            width: "100%",
+            height: 34,
+            formatString: "yyyy-MM-dd",
+            value: new Date()
+        });
+
+        newTransactionModal = new bootstrap.Modal(document.getElementById("newTransactionModal"));
+        txnExchangeRateModal = new bootstrap.Modal(document.getElementById("txnExchangeRateModal"));
+
+        loadPaymentMethods();
         loadAccounts().always(function () {
             loadTransactions(0, PAGE_SIZE, true);
+        });
+
+        $("#newTransactionBtn").on("click", openNewTransactionModal);
+        $("#saveNewTransactionBtn").on("click", saveNewTransaction);
+        $("#newTransactionPaymentMethod").on("change", loadExchangeRateForPaymentCurrency);
+        $("#newTransactionAmount").on("input", updatePaymentCurrencyUi);
+        $("#newTransactionRateLink").on("click", function () { openTxnExchangeRateModal("payment"); });
+        $("#swapFromRateLink").on("click", function () { openTxnExchangeRateModal("swapFrom"); });
+        $("#swapToRateLink").on("click", function () { openTxnExchangeRateModal("swapTo"); });
+        $("#saveTxnExchangeRateBtn").on("click", saveTxnExchangeRateFromModal);
+        $('input[name="entryType"]').on("change", loadModalAccounts);
+        $("#swapFromPaymentMethod, #swapToPaymentMethod").on("change", function () {
+            swapToAmountManual = false;
+            loadExchangeRatesForSwap();
+        });
+        $("#swapFromAmount").on("input", function () {
+            swapToAmountManual = false;
+            updateSwapCurrencyUi();
+        });
+        $("#swapToAmount").on("input", function () {
+            swapToAmountManual = true;
         });
 
         $("#applyFiltersBtn").on("click", function () {
