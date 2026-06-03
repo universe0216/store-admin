@@ -9,7 +9,17 @@ class ProductModel extends BaseModel
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'category_id', 'brand', 'serial_number', 'description', 'is_active'];
+    protected $allowedFields    = [
+        'name',
+        'category_id',
+        'brand',
+        'serial_number',
+        'description',
+        'department',
+        'gender',
+        'season',
+        'is_active',
+    ];
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
 

@@ -94,13 +94,6 @@
     let lastFromWarehouseId = 0;
     let stockSearchTerm = "";
 
-    function setMessage(msg, isError = false) {
-        const box = $("#transferMessageBox");
-        box.text(msg || "");
-        box.removeClass("text-success text-danger");
-        box.addClass(isError ? "text-danger" : "text-success");
-    }
-
     function initWidgets() {
         $("#transferDateInput").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd" });
         $("#fromWarehouseDropdown").jqxDropDownList({

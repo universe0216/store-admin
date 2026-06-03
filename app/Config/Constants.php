@@ -44,6 +44,31 @@ defined('DECADE') || define('DECADE', 315_360_000);
 
 /*
  | --------------------------------------------------------------------------
+ | Catalog enums (see App\Enums\Season, Department, Gender)
+ | --------------------------------------------------------------------------
+ */
+defined('SEASON_SPRING')     || define('SEASON_SPRING', 'spring');
+defined('SEASON_SUMMER')     || define('SEASON_SUMMER', 'summer');
+defined('SEASON_FALL')       || define('SEASON_FALL', 'fall');
+defined('SEASON_WINTER')     || define('SEASON_WINTER', 'winter');
+defined('SEASON_ALL_SEASON') || define('SEASON_ALL_SEASON', 'all_season');
+
+defined('DEPARTMENT_APPAREL')      || define('DEPARTMENT_APPAREL', 'apparel');
+defined('DEPARTMENT_FOOTWEAR')     || define('DEPARTMENT_FOOTWEAR', 'footwear');
+defined('DEPARTMENT_ACCESSORIES')  || define('DEPARTMENT_ACCESSORIES', 'accessories');
+defined('DEPARTMENT_ELECTRONICS')  || define('DEPARTMENT_ELECTRONICS', 'electronics');
+defined('DEPARTMENT_HOME')         || define('DEPARTMENT_HOME', 'home');
+defined('DEPARTMENT_OTHER')        || define('DEPARTMENT_OTHER', 'other');
+
+defined('GENDER_MEN')    || define('GENDER_MEN', 'men');
+defined('GENDER_WOMEN')  || define('GENDER_WOMEN', 'women');
+defined('GENDER_UNISEX') || define('GENDER_UNISEX', 'unisex');
+defined('GENDER_BOYS')   || define('GENDER_BOYS', 'boys');
+defined('GENDER_GIRLS')  || define('GENDER_GIRLS', 'girls');
+defined('GENDER_KIDS')   || define('GENDER_KIDS', 'kids');
+
+/*
+ | --------------------------------------------------------------------------
  | Exit Status Codes
  | --------------------------------------------------------------------------
  |

@@ -1,3 +1,10 @@
+<?php
+
+use App\Enums\Department;
+use App\Enums\Gender;
+use App\Enums\Season;
+
+?>
 <?= $this->extend('layout/main_layout') ?>
 
 <?= $this->section('title') ?>New Sale<?= $this->endSection() ?>
@@ -78,8 +85,6 @@
             </div>
         </div>
 
-        <div id="saleMessageBox" class="small fw-semibold mb-3"></div>
-
         <div class="row g-4">
             <div class="col-12 col-lg-6">
                 <div class="card shadow-sm h-100">
@@ -90,9 +95,37 @@
                                 <div id="stockWarehouseDropdown"></div>
                             </div>
                             <div class="col-12 col-md-7">
-                                <div class="d-flex gap-2">
-                                    <input type="text" id="stockSearchInput" class="form-control" placeholder="Search by product name or product number">
-                                    <button type="button" id="clearStockFiltersBtn" class="btn btn-outline-secondary btn-sm text-nowrap">Clear</button>
+                                <div class="row g-2">
+                                    <div class="col-12 col-md-4">
+                                        <select id="stockDepartmentSelect" class="form-select form-select-sm">
+                                            <option value="">All departments</option>
+                                            <?php foreach (Department::cases() as $case) : ?>
+                                                <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <select id="stockGenderSelect" class="form-select form-select-sm">
+                                            <option value="">All genders</option>
+                                            <?php foreach (Gender::cases() as $case) : ?>
+                                                <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <select id="stockSeasonSelect" class="form-select form-select-sm">
+                                            <option value="">All seasons</option>
+                                            <?php foreach (Season::cases() as $case) : ?>
+                                                <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex gap-2">
+                                            <input type="text" id="stockSearchInput" class="form-control" placeholder="Search by product name or product number">
+                                            <button type="button" id="clearStockFiltersBtn" class="btn btn-outline-secondary btn-sm text-nowrap">Clear</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -161,14 +194,10 @@
     let saleItems = [];
     let lastSaleWarehouseId = 0;
     let stockSearchTerm = "";
+    let stockDepartmentFilter = "";
+    let stockGenderFilter = "";
+    let stockSeasonFilter = "";
     let saleTotalsCalcLock = false;
-
-    function setMessage(msg, isError = false) {
-        const box = $("#saleMessageBox");
-        box.text(msg || "");
-        box.removeClass("text-success text-danger");
-        box.addClass(isError ? "text-danger" : "text-success");
-    }
 
     function initWidgets() {
         $("#saleDateInput").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd" });
@@ -280,6 +309,15 @@
             if (Number(r.remaining_qty) <= 0) {
                 return false;
             }
+            if (stockDepartmentFilter !== "" && String(r.department || "") !== stockDepartmentFilter) {
+                return false;
+            }
+            if (stockGenderFilter !== "" && String(r.gender || "") !== stockGenderFilter) {
+                return false;
+            }
+            if (stockSeasonFilter !== "" && String(r.season || "") !== stockSeasonFilter) {
+                return false;
+            }
             if (term === "") {
                 return true;
             }
@@ -306,6 +344,12 @@
 
     function clearStockFilters() {
         clearStockSearch();
+        stockDepartmentFilter = "";
+        stockGenderFilter = "";
+        stockSeasonFilter = "";
+        $("#stockDepartmentSelect").val("");
+        $("#stockGenderSelect").val("");
+        $("#stockSeasonSelect").val("");
         $("#stockWarehouseDropdown").jqxDropDownList("clearSelection");
         loadStock();
     }
@@ -433,7 +477,7 @@
 
         refreshStockGrid();
         refreshSaleGrid();
-        setMessage("Item added to sale.");
+        setMessage("Item added to sale.", false);
     }
 
     function syncSaleItemFromGrid(rowIndex, datafield) {
@@ -516,7 +560,7 @@
         saleItems = saleItems.filter(s => Number(s.variant_id) !== Number(row.variant_id));
         refreshStockGrid();
         refreshSaleGrid();
-        setMessage("Item removed from sale.");
+        setMessage("Item removed from sale.", false);
     }
 
     function loadWarehouses() {
@@ -552,6 +596,9 @@
                     style: p.style || "",
                     size_value: p.size_value || "",
                     brand: p.brand || "",
+                    department: p.department || "",
+                    gender: p.gender || "",
+                    season: p.season || "",
                     cost_price: Number(p.cost_price || 0),
                     selling_price: Number(p.selling_price || 0),
                     original_qty: qty,
@@ -562,7 +609,9 @@
                 adjustVariantRemainingQty(item.variant_id, -Number(item.qty || 0));
             }
             refreshStockGrid();
-            setMessage(stockSource.length ? "" : "No stock found.");
+            if (!stockSource.length) {
+                setMessage("No stock found.", true);
+            }
         }).fail(function(xhr) {
             setMessage(xhr.responseJSON?.message || "Failed to load stock.", true);
         });
@@ -611,7 +660,7 @@
             contentType: "application/json",
             data: JSON.stringify(payload)
         }).done(function(res) {
-            setMessage(res.message || "Sale saved.");
+            setMessage(res.message || "Sale saved.", false);
             setTimeout(function () {
                 window.location.href = "<?= site_url('sells') ?>";
             }, 500);
@@ -638,6 +687,12 @@
             refreshStockGrid();
         });
         $("#clearStockFiltersBtn").on("click", clearStockFilters);
+        $("#stockDepartmentSelect, #stockGenderSelect, #stockSeasonSelect").on("change", function () {
+            stockDepartmentFilter = String($("#stockDepartmentSelect").val() || "");
+            stockGenderFilter = String($("#stockGenderSelect").val() || "");
+            stockSeasonFilter = String($("#stockSeasonSelect").val() || "");
+            refreshStockGrid();
+        });
         $("#discountTotalInput").on("valueChanged", function () {
             recalcSaleTotals("discount");
         });

@@ -73,13 +73,6 @@
 <script>
     const CURRENCIES_API_URL = "<?= site_url('api/currencies') ?>";
 
-    function setMessage(message, isError = false) {
-        const box = $("#messageBox");
-        box.text(message || "");
-        box.removeClass("text-success text-danger");
-        box.addClass(isError ? "text-danger" : "text-success");
-    }
-
     function resetForm() {
         $("#editMode").val("0");
         $("#codeInput").val("").prop("readonly", false);

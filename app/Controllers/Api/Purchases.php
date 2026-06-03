@@ -3,6 +3,9 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Enums\Department;
+use App\Enums\Gender;
+use App\Enums\Season;
 use App\Libraries\LedgerService;
 use App\Models\ProductModel;
 use App\Models\ProductVariantModel;
@@ -539,10 +542,22 @@ class Purchases extends BaseController
 
         $name       = trim((string) ($payload['name'] ?? ''));
         $categoryId = (int) ($payload['category_id'] ?? 0);
+        $department = trim((string) ($payload['department'] ?? ''));
+        $gender     = trim((string) ($payload['gender'] ?? ''));
+        $season     = trim((string) ($payload['season'] ?? ''));
         if ($name === '' || $categoryId < 1) {
             return $this->response->setStatusCode(422)->setJSON([
                 'message' => 'name and category_id are required.',
             ]);
+        }
+        if (! Department::isValid($department)) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid department.']);
+        }
+        if (! Gender::isValid($gender)) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid gender.']);
+        }
+        if (! Season::isValid($season)) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid season.']);
         }
 
         $id = (new ProductModel())->createOne([
@@ -550,6 +565,9 @@ class Purchases extends BaseController
             'category_id'   => $categoryId,
             'serial_number' => $payload['serial_number'] ?? null,
             'brand'         => $payload['brand'] ?? null,
+            'department'    => $department,
+            'gender'        => $gender,
+            'season'        => $season,
             'description'   => null,
             'is_active'     => 1,
         ]);

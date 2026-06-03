@@ -13,6 +13,9 @@
         .jqx-widget * {
             box-sizing: border-box;
         }
+        .app-toast-container {
+            z-index: 2000;
+        }
     </style>
 
     <?= $this->renderSection('pageStyles') ?>
@@ -88,6 +91,15 @@
 
     <?= $this->renderSection('content') ?>
 
+    <div class="toast-container app-toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="appToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div id="appToastBody" class="toast-body"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <footer class="text-center text-muted small py-3">
         <div class="container">
             Page rendered in {elapsed_time} seconds. Memory: {memory_usage} MB.
@@ -118,6 +130,7 @@
     <script src="<?= base_url('assets/jqwidgets/jqxnumberinput.js') ?>"></script>
     <script src="<?= base_url('assets/jqwidgets/jqxinput.js') ?>"></script>
     <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
+    <script src="<?= base_url('assets/js/utils.js') ?>"></script>
 
     <?= $this->renderSection('pageScripts') ?>
 </body>

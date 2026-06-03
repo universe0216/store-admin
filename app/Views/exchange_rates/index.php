@@ -115,15 +115,6 @@
     let rateChartInstance = null;
     let quoteCurrencies = [];
 
-    function setMessage(message, isError) {
-        const box = $("#messageBox");
-        box.text(message || "");
-        box.removeClass("text-success text-danger");
-        if (message) {
-            box.addClass(isError ? "text-danger" : "text-success");
-        }
-    }
-
     function formatRate(value) {
         const n = Number(value);
         if (!Number.isFinite(n)) {

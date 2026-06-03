@@ -8,7 +8,7 @@ class CategoryModel extends BaseModel
     protected $primaryKey       = 'id';
     protected $returnType       = 'array';
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'parent_id'];
+    protected $allowedFields    = ['name', 'parent_id', 'department'];
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
 

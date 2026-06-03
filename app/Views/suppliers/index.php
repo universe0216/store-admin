@@ -21,7 +21,7 @@
                                     <th style="width: 80px;">ID</th>
                                     <th>Name</th>
                                     <th style="width: 170px;">Phone</th>
-                                    <th style="width: 240px;">Email</th>
+                                    <!-- <th style="width: 240px;">Email</th> -->
                                     <th>Address</th>
                                     <th style="width: 150px;">Actions</th>
                                 </tr>
@@ -74,13 +74,6 @@
 <script>
     const SUPPLIERS_API_URL = "<?= site_url('api/suppliers') ?>";
 
-    function setMessage(message, isError = false) {
-        const box = $("#messageBox");
-        box.text(message || "");
-        box.removeClass("text-success text-danger");
-        box.addClass(isError ? "text-danger" : "text-success");
-    }
-
     function resetForm() {
         $("#supplierId").val("");
         $("#nameInput").val("");
@@ -105,7 +98,7 @@
             tr.append(`<td>${row.id}</td>`);
             tr.append(`<td>${row.name || ""}</td>`);
             tr.append(`<td>${row.phone || ""}</td>`);
-            tr.append(`<td>${row.email || ""}</td>`);
+            // tr.append(`<td>${row.email || ""}</td>`);
             tr.append(`<td>${row.address || ""}</td>`);
             tr.append(
                 `<td>

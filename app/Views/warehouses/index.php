@@ -64,13 +64,6 @@
 <script>
     const WAREHOUSES_API_URL = "<?= site_url('api/warehouses') ?>";
 
-    function setMessage(message, isError = false) {
-        const box = $("#messageBox");
-        box.text(message || "");
-        box.removeClass("text-success text-danger");
-        box.addClass(isError ? "text-danger" : "text-success");
-    }
-
     function resetForm() {
         $("#warehouseId").val("");
         $("#nameInput").val("");

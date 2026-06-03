@@ -15,9 +15,6 @@
         padding-bottom: 0 !important;
         box-sizing: border-box;
     }
-    .toast-container {
-        z-index: 2000;
-    }
 </style>
 <?= $this->endSection() ?>
 
@@ -56,15 +53,6 @@
             </div>
         </div>
     </div>
-
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="inventoryToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div id="inventoryToastBody" class="toast-body"></div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    </div>
 <?= $this->endSection() ?>
 
 <?= $this->section('pageScripts') ?>
@@ -88,24 +76,6 @@
             }
         }
 
-        function showInventoryToast(msg, isError = false) {
-            const el = document.getElementById("inventoryToast");
-            const body = document.getElementById("inventoryToastBody");
-            if (!el || !body || typeof bootstrap === "undefined") {
-                return;
-            }
-
-            body.textContent = msg || "";
-            el.classList.remove("text-bg-success", "text-bg-danger");
-            el.classList.add(isError ? "text-bg-danger" : "text-bg-success");
-
-            const toast = bootstrap.Toast.getOrCreateInstance(el, {
-                delay: 3000,
-                autohide: true
-            });
-            toast.show();
-        }
-
         function saveSellingPrice(rowIndex, sellingPrice) {
             if (savingSellingPrice) {
                 return;
@@ -127,11 +97,11 @@
                 data: JSON.stringify({ selling_price: price })
             }).done(function () {
                 setInventoryMessage("");
-                showInventoryToast("Selling price saved.");
+                setMessage("Selling price saved.", false);
             }).fail(function (xhr) {
                 const msg = xhr.responseJSON?.message || "Failed to update selling price.";
                 setInventoryMessage(msg, true);
-                showInventoryToast(msg, true);
+                setMessage(msg, true);
                 loadInventory();
             }).always(function () {
                 savingSellingPrice = false;
@@ -149,8 +119,16 @@
                 editmode: "click",
                 source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" }),
                 columns: [
-                    { text: "Inventory ID", datafield: "id", width: 90 },
-                    { text: "Variant ID", datafield: "variant_id", width: 90 },
+                    {
+                        text: "#",
+                        width: 50,
+                        editable: false,
+                        sortable: false,
+                        filterable: false,
+                        cellsrenderer: function (row) {
+                            return `<div class="px-2 py-1">${row + 1}</div>`;
+                        }
+                    },
                     { text: "Product", datafield: "product_name", width: 220 },
                     { text: "Product Number", datafield: "product_number", width: 150 },
                     { text: "Brand", datafield: "brand", width: 120 },
@@ -289,7 +267,6 @@
         }
 
         $(function() {
-            $(".toast-container").appendTo("body");
             initWidgets();
             initFilterTags();
             $.when(loadWarehouses(), loadTags()).always(loadInventory);

@@ -3,6 +3,7 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Enums\Department;
 use App\Models\CategoryModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -39,14 +40,20 @@ class Categories extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Category name is required.']);
         }
 
-        $parentId = (int) ($payload['parent_id'] ?? 0);
-        if ($parentId > 0 && (new CategoryModel())->find($parentId) === null) {
+        $parentId = $this->normalizeParentId($payload['parent_id'] ?? null);
+        if ($parentId !== null && (new CategoryModel())->find($parentId) === null) {
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Parent category not found.']);
         }
 
+        $department = trim((string) ($payload['department'] ?? ''));
+        if (! Department::isValid($department)) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid department.']);
+        }
+
         $id = (new CategoryModel())->createOne([
-            'name'      => $name,
-            'parent_id' => $parentId > 0 ? $parentId : null,
+            'name'       => $name,
+            'parent_id'  => $parentId,
+            'department' => $department,
         ]);
 
         return $this->response->setStatusCode(201)->setJSON([
@@ -72,17 +79,23 @@ class Categories extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Category name is required.']);
         }
 
-        $parentId = (int) ($payload['parent_id'] ?? 0);
+        $parentId = $this->normalizeParentId($payload['parent_id'] ?? null);
         if ($parentId === $id) {
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Category cannot be its own parent.']);
         }
-        if ($parentId > 0 && $model->find($parentId) === null) {
+        if ($parentId !== null && $model->find($parentId) === null) {
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Parent category not found.']);
         }
 
+        $department = trim((string) ($payload['department'] ?? ''));
+        if (! Department::isValid($department)) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid department.']);
+        }
+
         $model->updateOne($id, [
-            'name'      => $name,
-            'parent_id' => $parentId > 0 ? $parentId : null,
+            'name'       => $name,
+            'parent_id'  => $parentId,
+            'department' => $department,
         ]);
 
         return $this->response->setJSON(['message' => 'Category updated successfully.']);
@@ -98,5 +111,24 @@ class Categories extends BaseController
         $model->deleteOne($id);
 
         return $this->response->setJSON(['message' => 'Category deleted successfully.']);
+    }
+
+    private function normalizeParentId(mixed $value): ?int
+    {
+        if ($value === null || $value === '' || $value === false) {
+            return null;
+        }
+
+        if (is_string($value) && str_starts_with($value, 'tmp-')) {
+            return null;
+        }
+
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $parentId = (int) $value;
+
+        return $parentId > 0 ? $parentId : null;
     }
 }

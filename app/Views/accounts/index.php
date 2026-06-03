@@ -102,13 +102,6 @@ use App\Models\AccountModel;
     let currenciesList = [];
     let accountTags = ACCOUNT_TAGS.slice();
 
-    function setMessage(message, isError = false) {
-        const box = $("#messageBox");
-        box.text(message || "");
-        box.removeClass("text-success text-danger");
-        box.addClass(isError ? "text-danger" : "text-success");
-    }
-
     function normalizeTagsList(raw) {
         if (Array.isArray(raw)) {
             return raw.filter(function (t) { return String(t || "").trim() !== ""; });

@@ -87,7 +87,8 @@ class Sells extends BaseController
                 'inventory.id AS inventory_id, inventory.variant_id, inventory.warehouse_id, inventory.quantity, ' .
                 'product_variants.sku, product_variants.style, product_variants.cost_price, product_variants.selling_price, ' .
                 'product_variants.size AS size_value, products.name AS product_name, ' .
-                'products.serial_number AS product_number, products.brand, warehouses.name AS warehouse_name'
+                'products.serial_number AS product_number, products.brand, ' .
+                'products.department, products.gender, products.season, warehouses.name AS warehouse_name'
             )
             ->join('product_variants', 'product_variants.id = inventory.variant_id')
             ->join('products', 'products.id = product_variants.product_id')

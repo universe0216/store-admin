@@ -1,3 +1,10 @@
+<?php
+
+use App\Enums\Department;
+use App\Enums\Gender;
+use App\Enums\Season;
+
+?>
 <?= $this->extend('layout/main_layout') ?>
 
 <?= $this->section('title') ?>New Purchase<?= $this->endSection() ?>
@@ -98,7 +105,6 @@
             </div>
         </div>
 
-        <div id="messageBox" class="small fw-semibold text-success mb-3"></div>
 
         <div class="row g-4">
             <div class="col-12 col-lg-6">
@@ -106,19 +112,46 @@
                     <div class="card-body p-4">
                         <h2 class="h6 fw-semibold mb-3">Add Product</h2>
                         <form id="purchaseItemForm" class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label text-secondary mb-1">Department</label>
+                                <select id="productDepartmentSelect" class="form-select">
+                                    <option value="">Select department</option>
+                                    <?php foreach (Department::cases() as $case) : ?>
+                                        <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label text-secondary mb-1">Gender</label>
+                                <select id="productGenderSelect" class="form-select">
+                                    <option value="">Select gender</option>
+                                    <?php foreach (Gender::cases() as $case) : ?>
+                                        <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label text-secondary mb-1">Season</label>
+                                <select id="productSeasonSelect" class="form-select">
+                                    <option value="">Select season</option>
+                                    <?php foreach (Season::cases() as $case) : ?>
+                                        <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-secondary mb-1">Category</label>
+                                <select id="productCategorySelect" class="form-select" disabled>
+                                    <option value="">Select category</option>
+                                </select>
+                            </div>
                             <div class="col-12">
                                 <label class="form-label text-secondary mb-1">Name</label>
-                                <input type="text" id="productNameInput" class="form-control" placeholder="Product name">
+                                <input type="text" id="productNameInput" class="form-control" placeholder="Gender Category (Season)">
                             </div>
                             <div class="col-12">
                                 <label class="form-label text-secondary mb-1">Serial Number</label>
                                 <input type="text" id="productSerialInput" class="form-control" placeholder="Serial number">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label text-secondary mb-1">Category</label>
-                                <div id="categoryDropDownButton" style="width: 100%;">
-                                    <div id="categoryTree"></div>
-                                </div>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label text-secondary mb-1">Brand</label>
@@ -311,6 +344,7 @@
         let tagSyncLock = false;
         let selectedSizeCount = 0;
         let selectedCategoryId = 0;
+        let productNameManual = false;
         let confirmPurchaseModal = null;
         let exchangeRateModal = null;
         let exchangeRatesByCurrency = {};
@@ -386,7 +420,7 @@
                 updateUnitPriceCurrencyUi();
                 recalcTotalPrice();
             }).fail(function (xhr) {
-                $("#messageBox").text(xhr.responseJSON?.message || "Failed to load exchange rate.");
+                setMessage(xhr.responseJSON?.message || "Failed to load exchange rate.");
             });
         }
 
@@ -407,7 +441,7 @@
             const currency = getSelectedUnitCurrency();
             const rate = Number($("#exchangeRateInput").val() || 0);
             if (currency === "USD" || rate <= 0) {
-                $("#messageBox").text("Exchange rate must be greater than 0.");
+                setMessage("Exchange rate must be greater than 0.");
                 return;
             }
 
@@ -425,9 +459,9 @@
                 exchangeRateModal.hide();
                 updateUnitPriceCurrencyUi();
                 recalcTotalPrice();
-                $("#messageBox").text(res.message || "Exchange rate saved.");
+                setMessage(res.message || "Exchange rate saved.", false);
             }).fail(function (xhr) {
-                $("#messageBox").text(xhr.responseJSON?.message || "Failed to save exchange rate.");
+                setMessage(xhr.responseJSON?.message || "Failed to save exchange rate.");
             }).always(function () {
                 $("#saveExchangeRateBtn").prop("disabled", false);
             });
@@ -453,7 +487,7 @@
                 $select.val(current || "USD");
                 updateUnitPriceCurrencyUi();
             }).fail(function (xhr) {
-                $("#messageBox").text(xhr.responseJSON?.message || "Failed to load currencies.");
+                setMessage(xhr.responseJSON?.message || "Failed to load currencies.");
             });
         }
 
@@ -491,8 +525,6 @@
                 spinButtons: true,
                 value: 0
             });
-            $("#categoryDropDownButton").jqxDropDownButton({ width: "100%", height: 34 });
-            $("#categoryDropDownButton").jqxDropDownButton("setContent", '<div style="position: relative; margin-left: 3px; margin-top: 5px;" class="text-muted">Select category</div>');
             $("#sizeSelector").jqxDropDownList({
                 width: "100%",
                 height: 34,
@@ -683,7 +715,7 @@
                 syncTagDropdownChecks();
                 renderTagChips();
             }).fail(function (xhr) {
-                $("#messageBox").text(xhr.responseJSON?.message || "Failed to load tags.");
+                setMessage(xhr.responseJSON?.message || "Failed to load tags.");
             });
         }
 
@@ -718,29 +750,114 @@
                 addSelectedTag(Number(tag.id));
                 $("#newTagNameInput").val("");
             }).fail(function (xhr) {
-                $("#messageBox").text(xhr.responseJSON?.message || "Failed to create tag.");
+                setMessage(xhr.responseJSON?.message || "Failed to create tag.");
             }).always(function () {
                 $("#createTagBtn").prop("disabled", false);
             });
         }
 
-        function buildCategoryTreeItems(rows) {
-            const byParent = new Map();
-            rows.forEach(row => {
-                const parentId = row.parent_id ? Number(row.parent_id) : 0;
-                if (!byParent.has(parentId)) {
-                    byParent.set(parentId, []);
+        function getCategoryPathLabel(categoryId) {
+            const names = [];
+            let current = categories.find(c => Number(c.id) === Number(categoryId));
+
+            while (current) {
+                names.unshift(String(current.name || "").trim());
+                const parentId = current.parent_id ? Number(current.parent_id) : 0;
+                current = parentId > 0
+                    ? categories.find(c => Number(c.id) === parentId)
+                    : null;
+            }
+
+            return names.join(" > ");
+        }
+
+        function getSelectedCategoryName() {
+            const categoryId = Number($("#productCategorySelect").val() || 0);
+            if (categoryId < 1) {
+                return "";
+            }
+
+            const category = categories.find(c => Number(c.id) === categoryId);
+            return category ? String(category.name || "").trim() : "";
+        }
+
+        function getNativeSelectLabel(selectId) {
+            const $select = $(selectId);
+            const value = String($select.val() || "").trim();
+            if (value === "") {
+                return "";
+            }
+
+            return String($select.find("option:selected").text() || "").trim();
+        }
+
+        function updateAutoProductName() {
+            if (productNameManual) {
+                return;
+            }
+
+            const department = String($("#productDepartmentSelect").val() || "").trim();
+            const gender = getNativeSelectLabel("#productGenderSelect");
+            const category = getSelectedCategoryName();
+            const season = getNativeSelectLabel("#productSeasonSelect");
+
+            if (!department || !gender || !category || !season) {
+                if (!productNameManual) {
+                    $("#productNameInput").val("");
                 }
-                byParent.get(parentId).push(row);
+                return;
+            }
+
+            $("#productNameInput").val(`${gender} ${category} (${season})`);
+        }
+
+        function getSelectedDepartment() {
+            return String($("#productDepartmentSelect").val() || "").trim();
+        }
+
+        function populateCategorySelect() {
+            const $select = $("#productCategorySelect");
+            const previousValue = String($select.val() || "");
+            const department = getSelectedDepartment();
+
+            $select.find("option:not(:first)").remove();
+
+            if (department === "") {
+                $select.prop("disabled", true).val("");
+                selectedCategoryId = 0;
+                return;
+            }
+
+            $select.prop("disabled", false);
+
+            const filtered = categories.filter(row => {
+                return String(row.department || "").trim() === department;
             });
 
-            const makeItems = (parentId) => (byParent.get(parentId) || []).map(row => ({
-                id: Number(row.id),
-                label: row.name || "",
-                items: makeItems(Number(row.id))
-            }));
+            const sorted = [...filtered].sort((a, b) => {
+                return getCategoryPathLabel(a.id).localeCompare(getCategoryPathLabel(b.id));
+            });
 
-            return makeItems(0);
+            sorted.forEach(row => {
+                const categoryId = Number(row.id || 0);
+                if (categoryId < 1) {
+                    return;
+                }
+
+                $select.append(
+                    $("<option></option>")
+                        .attr("value", categoryId)
+                        .text(getCategoryPathLabel(categoryId))
+                );
+            });
+
+            if (previousValue !== "" && $select.find(`option[value="${previousValue}"]`).length) {
+                $select.val(previousValue);
+            } else {
+                $select.val("");
+            }
+
+            selectedCategoryId = Number($select.val() || 0);
         }
 
         function refreshItemsGrid() {
@@ -820,7 +937,7 @@
                 contentType: "application/json",
                 data: JSON.stringify(payload)
             }).done(function(res) {
-                $("#messageBox").text(res.message || "Purchase saved.");
+                setMessage(res.message || "Purchase saved.", false);
                 setTimeout(function () {
                     window.location.href = "<?= site_url('purchases') ?>";
                 }, 500);
@@ -828,7 +945,7 @@
                 const msg = xhr.responseJSON?.error
                     ? `${xhr.responseJSON.message}: ${xhr.responseJSON.error}`
                     : (xhr.responseJSON?.message || "Failed to save purchase.");
-                $("#messageBox").text(msg);
+                setMessage(msg, true);
             });
         }
 
@@ -837,27 +954,21 @@
                 suppliers = res.data || [];
                 $("#supplierDropdown").jqxDropDownList({ source: suppliers });
                 if (suppliers.length === 0) {
-                    $("#messageBox").text("No suppliers found. Please add supplier data first.");
+                    setMessage("No suppliers found. Please add supplier data first.");
                 }
             }).fail(function(xhr) {
                 const msg = xhr.responseJSON?.message || "Failed to load suppliers.";
-                $("#messageBox").text(msg);
+                setMessage(msg);
             });
         }
 
         function loadCategories() {
             return $.getJSON(API_URLS.categories).done(function(res) {
                 categories = res.data || [];
-                const treeItems = buildCategoryTreeItems(categories);
-                $("#categoryTree").jqxTree({
-                    source: treeItems,
-                    width: 270,
-                    height: 260
-                });
-                $("#categoryTree").jqxTree("expandAll");
+                populateCategorySelect();
             }).fail(function(xhr) {
                 const msg = xhr.responseJSON?.message || "Failed to load categories.";
-                $("#messageBox").text(msg);
+                setMessage(msg);
             });
         }
 
@@ -870,12 +981,27 @@
                 }
             }).fail(function(xhr) {
                 const msg = xhr.responseJSON?.message || "Failed to load warehouses.";
-                $("#messageBox").text(msg);
+                setMessage(msg);
             });
         }
 
         function clearProductForm() {
+            productNameManual = false;
+            $("#productDepartmentSelect").val("");
+            $("#productGenderSelect").val("");
+            $("#productSeasonSelect").val("");
+            selectedCategoryId = 0;
+            populateCategorySelect();
             $("#productNameInput").val("");
+            $("#productSerialInput").val("");
+            $("#productBrandInput").val("");
+            $("#productStyleInput").val("");
+            $("#unitPriceInput").val(0);
+            recalcTotalUnits();
+        }
+
+        function clearProductFormPartial() {
+            // $("#productNameInput").val("");
             $("#productSerialInput").val("");
             $("#productBrandInput").val("");
             $("#productStyleInput").val("");
@@ -899,6 +1025,9 @@
         }
 
         function addProductToGrid() {
+            const department = String($("#productDepartmentSelect").val() || "").trim();
+            const gender = String($("#productGenderSelect").val() || "").trim();
+            const season = String($("#productSeasonSelect").val() || "").trim();
             const name = String($("#productNameInput").val() || "").trim();
             const serialNumber = String($("#productSerialInput").val() || "").trim();
             const brand = String($("#productBrandInput").val() || "").trim();
@@ -908,7 +1037,7 @@
             const unitsCount = Number($("#totalUnitsInput").jqxNumberInput("val") || 0);
             const selectedCurrency = getSelectedUnitCurrency();
             if (selectedCurrency !== "USD" && getExchangeRateForCurrency(selectedCurrency) <= 0) {
-                $("#messageBox").text("Please set exchange rate.");
+                setMessage("Please set exchange rate.");
                 openExchangeRateModal();
                 return;
             }
@@ -917,28 +1046,41 @@
             const selectedWarehouse = $("#purchaseWarehouseDropdown").jqxDropDownList("getSelectedItem");
             const warehouseId = Number(selectedWarehouse?.value || 0);
 
+            if (!department) {
+                setMessage("Department is required.");
+                return;
+            }
+            if (!gender) {
+                setMessage("Gender is required.");
+                return;
+            }
+            if (!season) {
+                setMessage("Season is required.");
+                return;
+            }
+            selectedCategoryId = Number($("#productCategorySelect").val() || 0);
+            if (!selectedCategoryId) {
+                setMessage("Category is required.");
+                return;
+            }
             if (!name) {
-                $("#messageBox").text("Product name is required.");
+                setMessage("Product name is required.");
                 return;
             }
             if (!serialNumber) {
-                $("#messageBox").text("Serial number is required.");
-                return;
-            }
-            if (!selectedCategoryId) {
-                $("#messageBox").text("Please select category from category tree.");
+                setMessage("Serial number is required.");
                 return;
             }
             if (checkedSizes.length === 0) {
-                $("#messageBox").text("Please select at least one size.");
+                setMessage("Please select at least one size.");
                 return;
             }
             if (!warehouseId) {
-                $("#messageBox").text("Please select warehouse.");
+                setMessage("Please select warehouse.");
                 return;
             }
             if (setsCount <= 0) {
-                $("#messageBox").text("Sets count must be greater than 0.");
+                setMessage("Sets count must be greater than 0.");
                 return;
             }
 
@@ -953,12 +1095,15 @@
                     serial_number: serialNumber,
                     category_id: Number(selectedCategoryId),
                     brand: brand || null,
+                    department,
+                    gender,
+                    season,
                     tags: getSelectedTagIds()
                 })
             }).done(function (res) {
                 const createdId = Number(res.data?.id || 0);
                 if (createdId < 1) {
-                    $("#messageBox").text("Failed to register product.");
+                    setMessage("Failed to register product.");
                     return;
                 }
 
@@ -979,10 +1124,10 @@
                 };
                 $("#itemsGrid").jqxGrid("addrow", null, rowData);
                 updateGridFooterTotals();
-                clearProductForm();
-                $("#messageBox").text("Product registered and added to grid.");
+                clearProductFormPartial();
+                setMessage("Product registered and added to grid.", false);
             }).fail(function (xhr) {
-                $("#messageBox").text(xhr.responseJSON?.message || "Failed to register product.");
+                setMessage(xhr.responseJSON?.message || "Failed to register product.");
             }).always(function () {
                 $("#addProductsBtn").prop("disabled", false);
             });
@@ -991,7 +1136,7 @@
         function removeSelectedRow() {
             const index = $("#itemsGrid").jqxGrid("getselectedrowindex");
             if (index === -1) {
-                $("#messageBox").text("Select an item row to remove.");
+                setMessage("Select an item row to remove.");
                 return;
             }
             const rowId = $("#itemsGrid").jqxGrid("getrowid", index);
@@ -1022,19 +1167,19 @@
             const selectedSupplier = $("#supplierDropdown").jqxDropDownList("getSelectedItem");
             const supplierId = selectedSupplier ? Number(selectedSupplier.value) : 0;
             if (!supplierId) {
-                $("#messageBox").text("Please select a supplier.");
+                setMessage("Please select a supplier.");
                 return;
             }
 
             const validItems = getValidItems();
             if (validItems.length === 0) {
-                $("#messageBox").text("Supplier and at least 1 item are required.");
+                setMessage("Supplier and at least 1 item are required.");
                 return;
             }
 
             const purchaseDate = $("#purchaseDate").jqxDateTimeInput("getText");
             if (!purchaseDate) {
-                $("#messageBox").text("Purchase date is required.");
+                setMessage("Purchase date is required.");
                 return;
             }
 
@@ -1098,17 +1243,16 @@
                 }
             });
 
-            $("#categoryTree").on("select", function (event) {
-                const args = event.args;
-                const item = $("#categoryTree").jqxTree("getItem", args.element);
-                if (!item) {
-                    return;
-                }
-
-                selectedCategoryId = Number(item.id || 0);
-                const dropDownContent = `<div style="position: relative; margin-left: 3px; margin-top: 5px;">${item.label}</div>`;
-                $("#categoryDropDownButton").jqxDropDownButton("setContent", dropDownContent);
-                $("#categoryDropDownButton").jqxDropDownButton("close");
+            $("#productDepartmentSelect").on("change", function () {
+                populateCategorySelect();
+                updateAutoProductName();
+            });
+            $("#productGenderSelect, #productSeasonSelect, #productCategorySelect").on("change", function () {
+                selectedCategoryId = Number($("#productCategorySelect").val() || 0);
+                updateAutoProductName();
+            });
+            $("#productNameInput").on("input", function () {
+                productNameManual = true;
             });
 
             $("#sizeSelector").on("checkChange", function () {

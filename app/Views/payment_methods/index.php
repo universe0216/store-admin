@@ -85,13 +85,6 @@
     const ACCOUNTS_API_URL = "<?= site_url('api/accounts') ?>";
     let accountsList = [];
 
-    function setMessage(message, isError = false) {
-        const box = $("#messageBox");
-        box.text(message || "");
-        box.removeClass("text-success text-danger");
-        box.addClass(isError ? "text-danger" : "text-success");
-    }
-
     function populateAccountSelect(selectedId) {
         const select = $("#accountIdInput");
         select.find("option:not(:first)").remove();

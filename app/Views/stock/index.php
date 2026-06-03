@@ -59,13 +59,6 @@
         };
         let warehouses = [];
 
-        function setMessage(msg, isError = false) {
-            const box = $("#stockMessageBox");
-            box.text(msg || "");
-            box.removeClass("text-success text-danger");
-            box.addClass(isError ? "text-danger" : "text-success");
-        }
-
         function initWidgets() {
             $("#moveWarehouseDropdown").jqxDropDownList({ width: "100%", height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select warehouse" });
             $("#moveQtyInput").jqxNumberInput({ width: "100%", height: 34, decimalDigits: 0, digits: 8, min: 1, inputMode: "simple", spinButtons: true, value: 1 });
