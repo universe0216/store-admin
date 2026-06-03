@@ -86,4 +86,5 @@ $routes->group('api', static function ($routes): void {
     $routes->post('transactions', 'Api\Transactions::create');
     $routes->get('transactions/accounts', 'Api\Transactions::accounts');
     $routes->get('transactions/balances', 'Api\Transactions::balances');
+    $routes->get('dashboard', 'Api\Dashboard::index');
 });
