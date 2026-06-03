@@ -1,3 +1,10 @@
+<?php
+
+use App\Enums\Department;
+use App\Enums\Gender;
+use App\Enums\Season;
+
+?>
 <?= $this->extend('layout/main_layout') ?>
 
 <?= $this->section('title') ?>Inventory<?= $this->endSection() ?>
@@ -23,32 +30,56 @@
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h3 fw-bold mb-1">Inventory</h1>
-                <!-- <p class="text-muted mb-0">Track current stock by product variant.</p> -->
             </div>
         </div>
 
         <div class="card shadow-sm">
             <div class="card-body p-4">
-                <div class="row g-2 mb-3 align-items-center">
+                <div class="row g-2 mb-2 align-items-center">
                     <div class="col-12 col-md-3">
-                        <input type="text" id="filterSearch" class="form-control" placeholder="Search by product name, serial number, or style">
-                    </div>
-                    <div class="col-12 col-md-2">
                         <select id="filterWarehouse" class="form-select">
                             <option value="">All warehouses</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-3">
+                        <select id="filterDepartment" class="form-select">
+                            <option value="">All departments</option>
+                            <?php foreach (Department::cases() as $case) : ?>
+                                <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <select id="filterGender" class="form-select">
+                            <option value="">All genders</option>
+                            <?php foreach (Gender::cases() as $case) : ?>
+                                <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <select id="filterSeason" class="form-select">
+                            <option value="">All seasons</option>
+                            <?php foreach (Season::cases() as $case) : ?>
+                                <option value="<?= esc($case->value, 'attr') ?>"><?= esc($case->label()) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3 align-items-center">
+                    <div class="col-12 col-md-5">
+                        <input type="text" id="filterSearch" class="form-control" placeholder="Search by product name, serial number, or style">
+                    </div>
+                    <div class="col-12 col-md-4">
                         <div id="filterTags"></div>
                     </div>
                     <div class="col-12 col-md-auto">
-                        <button type="button" id="applyInventoryFilterBtn" class="btn btn-primary">Filter</button>
+                        <button type="button" id="searchInventoryBtn" class="btn btn-primary">Search</button>
                     </div>
                     <div class="col-12 col-md-auto">
                         <button type="button" id="resetInventoryFilterBtn" class="btn btn-outline-secondary">Reset</button>
                     </div>
                 </div>
-                <div id="inventoryMessage" class="small fw-semibold mb-2"></div>
                 <div id="inventoryGrid"></div>
             </div>
         </div>
@@ -63,17 +94,17 @@
             tags: "<?= site_url('api/tags') ?>"
         };
 
+        const DEPARTMENT_LABELS = <?= json_encode(Department::labels(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+        const GENDER_LABELS = <?= json_encode(Gender::labels(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+        const SEASON_LABELS = <?= json_encode(Season::labels(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+
         let savingSellingPrice = false;
         let filterTagIds = new Set();
         let filterTagSyncLock = false;
 
-        function setInventoryMessage(msg, isError = false) {
-            const box = $("#inventoryMessage");
-            box.text(msg || "");
-            box.removeClass("text-success text-danger");
-            if (msg) {
-                box.addClass(isError ? "text-danger" : "text-success");
-            }
+        function enumLabel(map, value) {
+            const key = String(value || "").trim();
+            return map[key] || key;
         }
 
         function saveSellingPrice(rowIndex, sellingPrice) {
@@ -82,25 +113,28 @@
             }
 
             const row = $("#inventoryGrid").jqxGrid("getrowdata", rowIndex);
-            const variantId = Number(row?.variant_id || 0);
+            const productId = Number(row?.product_id || 0);
+            const warehouseId = Number(row?.warehouse_id || 0);
             const price = Math.max(0, Number(sellingPrice || 0));
 
-            if (variantId < 1) {
+            if (productId < 1) {
                 return;
             }
 
             savingSellingPrice = true;
             $.ajax({
-                url: `${API_URLS.inventory}/variant/${variantId}/selling-price`,
+                url: `${API_URLS.inventory}/product/${productId}/selling-price`,
                 method: "PUT",
                 contentType: "application/json",
-                data: JSON.stringify({ selling_price: price })
+                data: JSON.stringify({
+                    selling_price: price,
+                    warehouse_id: warehouseId > 0 ? warehouseId : null
+                })
             }).done(function () {
-                setInventoryMessage("");
                 setMessage("Selling price saved.", false);
+                loadInventory();
             }).fail(function (xhr) {
                 const msg = xhr.responseJSON?.message || "Failed to update selling price.";
-                setInventoryMessage(msg, true);
                 setMessage(msg, true);
                 loadInventory();
             }).always(function () {
@@ -129,21 +163,45 @@
                             return `<div class="px-2 py-1">${row + 1}</div>`;
                         }
                     },
-                    { text: "Product", datafield: "product_name", width: 220 },
-                    { text: "Product Number", datafield: "product_number", width: 150 },
-                    { text: "Brand", datafield: "brand", width: 120 },
-                    { text: "Style", datafield: "style", width: 180 },
-                    { text: "Size", datafield: "size_value", width: 90 },
-                    // { text: "SKU", datafield: "sku", width: 150 },
-                    { text: "Warehouse", datafield: "warehouse_name", width: 140 },
-                    // { text: "Location", datafield: "warehouse_location", width: 150 },
-                    { text: "Qty", datafield: "quantity", width: 90, cellsalign: "right" },
-                    // { text: "Reserved", datafield: "reserved_quantity", width: 90, cellsalign: "right" },
-                    { text: "Cost Price", datafield: "cost_price", width: 110, cellsformat: "f2", cellsalign: "right" },
+                    { text: "Product", datafield: "product_name", width: 200 },
+                    { text: "Product No.", datafield: "product_number", width: 120 },
+                    { text: "Brand", datafield: "brand", width: 100 },
+                    { text: "Style", datafield: "style", width: 120 },
+                    { text: "Sizes", datafield: "sizes", width: 140 },
+                    { text: "Warehouse", datafield: "warehouse_name", width: 120 },
+                    {
+                        text: "Department",
+                        datafield: "department",
+                        width: 100,
+                        editable: false,
+                        cellsrenderer: function (row, column, value) {
+                            return `<div class="px-2 py-1">${enumLabel(DEPARTMENT_LABELS, value)}</div>`;
+                        }
+                    },
+                    {
+                        text: "Gender",
+                        datafield: "gender",
+                        width: 90,
+                        editable: false,
+                        cellsrenderer: function (row, column, value) {
+                            return `<div class="px-2 py-1">${enumLabel(GENDER_LABELS, value)}</div>`;
+                        }
+                    },
+                    {
+                        text: "Season",
+                        datafield: "season",
+                        width: 90,
+                        editable: false,
+                        cellsrenderer: function (row, column, value) {
+                            return `<div class="px-2 py-1">${enumLabel(SEASON_LABELS, value)}</div>`;
+                        }
+                    },
+                    { text: "Qty", datafield: "quantity", width: 70, cellsalign: "right", editable: false },
+                    { text: "Cost Price", datafield: "cost_price", width: 100, cellsformat: "f2", cellsalign: "right", editable: false },
                     {
                         text: "Selling Price",
                         datafield: "selling_price",
-                        width: 120,
+                        width: 110,
                         cellsformat: "f2",
                         cellsalign: "right",
                         columntype: "numberinput",
@@ -238,13 +296,26 @@
         function loadInventory() {
             const search = String($("#filterSearch").val() || "").trim();
             const warehouseId = String($("#filterWarehouse").val() || "").trim();
+            const department = String($("#filterDepartment").val() || "").trim();
+            const gender = String($("#filterGender").val() || "").trim();
+            const season = String($("#filterSeason").val() || "").trim();
             const tagIds = getSelectedFilterTagIds();
             const params = {};
+
             if (search) {
                 params.q = search;
             }
             if (warehouseId) {
                 params.warehouse_id = warehouseId;
+            }
+            if (department) {
+                params.department = department;
+            }
+            if (gender) {
+                params.gender = gender;
+            }
+            if (season) {
+                params.season = season;
             }
             if (tagIds.length) {
                 params.tag_ids = tagIds.join(",");
@@ -254,15 +325,15 @@
                 const rows = (res.data || []).map(function (row) {
                     return {
                         ...row,
-                        selling_price: Number(row.selling_price || 0)
+                        cost_price: Number(row.cost_price || 0),
+                        selling_price: Number(row.selling_price || 0),
+                        quantity: Number(row.quantity || 0)
                     };
                 });
                 const source = { localdata: rows, datatype: "array" };
                 $("#inventoryGrid").jqxGrid({ source: new $.jqx.dataAdapter(source) });
-                setInventoryMessage("");
             }).fail(function(xhr) {
-                const msg = xhr.responseJSON?.message || "Failed to load inventory.";
-                console.error(msg);
+                setMessage(xhr.responseJSON?.message || "Failed to load inventory.", true);
             });
         }
 
@@ -270,10 +341,15 @@
             initWidgets();
             initFilterTags();
             $.when(loadWarehouses(), loadTags()).always(loadInventory);
-            $("#applyInventoryFilterBtn").on("click", loadInventory);
+
+            $("#filterWarehouse, #filterDepartment, #filterGender, #filterSeason").on("change", loadInventory);
+            $("#searchInventoryBtn").on("click", loadInventory);
             $("#resetInventoryFilterBtn").on("click", function () {
                 $("#filterSearch").val("");
                 $("#filterWarehouse").val("");
+                $("#filterDepartment").val("");
+                $("#filterGender").val("");
+                $("#filterSeason").val("");
                 filterTagIds.clear();
                 syncFilterTagChecks();
                 loadInventory();
