@@ -18,6 +18,9 @@ class Accounting extends BaseConfig
     /** Cost of goods sold (debited on sale). */
     public string $cogsAccount = '5000';
 
+    /** Bank/wire transfer fees on purchases (expense). */
+    public string $transferFeeAccount = '5100';
+
     /** Cash account (default payment). */
     public string $cashAccount = '1000';
 

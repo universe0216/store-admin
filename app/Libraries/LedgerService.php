@@ -53,6 +53,42 @@ class LedgerService
         );
     }
 
+    public function recordPurchaseTransferFee(
+        BaseConnection $db,
+        string $referenceNo,
+        string $transactionDate,
+        float $amount,
+        string $paymentMethod,
+        ?string $description = null,
+        ?string $calculationCurrency = null
+    ): void {
+        if ($amount <= 0) {
+            return;
+        }
+
+        $payment = $this->resolvePaymentMethod($db, $paymentMethod);
+        $creditAccount   = $payment['account_code'];
+        $paymentCurrency = $payment['currency_code'];
+        $calcCurrency    = strtoupper(trim((string) ($calculationCurrency ?? '')));
+        if ($calcCurrency === '') {
+            $calcCurrency = $paymentCurrency;
+        }
+
+        $paymentAmount = $this->convertCurrency($amount, $calcCurrency, $paymentCurrency);
+
+        $this->postPair(
+            $db,
+            $referenceNo,
+            $transactionDate,
+            $this->config->transferFeeAccount,
+            $creditAccount,
+            $paymentAmount,
+            $description ?? "Purchase transfer fee {$referenceNo}",
+            $paymentCurrency,
+            $creditAccount
+        );
+    }
+
     public function recordSale(
         BaseConnection $db,
         string $referenceNo,

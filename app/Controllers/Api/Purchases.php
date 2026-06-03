@@ -275,9 +275,6 @@ class Purchases extends BaseController
         $headerDiscount = (float) ($payload['discount_total'] ?? 0);
         $paidTotal      = (float) ($payload['paid_total'] ?? 0);
         $paymentMethod = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
-        $calculationCurrency = strtoupper(trim((string) (
-            $payload['calculation_currency'] ?? $payload['currency_code'] ?? ''
-        )));
         $items = $payload['items'] ?? [];
 
         if ($supplierId < 1 || $purchaseDate === '' || ! is_array($items) || $items === []) {
@@ -385,8 +382,9 @@ class Purchases extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'No valid purchase items.']);
         }
 
-        $discountTotal = $headerDiscount;
-        $grandTotal    = $subTotal - $discountTotal + $transferFee;
+        $discountTotal = max(0, min($headerDiscount, $subTotal));
+        $grandTotal    = round($subTotal - $discountTotal, 2);
+        $paidTotal     = $grandTotal;
         $db->transBegin();
 
         try {
@@ -456,15 +454,27 @@ class Purchases extends BaseController
                 }
             }
 
-            (new LedgerService())->recordPurchase(
+            // $calcCurrency = trim((string) ($payload['calculation_currency'] ?? ''));
+            $ledger       = new LedgerService();
+            $ledger->recordPurchase(
                 $db,
                 $purchaseNo,
                 $purchaseDate,
                 $grandTotal,
                 $paymentMethod,
                 'Purchase ' . $purchaseNo,
-                $calculationCurrency !== '' ? $calculationCurrency : null
             );
+
+            if ($transferFee > 0) {
+                $ledger->recordPurchaseTransferFee(
+                    $db,
+                    $purchaseNo,
+                    $purchaseDate,
+                    $transferFee,
+                    $paymentMethod,
+                    'Purchase transfer fee ' . $purchaseNo,
+                );
+            }
 
             if ($db->transStatus() === false) {
                 throw new RuntimeException('Failed to save purchase transaction.');

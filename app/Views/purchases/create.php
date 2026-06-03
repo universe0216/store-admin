@@ -232,15 +232,9 @@ use App\Enums\Season;
                                 <div id="discountTotalInput"></div>
                             </div>
                         </div>
+                        
                         <div class="purchase-summary-row">
-                            <span class="summary-label">Transfer Fee</span>
-                            <div class="summary-value">
-                                <div id="transferFeeInput"></div>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="purchase-summary-row">
-                            <span class="summary-label fw-semibold text-dark">Grand Total</span>
+                            <span class="summary-label text-dark">Grand Total</span>
                             <div class="summary-value">
                                 <input id="grandTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end fw-semibold" readonly value="0.00">
                             </div>
@@ -252,9 +246,15 @@ use App\Enums\Season;
                             </div>
                         </div>
                         <div class="purchase-summary-row">
-                            <span class="summary-label">Total Paid (Paid + Transfer Fee)</span>
+                            <span class="summary-label">Transfer Fee</span>
                             <div class="summary-value">
-                                <input id="totalPaidDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
+                                <div id="transferFeeInput"></div>
+                            </div>
+                        </div>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label">Total Cash Out (Paid + Transfer Fee)</span>
+                            <div class="summary-value">
+                                <input id="totalCashOutDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
                             </div>
                         </div>
                         <div class="mt-3">
@@ -309,7 +309,8 @@ use App\Enums\Season;
                     <div class="mb-2">Transfer Fee: <span id="confirmTransferFee" class="fw-semibold">0.00</span></div>
                     <div class="mb-2">Discount: <span id="confirmDiscount" class="fw-semibold">0.00</span></div>
                     <div class="mb-2">Paid Amount: <span id="confirmPaidAmount" class="fw-semibold">0.00</span></div>
-                    <div class="mb-2">Grand Total: <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Grand Total (Subtotal − Discount): <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Total Cash Out (Paid + Transfer Fee): <span id="confirmTotalCashOut" class="fw-semibold">0.00</span></div>
 
                 </div>
                 <div class="modal-footer">
@@ -911,14 +912,18 @@ use App\Enums\Season;
 
             $("#subTotalDisplay").val(subTotal.toFixed(2));
 
-            const grandTotal = Number((subTotal - discount + transferFee).toFixed(2));
-            const totalPaid = Number((paid + transferFee).toFixed(2));
+            const grandTotal = Number(Math.max(0, subTotal - discount).toFixed(2));
+            if (changedField !== "paid") {
+                paid = grandTotal;
+                $("#paidAmountInput").jqxNumberInput("val", paid);
+            }
+            const totalCashOut = Number((grandTotal + transferFee).toFixed(2));
             $("#grandTotalDisplay").val(grandTotal.toFixed(2));
-            $("#totalPaidDisplay").val(totalPaid.toFixed(2));
+            $("#totalCashOutDisplay").val(totalCashOut.toFixed(2));
 
             totalsCalcLock = false;
 
-            return { subTotal, transferFee, discount, paid, grandTotal, totalPaid };
+            return { subTotal, transferFee, discount, paid, grandTotal, totalCashOut };
         }
 
         function getGridTotals() {
@@ -1204,6 +1209,7 @@ use App\Enums\Season;
             $("#confirmDiscount").text(totalsSummary.discount.toFixed(2));
             $("#confirmGrandTotal").text(totalsSummary.grandTotal.toFixed(2));
             $("#confirmPaidAmount").text(totalsSummary.paid.toFixed(2));
+            $("#confirmTotalCashOut").text(totalsSummary.totalCashOut.toFixed(2));
             $("#confirmSavePurchaseBtn").off("click").on("click", function () {
                 if (confirmPurchaseModal) {
                     confirmPurchaseModal.hide();

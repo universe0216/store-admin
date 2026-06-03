@@ -14,6 +14,7 @@ class SeedDefaultAccounts extends Migration
             ['code' => '1200', 'name' => 'Inventory', 'account_type' => 'ASSET'],
             ['code' => '4000', 'name' => 'Sales Revenue', 'account_type' => 'REVENUE'],
             ['code' => '5000', 'name' => 'Cost of Goods Sold', 'account_type' => 'EXPENSE'],
+            ['code' => '5100', 'name' => 'Transfer Fee', 'account_type' => 'EXPENSE'],
         ];
 
         $table = $this->db->table('accounts');
@@ -40,7 +41,7 @@ class SeedDefaultAccounts extends Migration
     public function down(): void
     {
         $this->db->table('accounts')
-            ->whereIn('code', ['1000', '1010', '1200', '4000', '5000'])
+            ->whereIn('code', ['1000', '1010', '1200', '4000', '5000', '5100'])
             ->delete();
     }
 

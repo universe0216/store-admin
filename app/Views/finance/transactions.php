@@ -989,7 +989,11 @@ $accountingConfig = config(Accounting::class);
     }
 
     $(function () {
-        $("#dateFromFilter").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+        const firstDayOfMonth = new Date();
+        firstDayOfMonth.setDate(1);
+        firstDayOfMonth.setHours(0, 0, 0, 0);
+
+        $("#dateFromFilter").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true, value: firstDayOfMonth });
         $("#dateToFilter").jqxDateTimeInput({ width: 150, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
         $("#applyFiltersBtn").jqxButton({ height: 34, theme: "base" });
         $("#clearFiltersBtn").jqxButton({ height: 34, theme: "base" });

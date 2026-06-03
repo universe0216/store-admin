@@ -201,7 +201,11 @@
         }
 
         function initWidgets() {
-            $("#saleDateFrom").jqxDateTimeInput({ width: 120, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
+            const firstDayOfMonth = new Date();
+            firstDayOfMonth.setDate(1);
+            firstDayOfMonth.setHours(0, 0, 0, 0);
+
+            $("#saleDateFrom").jqxDateTimeInput({ width: 120, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true, value: firstDayOfMonth });
             $("#saleDateTo").jqxDateTimeInput({ width: 120, height: 34, formatString: "yyyy-MM-dd", allowNullDate: true });
 
             salesGridAdapter = new $.jqx.dataAdapter(salesGridSource);
