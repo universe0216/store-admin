@@ -23,7 +23,9 @@ class Inventory extends BaseController
         $department  = trim((string) ($this->request->getGet('department') ?? ''));
         $gender      = trim((string) ($this->request->getGet('gender') ?? ''));
         $season      = trim((string) ($this->request->getGet('season') ?? ''));
-        $tagIds      = $this->parseTagIds($this->request->getGet('tag_ids'));
+        $tagIds         = $this->parseTagIds($this->request->getGet('tag_ids'));
+        $splitWarehouse = $this->parseBoolParam($this->request->getGet('split_warehouse'));
+        $splitSize      = $this->parseBoolParam($this->request->getGet('split_size'));
 
         $builder = db_connect()->table('inventory')
             ->select(
@@ -86,7 +88,9 @@ class Inventory extends BaseController
             ->get(5000)
             ->getResultArray();
 
-        return $this->response->setJSON(['data' => $this->aggregateProductRows($variantRows)]);
+        return $this->response->setJSON([
+            'data' => $this->aggregateProductRows($variantRows, $splitWarehouse, $splitSize),
+        ]);
     }
 
     public function updateSellingPrice(int $variantId): ResponseInterface
@@ -178,36 +182,16 @@ class Inventory extends BaseController
      *
      * @return list<array<string, mixed>>
      */
-    private function aggregateProductRows(array $variantRows): array
+    private function aggregateProductRows(array $variantRows, bool $splitWarehouse, bool $splitSize): array
     {
         $groups = [];
 
         foreach ($variantRows as $row) {
             $productId   = (int) ($row['product_id'] ?? 0);
             $warehouseId = (int) ($row['warehouse_id'] ?? 0);
+            $variantId   = (int) ($row['variant_id'] ?? 0);
             if ($productId < 1 || $warehouseId < 1) {
                 continue;
-            }
-
-            $key = $productId . ':' . $warehouseId;
-            if (! isset($groups[$key])) {
-                $groups[$key] = [
-                    'product_id'     => $productId,
-                    'warehouse_id'   => $warehouseId,
-                    'product_name'   => (string) ($row['product_name'] ?? ''),
-                    'product_number' => (string) ($row['product_number'] ?? ''),
-                    'brand'          => (string) ($row['brand'] ?? ''),
-                    'style'          => (string) ($row['style'] ?? ''),
-                    'department'     => (string) ($row['department'] ?? ''),
-                    'gender'         => (string) ($row['gender'] ?? ''),
-                    'season'         => (string) ($row['season'] ?? ''),
-                    'warehouse_name' => (string) ($row['warehouse_name'] ?? ''),
-                    'sizes'          => [],
-                    'quantity'       => 0,
-                    'cost_prices'    => [],
-                    'selling_prices' => [],
-                    'variant_ids'    => [],
-                ];
             }
 
             $qty = (int) ($row['quantity'] ?? 0);
@@ -215,38 +199,91 @@ class Inventory extends BaseController
                 continue;
             }
 
-            $size = trim((string) ($row['size_value'] ?? ''));
-            if ($size !== '') {
-                $groups[$key]['sizes'][$size] = true;
+            $size      = trim((string) ($row['size_value'] ?? ''));
+            $sizeKey   = $size !== '' ? $size : '_';
+            $groupKey  = (string) $productId;
+
+            if ($splitWarehouse && $splitSize) {
+                $groupKey = $productId . ':' . $warehouseId . ':' . $variantId;
+            } elseif ($splitWarehouse) {
+                $groupKey = $productId . ':' . $warehouseId;
+            } elseif ($splitSize) {
+                $groupKey = $productId . ':size:' . $sizeKey;
             }
 
-            $groups[$key]['quantity'] += $qty;
-            $groups[$key]['cost_prices'][]    = (float) ($row['cost_price'] ?? 0);
-            $groups[$key]['selling_prices'][] = (float) ($row['selling_price'] ?? 0);
-            $groups[$key]['variant_ids'][(int) ($row['variant_id'] ?? 0)] = true;
+            if (! isset($groups[$groupKey])) {
+                $groups[$groupKey] = [
+                    'product_id'      => $productId,
+                    'warehouse_id'    => $splitWarehouse ? $warehouseId : 0,
+                    'variant_id'      => ($splitWarehouse && $splitSize) ? $variantId : 0,
+                    'product_name'    => (string) ($row['product_name'] ?? ''),
+                    'product_number'  => (string) ($row['product_number'] ?? ''),
+                    'brand'           => (string) ($row['brand'] ?? ''),
+                    'style'           => (string) ($row['style'] ?? ''),
+                    'department'      => (string) ($row['department'] ?? ''),
+                    'gender'          => (string) ($row['gender'] ?? ''),
+                    'season'          => (string) ($row['season'] ?? ''),
+                    'warehouse_names' => [],
+                    'size_qtys'       => [],
+                    'display_size'    => $splitSize ? $size : '',
+                    'quantity'        => 0,
+                    'cost_prices'     => [],
+                    'selling_prices'  => [],
+                    'variant_ids'     => [],
+                ];
+            }
+
+            $group = &$groups[$groupKey];
+
+            if ($splitWarehouse) {
+                $group['warehouse_id'] = $warehouseId;
+                $warehouseLabel        = (string) ($row['warehouse_name'] ?? '');
+                if ($warehouseLabel !== '') {
+                    $group['warehouse_names'][$warehouseLabel] = true;
+                }
+            } else {
+                $warehouseLabel = (string) ($row['warehouse_name'] ?? '');
+                if ($warehouseLabel !== '') {
+                    $group['warehouse_names'][$warehouseLabel] = true;
+                }
+            }
+
+            if ($splitSize) {
+                $group['display_size'] = $size;
+            } else {
+                $group['size_qtys'][$sizeKey] = ($group['size_qtys'][$sizeKey] ?? 0) + $qty;
+            }
+
+            $group['quantity'] += $qty;
+            $group['cost_prices'][]     = (float) ($row['cost_price'] ?? 0);
+            $group['selling_prices'][]  = (float) ($row['selling_price'] ?? 0);
+            $group['variant_ids'][$variantId] = true;
+
+            if ($splitWarehouse && $splitSize) {
+                $group['variant_id'] = $variantId;
+            }
+
+            unset($group);
         }
 
         $aggregated = [];
 
         foreach ($groups as $group) {
-            $sizes = array_keys($group['sizes']);
-            usort($sizes, static function (string $a, string $b): int {
-                $numA = is_numeric($a) ? (float) $a : null;
-                $numB = is_numeric($b) ? (float) $b : null;
-                if ($numA !== null && $numB !== null) {
-                    return $numA <=> $numB;
-                }
-
-                return strnatcasecmp($a, $b);
-            });
-
             $costPrices    = $group['cost_prices'];
             $sellingPrices = $group['selling_prices'];
             $variantIds    = array_values(array_filter(array_map('intval', array_keys($group['variant_ids']))));
 
+            $sizesDisplay = $splitSize
+                ? (string) $group['display_size']
+                : $this->formatSizeQuantities($group['size_qtys']);
+
+            $warehouseNames = array_keys($group['warehouse_names']);
+            usort($warehouseNames, 'strnatcasecmp');
+
             $aggregated[] = [
                 'product_id'     => $group['product_id'],
-                'warehouse_id'   => $group['warehouse_id'],
+                'warehouse_id'   => (int) $group['warehouse_id'],
+                'variant_id'     => (int) ($group['variant_id'] ?? 0),
                 'product_name'   => $group['product_name'],
                 'product_number' => $group['product_number'],
                 'brand'          => $group['brand'],
@@ -254,8 +291,8 @@ class Inventory extends BaseController
                 'department'     => $group['department'],
                 'gender'         => $group['gender'],
                 'season'         => $group['season'],
-                'warehouse_name' => $group['warehouse_name'],
-                'sizes'          => implode(', ', $sizes),
+                'warehouse_name' => implode(', ', $warehouseNames),
+                'sizes'          => $sizesDisplay,
                 'quantity'       => $group['quantity'],
                 'cost_price'     => $costPrices !== []
                     ? round(array_sum($costPrices) / count($costPrices), 2)
@@ -273,10 +310,62 @@ class Inventory extends BaseController
                 return $nameCmp;
             }
 
-            return strcasecmp((string) ($a['warehouse_name'] ?? ''), (string) ($b['warehouse_name'] ?? ''));
+            $warehouseCmp = strcasecmp((string) ($a['warehouse_name'] ?? ''), (string) ($b['warehouse_name'] ?? ''));
+            if ($warehouseCmp !== 0) {
+                return $warehouseCmp;
+            }
+
+            return strnatcasecmp((string) ($a['sizes'] ?? ''), (string) ($b['sizes'] ?? ''));
         });
 
         return $aggregated;
+    }
+
+    /**
+     * @param array<string, int> $sizeQtys
+     */
+    private function formatSizeQuantities(array $sizeQtys): string
+    {
+        if ($sizeQtys === []) {
+            return '';
+        }
+
+        $sizes = array_keys($sizeQtys);
+        usort($sizes, static function (string $a, string $b): int {
+            if ($a === '_') {
+                return 1;
+            }
+            if ($b === '_') {
+                return -1;
+            }
+
+            $numA = is_numeric($a) ? (float) $a : null;
+            $numB = is_numeric($b) ? (float) $b : null;
+            if ($numA !== null && $numB !== null) {
+                return $numA <=> $numB;
+            }
+
+            return strnatcasecmp($a, $b);
+        });
+
+        $parts = [];
+        foreach ($sizes as $size) {
+            $label   = $size === '_' ? '' : $size;
+            $parts[] = $label === '' ? '(' . $sizeQtys[$size] . ')' : $label . '(' . $sizeQtys[$size] . ')';
+        }
+
+        return implode(', ', $parts);
+    }
+
+    private function parseBoolParam(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
     }
 
     /**

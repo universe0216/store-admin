@@ -22,6 +22,11 @@ use App\Enums\Season;
         padding-bottom: 0 !important;
         box-sizing: border-box;
     }
+    .inventory-metric .metric-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
 </style>
 <?= $this->endSection() ?>
 
@@ -80,6 +85,40 @@ use App\Enums\Season;
                         <button type="button" id="resetInventoryFilterBtn" class="btn btn-outline-secondary">Reset</button>
                     </div>
                 </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="splitWarehouseDetails" value="1">
+                                <label class="form-check-label" for="splitWarehouseDetails">Show details for Warehouses</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="splitSizeDetails" value="1">
+                                <label class="form-check-label" for="splitSizeDetails">Show details for sizes</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-md-4">
+                        <div class="border rounded bg-white px-3 py-2 inventory-metric">
+                            <div class="small text-muted">Total Products</div>
+                            <div id="metricTotalProducts" class="metric-value">0</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="border rounded bg-white px-3 py-2 inventory-metric">
+                            <div class="small text-muted">Total Units</div>
+                            <div id="metricTotalUnits" class="metric-value">0</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="border rounded bg-white px-3 py-2 inventory-metric">
+                            <div class="small text-muted">Total Value</div>
+                            <div id="metricTotalValue" class="metric-value text-primary">0.00</div>
+                        </div>
+                    </div>
+                </div>
                 <div id="inventoryGrid"></div>
             </div>
         </div>
@@ -107,6 +146,36 @@ use App\Enums\Season;
             return map[key] || key;
         }
 
+        function formatNumber(value, fractionDigits = 0) {
+            return Number(value || 0).toLocaleString(undefined, {
+                minimumFractionDigits: fractionDigits,
+                maximumFractionDigits: fractionDigits
+            });
+        }
+
+        function updateInventoryMetrics(rows) {
+            const productIds = new Set();
+            let totalUnits = 0;
+            let totalValue = 0;
+
+            (rows || []).forEach(function (row) {
+                const productId = Number(row.product_id || 0);
+                const qty = Number(row.quantity || 0);
+                const cost = Number(row.cost_price || 0);
+
+                if (productId > 0) {
+                    productIds.add(productId);
+                }
+
+                totalUnits += qty;
+                totalValue += qty * cost;
+            });
+
+            $("#metricTotalProducts").text(formatNumber(productIds.size));
+            $("#metricTotalUnits").text(formatNumber(totalUnits));
+            $("#metricTotalValue").text(formatNumber(totalValue, 2));
+        }
+
         function saveSellingPrice(rowIndex, sellingPrice) {
             if (savingSellingPrice) {
                 return;
@@ -114,22 +183,33 @@ use App\Enums\Season;
 
             const row = $("#inventoryGrid").jqxGrid("getrowdata", rowIndex);
             const productId = Number(row?.product_id || 0);
+            const variantId = Number(row?.variant_id || 0);
             const warehouseId = Number(row?.warehouse_id || 0);
             const price = Math.max(0, Number(sellingPrice || 0));
 
-            if (productId < 1) {
+            if (productId < 1 && variantId < 1) {
                 return;
             }
 
+            const splitWarehouse = $("#splitWarehouseDetails").is(":checked");
+            const splitSize = $("#splitSizeDetails").is(":checked");
+            const useVariantPrice = splitWarehouse && splitSize && variantId > 0;
+            const url = useVariantPrice
+                ? `${API_URLS.inventory}/variant/${variantId}/selling-price`
+                : `${API_URLS.inventory}/product/${productId}/selling-price`;
+            const payload = useVariantPrice
+                ? { selling_price: price }
+                : {
+                    selling_price: price,
+                    warehouse_id: splitWarehouse && warehouseId > 0 ? warehouseId : null
+                };
+
             savingSellingPrice = true;
             $.ajax({
-                url: `${API_URLS.inventory}/product/${productId}/selling-price`,
+                url: url,
                 method: "PUT",
                 contentType: "application/json",
-                data: JSON.stringify({
-                    selling_price: price,
-                    warehouse_id: warehouseId > 0 ? warehouseId : null
-                })
+                data: JSON.stringify(payload)
             }).done(function () {
                 setMessage("Selling price saved.", false);
                 loadInventory();
@@ -320,11 +400,18 @@ use App\Enums\Season;
             if (tagIds.length) {
                 params.tag_ids = tagIds.join(",");
             }
+            if ($("#splitWarehouseDetails").is(":checked")) {
+                params.split_warehouse = "1";
+            }
+            if ($("#splitSizeDetails").is(":checked")) {
+                params.split_size = "1";
+            }
 
             return $.getJSON(API_URLS.inventory, params).done(function(res) {
                 const rows = (res.data || []).map(function (row) {
                     return {
                         ...row,
+                        variant_id: Number(row.variant_id || 0),
                         cost_price: Number(row.cost_price || 0),
                         selling_price: Number(row.selling_price || 0),
                         quantity: Number(row.quantity || 0)
@@ -332,7 +419,9 @@ use App\Enums\Season;
                 });
                 const source = { localdata: rows, datatype: "array" };
                 $("#inventoryGrid").jqxGrid({ source: new $.jqx.dataAdapter(source) });
+                updateInventoryMetrics(rows);
             }).fail(function(xhr) {
+                updateInventoryMetrics([]);
                 setMessage(xhr.responseJSON?.message || "Failed to load inventory.", true);
             });
         }
@@ -352,8 +441,11 @@ use App\Enums\Season;
                 $("#filterSeason").val("");
                 filterTagIds.clear();
                 syncFilterTagChecks();
+                $("#splitWarehouseDetails").prop("checked", false);
+                $("#splitSizeDetails").prop("checked", false);
                 loadInventory();
             });
+            $("#splitWarehouseDetails, #splitSizeDetails").on("change", loadInventory);
             $("#filterSearch").on("keydown", function (event) {
                 if (event.key === "Enter") {
                     event.preventDefault();
