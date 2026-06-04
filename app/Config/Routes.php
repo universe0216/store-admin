@@ -13,6 +13,7 @@ $routes->get('sells', 'Sells::index');
 $routes->get('sells/create', 'Sells::create');
 $routes->get('stock', 'Stock::index');
 $routes->get('inventory', 'Inventory::index');
+$routes->get('inventory/stock-movements', 'Inventory::stockMovements');
 $routes->get('inventory/sales-statistics', 'Inventory::salesStatistics');
 $routes->get('transfers', 'Transfers::index');
 $routes->get('transfers/create', 'Transfers::create');
@@ -70,6 +71,7 @@ $routes->group('api', static function ($routes): void {
     $routes->post('products', 'Api\Purchases::createProduct');
     $routes->get('product-variants', 'Api\Purchases::variants');
     $routes->get('inventory', 'Api\Inventory::index');
+    $routes->get('stock-movements', 'Api\StockMovements::index');
     $routes->put('inventory/variant/(:num)/selling-price', 'Api\Inventory::updateSellingPrice/$1');
     $routes->put('inventory/product/(:num)/selling-price', 'Api\Inventory::updateProductSellingPrice/$1');
     $routes->get('stock', 'Api\Purchases::stock');

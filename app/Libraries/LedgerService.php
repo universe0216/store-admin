@@ -444,16 +444,18 @@ class LedgerService
             return;
         }
 
+        $creditAccount = $this->config->inventoryCogsAccount;
+
         $this->postPair(
             $db,
             $referenceNo,
             $transactionDate,
             $this->config->cogsAccount,
-            $this->config->inventoryAccount,
+            $creditAccount,
             $amount,
             $description ?? "COGS {$referenceNo}",
             $currencyCode,
-            $this->config->inventoryAccount
+            $creditAccount
         );
     }
 

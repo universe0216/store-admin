@@ -724,7 +724,7 @@ class Sells extends BaseController
 
     private function generateSaleNo(): string
     {
-        return 'SO-' . date('Ymd-His') . '-' . random_int(100, 999);
+        return 'SO-' . date('Ymd-His');
     }
 
     /**

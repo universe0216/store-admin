@@ -72,6 +72,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="<?= site_url('inventory') ?>">Inventory</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('inventory/stock-movements') ?>">Stock Movements</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('transfers') ?>">Transfer</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('transfers/create') ?>">New Transfer</a></li>
                         </ul>

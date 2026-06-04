@@ -250,7 +250,7 @@ $accountingConfig = config(Accounting::class);
     };
 
     const BASE_CURRENCY = "USD";
-    const INVENTORY_ACCOUNT_CODE = "<?= esc($accountingConfig->inventoryAccount, 'js') ?>";
+    const INVENTORY_ACCOUNT_CODES = <?= json_encode($accountingConfig->inventoryLedgerAccountCodes()) ?>;
     const SALES_REVENUE_ACCOUNT_CODE = "<?= esc($accountingConfig->salesRevenueAccount, 'js') ?>";
     const COGS_ACCOUNT_CODE = "<?= esc($accountingConfig->cogsAccount, 'js') ?>";
 
@@ -484,10 +484,10 @@ $accountingConfig = config(Accounting::class);
                 const type = String(row.account_type || "").toUpperCase();
                 const code = String(row.code || "");
                 if (key === "inventory") {
-                    return code === INVENTORY_ACCOUNT_CODE;
+                    return INVENTORY_ACCOUNT_CODES.includes(code);
                 }
                 if (key === "capital") {
-                    return (type === "ASSET" && code !== INVENTORY_ACCOUNT_CODE) || type === "EQUITY";
+                    return (type === "ASSET" && !INVENTORY_ACCOUNT_CODES.includes(code)) || type === "EQUITY";
                 }
                 if (key === "profit") {
                     return type === "REVENUE" || type === "EXPENSE";

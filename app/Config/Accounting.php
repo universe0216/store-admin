@@ -12,6 +12,9 @@ class Accounting extends BaseConfig
     /** Inventory asset account (debited on purchase). */
     public string $inventoryAccount = '1200';
 
+    /** Inventory relief account (credited on sale COGS; separate from purchase inventory). */
+    public string $inventoryCogsAccount = '1210';
+
     /** Customer balances for unpaid sale amounts (debited on partial sale). */
     public string $accountsReceivableAccount = '1100';
 
@@ -48,5 +51,15 @@ class Accounting extends BaseConfig
     public function moneyAccountCodes(): array
     {
         return array_values(array_unique([$this->cashAccount, $this->bankAccount]));
+    }
+
+    /**
+     * Inventory-related ledger accounts (purchase asset + sale COGS relief).
+     *
+     * @return list<string>
+     */
+    public function inventoryLedgerAccountCodes(): array
+    {
+        return array_values(array_unique([$this->inventoryAccount, $this->inventoryCogsAccount]));
     }
 }

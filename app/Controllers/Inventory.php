@@ -9,6 +9,11 @@ class Inventory extends BaseController
         return view('inventory/index');
     }
 
+    public function stockMovements(): string
+    {
+        return view('inventory/stock_movements');
+    }
+
     public function salesStatistics(): string
     {
         $month = trim((string) ($this->request->getGet('month') ?? date('Y-m')));

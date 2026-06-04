@@ -305,7 +305,7 @@ class Transactions extends BaseController
             ->join('transactions t', 't.account_code = a.code', 'left')
             ->where('a.is_active', 1)
             ->where('a.account_type', 'ASSET')
-            ->where('a.code !=', $accounting->inventoryAccount)
+            ->whereNotIn('a.code', $accounting->inventoryLedgerAccountCodes())
             ->groupBy('a.code, a.name, a.currency_code')
             ->orderBy('a.code', 'ASC')
             ->get()
@@ -437,7 +437,7 @@ class Transactions extends BaseController
             $builder->whereIn('code', $selected);
         } else {
             $builder->where('account_type', 'ASSET')
-                ->where('code !=', $accounting->inventoryAccount);
+                ->whereNotIn('code', $accounting->inventoryLedgerAccountCodes());
         }
 
         $codes = [];
