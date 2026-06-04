@@ -58,11 +58,12 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Sells
+                            Sales
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="<?= site_url('sells') ?>">Sells</a></li>
-                            <li><a class="dropdown-item" href="<?= site_url('sells/create') ?>">New Sell</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('sells') ?>">Sales History</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('sells/create') ?>">New Sale</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('sells/visual-statistics') ?>">Visual Statistics</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('inventory/sales-statistics') ?>">Sales Monthly Statistics</a></li>
                         </ul>
                     </li>

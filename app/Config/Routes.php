@@ -11,6 +11,7 @@ $routes->get('purchases/create', 'Purchases::create');
 $routes->get('purchases/products', 'Purchases::products');
 $routes->get('sells', 'Sells::index');
 $routes->get('sells/create', 'Sells::create');
+$routes->get('sells/visual-statistics', 'Sells::visualStatistics');
 $routes->get('stock', 'Stock::index');
 $routes->get('inventory', 'Inventory::index');
 $routes->get('inventory/stock-movements', 'Inventory::stockMovements');
@@ -76,6 +77,7 @@ $routes->group('api', static function ($routes): void {
     $routes->put('inventory/product/(:num)/selling-price', 'Api\Inventory::updateProductSellingPrice/$1');
     $routes->get('stock', 'Api\Purchases::stock');
     $routes->put('stock/warehouse', 'Api\Purchases::updateVariantWarehouse');
+    $routes->get('sales-visual-statistics', 'Api\SalesVisualStatistics::index');
     $routes->get('sales', 'Api\Sells::index');
     $routes->get('sales/(:num)', 'Api\Sells::show/$1');
     $routes->post('sales', 'Api\Sells::create');
