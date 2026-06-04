@@ -4,8 +4,11 @@
 
 <?= $this->section('content') ?>
 <div class="container-fluid py-4 px-5">
-    <div class="mb-4">
-        <h1 class="h3 fw-bold mb-1">Transactions</h1>
+    <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Transactions</h1>
+        </div>
+        <button type="button" id="newTransactionBtn" class="btn btn-primary">New Transaction</button>
     </div>
 
     <div class="card shadow-sm">
@@ -31,7 +34,6 @@
                     </div>
                 </div>
                 <div class="col-12 col-md-2 d-flex gap-2 justify-content-md-end flex-wrap">
-                    <button type="button" id="newTransactionBtn" class="btn btn-success btn-sm">New Transaction</button>
                     <button type="button" id="applyFiltersBtn" class="btn btn-primary btn-sm">Search</button>
                     <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary btn-sm">Clear</button>
                 </div>
@@ -89,17 +91,17 @@
                         <div id="metricSalesRevenue" class="fw-semibold" style="color:#027a48;">0.00</div>
                     </div>
                     <div class="col-6 col-md-3">
-                        <span class="text-secondary">Cost of Goods</span>
+                        <span class="text-secondary">Cost of Goods(Included Shipping Fees)</span>
                         <div id="metricCostOfGoods" class="fw-semibold" style="color:#b42318;">0.00</div>
                     </div>
-                    <div class="col-6 col-md-2">
+                    <!-- <div class="col-6 col-md-2">
                         <span class="text-secondary">Transfer Fees</span>
                         <div id="metricTransferFees" class="fw-semibold" style="color:#b42318;">0.00</div>
                     </div>
                     <div class="col-6 col-md-2">
                         <span class="text-secondary">Shipping Fees</span>
                         <div id="metricShippingFees" class="fw-semibold" style="color:#b42318;">0.00</div>
-                    </div>
+                    </div> -->
                     <div class="col-6 col-md-2">
                         <span class="text-secondary">Net Business Profit</span>
                         <div id="metricNetBusinessProfit" class="fw-bold fs-5 text-primary">0.00</div>

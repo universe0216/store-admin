@@ -509,7 +509,7 @@ class Transactions extends BaseController
             'cost_of_goods'  => $costOfGoods,
             'transfer_fees'  => $transferFees,
             'shipping_fees'  => $shippingFees,
-            'net_profit'     => round($salesRevenue - $costOfGoods - $transferFees - $shippingFees, 2),
+            'net_profit'     => round($salesRevenue - $costOfGoods, 2),
         ];
     }
 
