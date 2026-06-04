@@ -202,3 +202,188 @@ in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
 13 SYSTEMPATH\Boot.php(442): CodeIgniter\CLI\Console->run()
 14 SYSTEMPATH\Boot.php(166): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
 15 ROOTPATH\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+ERROR - 2026-06-04 12:44:36 --> Table 'categories' already exists
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 4 SYSTEMPATH\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 5 APPPATH\Database\Migrations\2026-04-25-000001_CreateStoreSchema.php(34): CodeIgniter\Database\Forge->createTable('categories')
+ 6 SYSTEMPATH\Database\MigrationRunner.php(1014): App\Database\Migrations\CreateStoreSchema->up()
+ 7 SYSTEMPATH\Database\MigrationRunner.php(202): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+ 8 SYSTEMPATH\Commands\Database\Migrate.php(89): CodeIgniter\Database\MigrationRunner->latest(null)
+ 9 SYSTEMPATH\CLI\SignalTrait.php(245): CodeIgniter\Commands\Database\Migrate::CodeIgniter\Commands\Database\{closure}()
+10 SYSTEMPATH\Commands\Database\Migrate.php(88): CodeIgniter\Commands\Database\Migrate->withSignalsBlocked(Object(Closure))
+11 SYSTEMPATH\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run([])
+12 SYSTEMPATH\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', [])
+13 SYSTEMPATH\Boot.php(442): CodeIgniter\CLI\Console->run()
+14 SYSTEMPATH\Boot.php(166): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+15 ROOTPATH\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+ERROR - 2026-06-04 12:51:56 --> Table 'categories' already exists
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 4 SYSTEMPATH\Database\Forge.php(570): CodeIgniter\Database\BaseConnection->query('CREATE TABLE `categories` (
+	`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`name` VARCHAR(100) NOT NULL,
+	`created_at` DATETIME NULL,
+	`updated_at` DATETIME NULL,
+	CONSTRAINT `pk_categories` PRIMARY KEY(`id`),
+	KEY `name` (`name`)
+) DEFAULT CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci')
+ 5 APPPATH\Database\Migrations\2026-04-25-000001_CreateStoreSchema.php(34): CodeIgniter\Database\Forge->createTable('categories')
+ 6 SYSTEMPATH\Database\MigrationRunner.php(1014): App\Database\Migrations\CreateStoreSchema->up()
+ 7 SYSTEMPATH\Database\MigrationRunner.php(202): CodeIgniter\Database\MigrationRunner->migrate('up', Object(stdClass))
+ 8 SYSTEMPATH\Commands\Database\Migrate.php(89): CodeIgniter\Database\MigrationRunner->latest(null)
+ 9 SYSTEMPATH\CLI\SignalTrait.php(245): CodeIgniter\Commands\Database\Migrate::CodeIgniter\Commands\Database\{closure}()
+10 SYSTEMPATH\Commands\Database\Migrate.php(88): CodeIgniter\Commands\Database\Migrate->withSignalsBlocked(Object(Closure))
+11 SYSTEMPATH\CLI\Commands.php(74): CodeIgniter\Commands\Database\Migrate->run([...])
+12 SYSTEMPATH\CLI\Console.php(47): CodeIgniter\CLI\Commands->run('migrate', [...])
+13 SYSTEMPATH\Boot.php(442): CodeIgniter\CLI\Console->run()
+14 SYSTEMPATH\Boot.php(166): CodeIgniter\Boot::runCommand(Object(CodeIgniter\CLI\Console))
+15 ROOTPATH\spark(87): CodeIgniter\Boot::bootSpark(Object(Config\Paths))
+ERROR - 2026-06-04 12:54:52 --> Unknown column 'tags' in 'field list'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (\'1100\', \'Unpaid\', \'ASSET\', \'[\\"Capital\\"]\', \'USD\', 1, \'2026-06-04 12:54:52\')', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (\'1100\', \'Unpaid\', \'ASSET\', \'[\\"Capital\\"]\', \'USD\', 1, \'2026-06-04 12:54:52\')')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (\'1100\', \'Unpaid\', \'ASSET\', \'[\\"Capital\\"]\', \'USD\', 1, \'2026-06-04 12:54:52\')')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(2345): CodeIgniter\Database\BaseConnection->query('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (:code:, :name:, :account_type:, :tags:, :currency_code:, :is_active:, :created_at:)', [...], false)
+ 5 SYSTEMPATH\Model.php(355): CodeIgniter\Database\BaseBuilder->insert()
+ 6 SYSTEMPATH\BaseModel.php(899): CodeIgniter\Model->doInsert([...])
+ 7 SYSTEMPATH\Model.php(668): CodeIgniter\BaseModel->insert([...], true)
+ 8 APPPATH\Models\BaseModel.php(17): CodeIgniter\Model->insert([...])
+ 9 APPPATH\Controllers\Api\Accounts.php(58): App\Models\BaseModel->createOne([...])
+10 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Accounts->create()
+11 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Accounts))
+12 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+13 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+14 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+15 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-06-04 12:54:52 --> CodeIgniter\Database\Exceptions\DatabaseException: Unknown column 'tags' in 'field list'
+[Method: POST, Route: api/accounts]
+in SYSTEMPATH\Database\BaseConnection.php on line 865.
+ 1 SYSTEMPATH\Database\BaseBuilder.php(2345): CodeIgniter\Database\BaseConnection->query('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (:code:, :name:, :account_type:, :tags:, :currency_code:, :is_active:, :created_at:)', [...], false)
+ 2 SYSTEMPATH\Model.php(355): CodeIgniter\Database\BaseBuilder->insert()
+ 3 SYSTEMPATH\BaseModel.php(899): CodeIgniter\Model->doInsert([...])
+ 4 SYSTEMPATH\Model.php(668): CodeIgniter\BaseModel->insert([...], true)
+ 5 APPPATH\Models\BaseModel.php(17): CodeIgniter\Model->insert([...])
+ 6 APPPATH\Controllers\Api\Accounts.php(58): App\Models\BaseModel->createOne([...])
+ 7 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Accounts->create()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Accounts))
+ 9 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+12 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-06-04 12:54:52 --> [Caused by] CodeIgniter\Database\Exceptions\DatabaseException: Unknown column 'tags' in 'field list'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 310.
+ 1 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (\'1100\', \'Unpaid\', \'ASSET\', \'[\\"Capital\\"]\', \'USD\', 1, \'2026-06-04 12:54:52\')')
+ 2 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (\'1100\', \'Unpaid\', \'ASSET\', \'[\\"Capital\\"]\', \'USD\', 1, \'2026-06-04 12:54:52\')')
+ 3 SYSTEMPATH\Database\BaseBuilder.php(2345): CodeIgniter\Database\BaseConnection->query('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (:code:, :name:, :account_type:, :tags:, :currency_code:, :is_active:, :created_at:)', [...], false)
+ 4 SYSTEMPATH\Model.php(355): CodeIgniter\Database\BaseBuilder->insert()
+ 5 SYSTEMPATH\BaseModel.php(899): CodeIgniter\Model->doInsert([...])
+ 6 SYSTEMPATH\Model.php(668): CodeIgniter\BaseModel->insert([...], true)
+ 7 APPPATH\Models\BaseModel.php(17): CodeIgniter\Model->insert([...])
+ 8 APPPATH\Controllers\Api\Accounts.php(58): App\Models\BaseModel->createOne([...])
+ 9 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Accounts->create()
+10 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Accounts))
+11 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+12 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+13 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+14 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-06-04 12:54:52 --> [Caused by] mysqli_sql_exception: Unknown column 'tags' in 'field list'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 300.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(300): mysqli->query('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (\'1100\', \'Unpaid\', \'ASSET\', \'[\\"Capital\\"]\', \'USD\', 1, \'2026-06-04 12:54:52\')', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(910): CodeIgniter\Database\MySQLi\Connection->execute('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (\'1100\', \'Unpaid\', \'ASSET\', \'[\\"Capital\\"]\', \'USD\', 1, \'2026-06-04 12:54:52\')')
+ 3 SYSTEMPATH\Database\BaseConnection.php(827): CodeIgniter\Database\BaseConnection->simpleQuery('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (\'1100\', \'Unpaid\', \'ASSET\', \'[\\"Capital\\"]\', \'USD\', 1, \'2026-06-04 12:54:52\')')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(2345): CodeIgniter\Database\BaseConnection->query('INSERT INTO `accounts` (`code`, `name`, `account_type`, `tags`, `currency_code`, `is_active`, `created_at`) VALUES (:code:, :name:, :account_type:, :tags:, :currency_code:, :is_active:, :created_at:)', [...], false)
+ 5 SYSTEMPATH\Model.php(355): CodeIgniter\Database\BaseBuilder->insert()
+ 6 SYSTEMPATH\BaseModel.php(899): CodeIgniter\Model->doInsert([...])
+ 7 SYSTEMPATH\Model.php(668): CodeIgniter\BaseModel->insert([...], true)
+ 8 APPPATH\Models\BaseModel.php(17): CodeIgniter\Model->insert([...])
+ 9 APPPATH\Controllers\Api\Accounts.php(58): App\Models\BaseModel->createOne([...])
+10 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Accounts->create()
+11 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Accounts))
+12 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+13 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+14 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+15 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-06-04 12:57:11 --> CodeIgniter\Exceptions\InvalidArgumentException: Field "tags" is not nullable, but null was passed.
+[Method: GET, Route: api/accounts]
+in SYSTEMPATH\DataCaster\DataCaster.php on line 156.
+ 1 SYSTEMPATH\DataConverter\DataConverter.php(80): CodeIgniter\DataCaster\DataCaster->castAs(null, 'tags', 'get')
+ 2 SYSTEMPATH\BaseModel.php(1984): CodeIgniter\DataConverter\DataConverter->fromDataSource([...])
+ 3 SYSTEMPATH\Model.php(258): CodeIgniter\BaseModel->convertToReturnType([...], 'array')
+ 4 SYSTEMPATH\BaseModel.php(676): CodeIgniter\Model->doFindAll(1000, 0)
+ 5 APPPATH\Models\AccountModel.php(91): CodeIgniter\BaseModel->findAll(1000)
+ 6 APPPATH\Controllers\Api\Accounts.php(14): App\Models\AccountModel->listAll()
+ 7 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Accounts->index()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Accounts))
+ 9 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+12 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-06-04 12:57:35 --> CodeIgniter\Exceptions\InvalidArgumentException: Field "tags" is not nullable, but null was passed.
+[Method: GET, Route: api/accounts]
+in SYSTEMPATH\DataCaster\DataCaster.php on line 156.
+ 1 SYSTEMPATH\DataConverter\DataConverter.php(80): CodeIgniter\DataCaster\DataCaster->castAs(null, 'tags', 'get')
+ 2 SYSTEMPATH\BaseModel.php(1984): CodeIgniter\DataConverter\DataConverter->fromDataSource([...])
+ 3 SYSTEMPATH\Model.php(258): CodeIgniter\BaseModel->convertToReturnType([...], 'array')
+ 4 SYSTEMPATH\BaseModel.php(676): CodeIgniter\Model->doFindAll(1000, 0)
+ 5 APPPATH\Models\AccountModel.php(91): CodeIgniter\BaseModel->findAll(1000)
+ 6 APPPATH\Controllers\Api\Accounts.php(14): App\Models\AccountModel->listAll()
+ 7 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Accounts->index()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Accounts))
+ 9 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+12 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))

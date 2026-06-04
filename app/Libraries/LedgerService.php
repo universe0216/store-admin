@@ -216,6 +216,165 @@ class LedgerService
         );
     }
 
+    /**
+     * @param list<array{payment_method: string, amount: float}> $payments
+     */
+    public function recordSaleSplit(
+        BaseConnection $db,
+        string $referenceNo,
+        string $transactionDate,
+        float $revenueAmount,
+        array $payments,
+        ?string $description = null,
+        ?string $currencyCode = null
+    ): void {
+        $paidTotal = round(array_sum(array_map(
+            static fn (array $payment): float => round((float) ($payment['amount'] ?? 0), 2),
+            $payments
+        )), 2);
+        $unpaidAmount = round(max(0, $revenueAmount - $paidTotal), 2);
+
+        $this->recordSaleWithBalance(
+            $db,
+            $referenceNo,
+            $transactionDate,
+            $revenueAmount,
+            $payments,
+            $unpaidAmount,
+            $description,
+            $currencyCode
+        );
+    }
+
+    /**
+     * Records sale revenue and offsets with cash/bank payments plus accounts receivable for unpaid balance.
+     *
+     * @param list<array{payment_method: string, amount: float}> $payments
+     */
+    public function recordSaleWithBalance(
+        BaseConnection $db,
+        string $referenceNo,
+        string $transactionDate,
+        float $revenueAmount,
+        array $payments,
+        float $unpaidAmount,
+        ?string $description = null,
+        ?string $currencyCode = null
+    ): void {
+        if ($revenueAmount <= 0) {
+            return;
+        }
+
+        $desc = $description ?? "Sale {$referenceNo}";
+        $date = self::toTransactionDate($transactionDate);
+        $now  = date('Y-m-d H:i:s');
+        $base = strtoupper($this->config->baseCurrency);
+        $rows = [];
+
+        $revenueMonetary = $this->resolveMonetary(
+            $db,
+            $revenueAmount,
+            $currencyCode,
+            $this->config->salesRevenueAccount
+        );
+
+        $rows[] = $this->transactionRow(
+            $date,
+            $this->config->salesRevenueAccount,
+            $referenceNo,
+            $desc,
+            0.00,
+            $revenueMonetary['usd_amount'],
+            $revenueMonetary,
+            $now
+        );
+
+        foreach ($payments as $payment) {
+            $amount = round((float) ($payment['amount'] ?? 0), 2);
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $methodCode = strtolower(trim((string) ($payment['payment_method'] ?? '')));
+            if ($methodCode === '') {
+                continue;
+            }
+
+            $resolved = $this->resolvePaymentMethod($db, $methodCode);
+            $debitMonetary = $this->resolveMonetary(
+                $db,
+                $this->convertCurrency($amount, $base, $resolved['currency_code']),
+                $resolved['currency_code'],
+                $resolved['account_code']
+            );
+
+            $rows[] = $this->transactionRow(
+                $date,
+                $resolved['account_code'],
+                $referenceNo,
+                $desc,
+                $debitMonetary['usd_amount'],
+                0.00,
+                $debitMonetary,
+                $now
+            );
+        }
+
+        $unpaidAmount = round(max(0, $unpaidAmount), 2);
+        if ($unpaidAmount > 0) {
+            $this->assertAccountExists($db, $this->config->accountsReceivableAccount);
+            $receivableMonetary = $this->resolveMonetary(
+                $db,
+                $unpaidAmount,
+                $currencyCode,
+                $this->config->accountsReceivableAccount
+            );
+
+            $rows[] = $this->transactionRow(
+                $date,
+                $this->config->accountsReceivableAccount,
+                $referenceNo,
+                $desc . ' (unpaid)',
+                $receivableMonetary['usd_amount'],
+                0.00,
+                $receivableMonetary,
+                $now
+            );
+        }
+
+        if (count($rows) < 2) {
+            return;
+        }
+
+        $db->table('transactions')->insertBatch($rows);
+    }
+
+    public function recordSaleReceivablePayment(
+        BaseConnection $db,
+        string $referenceNo,
+        string $transactionDate,
+        float $amount,
+        string $paymentMethod,
+        ?string $description = null
+    ): void {
+        if ($amount <= 0) {
+            return;
+        }
+
+        $payment = $this->resolvePaymentMethod($db, $paymentMethod);
+        $this->postPair(
+            $db,
+            $referenceNo,
+            $transactionDate,
+            $payment['account_code'],
+            $this->config->accountsReceivableAccount,
+            $amount,
+            $description ?? "Sale payment {$referenceNo}",
+            $payment['currency_code'],
+            $payment['account_code']
+        );
+    }
+
     public function recordSaleCogs(
         BaseConnection $db,
         string $referenceNo,

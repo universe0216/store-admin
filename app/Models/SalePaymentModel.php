@@ -2,24 +2,17 @@
 
 namespace App\Models;
 
-class SaleModel extends BaseModel
+class SalePaymentModel extends BaseModel
 {
-    protected $table            = 'sales';
+    protected $table            = 'sale_payments';
     protected $primaryKey       = 'id';
     protected $returnType       = 'array';
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'sale_no',
-        'sale_date',
-        'customer_name',
-        'warehouse_id',
-        'sub_total',
-        'discount_total',
-        'grand_total',
-        'paid_total',
-        'unpaid_total',
+        'sale_id',
         'payment_method',
-        'status',
+        'amount',
+        'created_at',
     ];
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

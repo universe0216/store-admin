@@ -75,6 +75,7 @@ $routes->group('api', static function ($routes): void {
     $routes->get('sales', 'Api\Sells::index');
     $routes->get('sales/(:num)', 'Api\Sells::show/$1');
     $routes->post('sales', 'Api\Sells::create');
+    $routes->post('sales/(:num)/payments', 'Api\Sells::addPayment/$1');
     $routes->delete('sales/(:num)', 'Api\Sells::delete/$1');
     $routes->get('warehouse-products', 'Api\Sells::productsByWarehouse');
     $routes->get('transfers', 'Api\Transfers::index');

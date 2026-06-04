@@ -71,16 +71,6 @@ use App\Enums\Season;
                         <label class="form-label text-secondary mb-1">Customer Name</label>
                         <input type="text" id="customerNameInput" class="form-control" placeholder="Optional">
                     </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Payment Method</label>
-                        <select id="paymentMethodSelect" class="form-select">
-                            <option value="cash">Cash</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="card">Card</option>
-                            <option value="check">Check</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
                 </div>
             </div>
         </div>
@@ -180,6 +170,34 @@ use App\Enums\Season;
             <button type="button" id="saveSaleBtn" class="btn btn-success">Save Sale</button>
         </div>
     </div>
+
+    <div class="modal fade" id="saleConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Sale</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">Total Items Qty: <span id="confirmTotalItemsQty" class="fw-semibold">0</span></div>
+                    <div class="mb-2">Subtotal: <span id="confirmSubTotal" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Discount: <span id="confirmDiscount" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Grand Total: <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Paid Now: <span id="confirmPaidNow" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2 text-danger">Unpaid Balance: <span id="confirmUnpaidAmount" class="fw-semibold">0.00</span></div>
+                    <hr>
+                    <div class="mb-2 fw-semibold">Payment Methods</div>
+                    <div id="confirmPaymentRows" class="d-flex flex-column gap-2 mb-2"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addPaymentRowBtn">+ Add Payment Method</button>
+                    <div class="small text-muted mt-2">Payment total may be less than the grand total. Remaining balance is recorded as unpaid (accounts receivable).</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="confirmSaveSaleBtn">Confirm Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
 <?= $this->endSection() ?>
 
 <?= $this->section('pageScripts') ?>
@@ -187,11 +205,15 @@ use App\Enums\Season;
     const API_URLS = {
         warehouses: "<?= site_url('api/warehouses') ?>",
         warehouseProducts: "<?= site_url('api/warehouse-products') ?>",
-        sales: "<?= site_url('api/sales') ?>"
+        sales: "<?= site_url('api/sales') ?>",
+        paymentMethods: "<?= site_url('api/payment-methods') ?>"
     };
 
     let stockSource = [];
     let saleItems = [];
+    let paymentMethods = [];
+    let confirmPaymentRows = [];
+    let confirmSaleModal = null;
     let lastSaleWarehouseId = 0;
     let stockSearchTerm = "";
     let stockDepartmentFilter = "";
@@ -617,6 +639,152 @@ use App\Enums\Season;
         });
     }
 
+    function escapeHtml(text) {
+        return String(text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function loadPaymentMethods() {
+        return $.getJSON(API_URLS.paymentMethods).done(function (res) {
+            paymentMethods = (res.data || []).filter(row => Number(row.is_active ?? 1) === 1);
+        }).fail(function (xhr) {
+            setMessage(xhr.responseJSON?.message || "Failed to load payment methods.", true);
+        });
+    }
+
+    function buildPaymentMethodOptions(selectedCode) {
+        const options = paymentMethods.map(row => {
+            const code = String(row.code || "");
+            const selected = code === selectedCode ? " selected" : "";
+            return `<option value="${escapeHtml(code)}"${selected}>${escapeHtml(row.name || code)}</option>`;
+        }).join("");
+
+        if (options === "") {
+            return `
+                <option value="cash"${selectedCode === "cash" ? " selected" : ""}>Cash</option>
+                <option value="bank_transfer"${selectedCode === "bank_transfer" ? " selected" : ""}>Bank Transfer</option>
+            `;
+        }
+
+        return options;
+    }
+
+    function getConfirmPaymentRowsData() {
+        const rows = [];
+        $("#confirmPaymentRows .confirm-payment-row").each(function () {
+            const method = String($(this).find(".confirm-payment-method").val() || "").trim();
+            const amount = Number($(this).find(".confirm-payment-amount").val() || 0);
+            if (method !== "" && amount > 0) {
+                rows.push({ payment_method: method, amount: Number(amount.toFixed(2)) });
+            }
+        });
+        return rows;
+    }
+
+    function redistributePaymentRemainder() {
+        const grandTotal = Number($("#confirmGrandTotal").text() || 0);
+        const $rowEls = $("#confirmPaymentRows .confirm-payment-row");
+        let allocated = 0;
+
+        $rowEls.each(function (index) {
+            const $amount = $(this).find(".confirm-payment-amount");
+            const amount = Number($amount.val() || 0);
+            allocated += amount;
+
+            if (index === $rowEls.length - 1) {
+                const remaining = Number((grandTotal - allocated + amount).toFixed(2));
+                if (remaining >= 0 && Math.abs(remaining - amount) > 0.009) {
+                    $amount.val(remaining.toFixed(2));
+                }
+            }
+        });
+    }
+
+    function updateConfirmPaymentSummary() {
+        const grandTotal = Number($("#confirmGrandTotal").text() || 0);
+        const payments = getConfirmPaymentRowsData();
+        const paidNow = payments.reduce((sum, row) => sum + row.amount, 0);
+        const unpaid = Number(Math.max(0, grandTotal - paidNow).toFixed(2));
+
+        $("#confirmPaidNow").text(paidNow.toFixed(2));
+        $("#confirmUnpaidAmount").text(unpaid.toFixed(2));
+    }
+
+    function renderConfirmPaymentRows(grandTotal) {
+        const $container = $("#confirmPaymentRows").empty();
+        const rows = confirmPaymentRows.length > 0
+            ? confirmPaymentRows
+            : [{ payment_method: "cash", amount: grandTotal }];
+
+        rows.forEach(function (row, index) {
+            const rowEl = $(`
+                <div class="confirm-payment-row d-flex gap-2 align-items-center">
+                    <select class="form-select form-select-sm confirm-payment-method" style="max-width: 180px;">
+                        ${buildPaymentMethodOptions(String(row.payment_method || "cash"))}
+                    </select>
+                    <input type="number" class="form-control form-control-sm confirm-payment-amount text-end" min="0" step="0.01" value="${Number(row.amount || 0).toFixed(2)}">
+                    <button type="button" class="btn btn-sm btn-outline-danger confirm-remove-payment-row"${index === 0 ? " disabled" : ""}>Remove</button>
+                </div>
+            `);
+            $container.append(rowEl);
+        });
+
+        $container.off("input", ".confirm-payment-amount").on("input", ".confirm-payment-amount", function () {
+            const $rows = $("#confirmPaymentRows .confirm-payment-row");
+            const idx = $rows.index($(this).closest(".confirm-payment-row"));
+            const grand = Number($("#confirmGrandTotal").text() || 0);
+            let allocated = 0;
+
+            $rows.each(function (rowIndex) {
+                const amount = Number($(this).find(".confirm-payment-amount").val() || 0);
+                allocated += amount;
+                if (rowIndex === idx && rowIndex < $rows.length - 1) {
+                    const remaining = Number(Math.max(0, grand - allocated).toFixed(2));
+                    const $nextAmount = $rows.eq(rowIndex + 1).find(".confirm-payment-amount");
+                    if (remaining > 0) {
+                        $nextAmount.val(remaining.toFixed(2));
+                    }
+                }
+            });
+            updateConfirmPaymentSummary();
+        });
+
+        $container.off("click", ".confirm-remove-payment-row").on("click", ".confirm-remove-payment-row", function () {
+            $(this).closest(".confirm-payment-row").remove();
+            redistributePaymentRemainder();
+            updateConfirmPaymentSummary();
+        });
+
+        updateConfirmPaymentSummary();
+    }
+
+    function submitSale(payload) {
+        $("#saveSaleBtn").prop("disabled", true);
+        $("#confirmSaveSaleBtn").prop("disabled", true);
+        $.ajax({
+            url: API_URLS.sales,
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(payload)
+        }).done(function(res) {
+            setMessage(res.message || "Sale saved.", false);
+            setTimeout(function () {
+                window.location.href = "<?= site_url('sells') ?>";
+            }, 500);
+        }).fail(function(xhr) {
+            const msg = xhr.responseJSON?.error
+                ? `${xhr.responseJSON.message}: ${xhr.responseJSON.error}`
+                : (xhr.responseJSON?.message || "Failed to save sale.");
+            setMessage(msg, true);
+        }).always(function () {
+            $("#saveSaleBtn").prop("disabled", false);
+            $("#confirmSaveSaleBtn").prop("disabled", false);
+        });
+    }
+
     function saveSale() {
         const warehouseItem = $("#saleWarehouseDropdown").jqxDropDownList("getSelectedItem");
         const warehouseId = warehouseItem ? Number(warehouseItem.value) : 0;
@@ -639,13 +807,21 @@ use App\Enums\Season;
             return;
         }
 
+        const totals = recalcSaleTotals("discount") || {
+            subTotal: getSaleSubTotal(),
+            discount: Number($("#discountTotalInput").jqxNumberInput("val") || 0),
+            paid: Number($("#paidAmountInput").jqxNumberInput("val") || 0),
+            grandTotal: Number($("#grandTotalDisplay").val() || 0)
+        };
+        const totalQty = (saleItems || []).reduce((sum, r) => sum + Number(r.qty || 0), 0);
+
         const payload = {
             warehouse_id: warehouseId,
             sale_date: saleDate,
             customer_name: String($("#customerNameInput").val() || "").trim(),
-            discount_total: Number($("#discountTotalInput").jqxNumberInput("val") || 0),
-            paid_total: Number($("#paidAmountInput").jqxNumberInput("val") || 0),
-            payment_method: String($("#paymentMethodSelect").val() || "cash"),
+            discount_total: totals.discount,
+            paid_total: totals.paid,
+            payment_method: "cash",
             items: saleItems.map(r => ({
                 variant_id: Number(r.variant_id),
                 qty: Number(r.qty),
@@ -653,35 +829,59 @@ use App\Enums\Season;
             }))
         };
 
-        $("#saveSaleBtn").prop("disabled", true);
-        $.ajax({
-            url: API_URLS.sales,
-            method: "POST",
-            contentType: "application/json",
-            data: JSON.stringify(payload)
-        }).done(function(res) {
-            setMessage(res.message || "Sale saved.", false);
-            setTimeout(function () {
-                window.location.href = "<?= site_url('sells') ?>";
-            }, 500);
-        }).fail(function(xhr) {
-            const msg = xhr.responseJSON?.error
-                ? `${xhr.responseJSON.message}: ${xhr.responseJSON.error}`
-                : (xhr.responseJSON?.message || "Failed to save sale.");
-            setMessage(msg, true);
-        }).always(function () {
-            $("#saveSaleBtn").prop("disabled", false);
+        $("#confirmTotalItemsQty").text(totalQty);
+        $("#confirmSubTotal").text(totals.subTotal.toFixed(2));
+        $("#confirmDiscount").text(totals.discount.toFixed(2));
+        $("#confirmGrandTotal").text(totals.grandTotal.toFixed(2));
+
+        confirmPaymentRows = [{ payment_method: "cash", amount: totals.grandTotal }];
+        renderConfirmPaymentRows(totals.grandTotal);
+
+        $("#confirmSaveSaleBtn").off("click").on("click", function () {
+            const confirmGrandTotal = Number($("#confirmGrandTotal").text() || 0);
+            const payments = getConfirmPaymentRowsData();
+            const paymentSum = payments.reduce((sum, row) => sum + row.amount, 0);
+            if (paymentSum > confirmGrandTotal + 0.01) {
+                setMessage("Payment amounts cannot exceed the grand total.", true);
+                return;
+            }
+
+            payload.payments = payments;
+            payload.payment_method = payments[0]?.payment_method || "cash";
+
+            if (confirmSaleModal) {
+                confirmSaleModal.hide();
+            }
+            submitSale(payload);
         });
+
+        if (confirmSaleModal) {
+            confirmSaleModal.show();
+        }
     }
 
     $(function() {
         initWidgets();
+        loadPaymentMethods();
+        confirmSaleModal = new bootstrap.Modal(document.getElementById("saleConfirmModal"));
         loadWarehouses().done(loadStock);
         $("#stockWarehouseDropdown").on("select", function () {
             loadStock();
         });
 
         $("#saveSaleBtn").on("click", saveSale);
+        $("#addPaymentRowBtn").on("click", function () {
+            const payments = getConfirmPaymentRowsData();
+            const grandTotal = Number($("#confirmGrandTotal").text() || 0);
+            const allocated = payments.reduce((sum, row) => sum + row.amount, 0);
+            const remaining = Number(Math.max(0, grandTotal - allocated).toFixed(2));
+            confirmPaymentRows = payments;
+            confirmPaymentRows.push({
+                payment_method: paymentMethods[1]?.code || "bank_transfer",
+                amount: remaining
+            });
+            renderConfirmPaymentRows(grandTotal);
+        });
         $("#stockSearchInput").on("input", function () {
             stockSearchTerm = String($(this).val() || "");
             refreshStockGrid();

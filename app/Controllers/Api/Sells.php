@@ -3,9 +3,12 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Enums\SaleStatus;
 use App\Libraries\LedgerService;
+use App\Models\PaymentMethodModel;
 use App\Models\SaleItemModel;
 use App\Models\SaleModel;
+use App\Models\SalePaymentModel;
 use App\Models\StockMovementModel;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -16,22 +19,23 @@ class Sells extends BaseController
 {
     public function index(): ResponseInterface
     {
-        $productName = trim((string) ($this->request->getGet('product_name') ?? $this->request->getGet('q') ?? ''));
-        $dateFrom    = trim((string) ($this->request->getGet('date_from') ?? ''));
-        $dateTo      = trim((string) ($this->request->getGet('date_to') ?? ''));
-        $page        = max(1, (int) ($this->request->getGet('page') ?? 1));
-        $perPage     = max(1, min(100, (int) ($this->request->getGet('per_page') ?? 20)));
-        $offset      = ($page - 1) * $perPage;
+        $productName    = trim((string) ($this->request->getGet('product_name') ?? $this->request->getGet('q') ?? ''));
+        $dateFrom       = trim((string) ($this->request->getGet('date_from') ?? ''));
+        $dateTo         = trim((string) ($this->request->getGet('date_to') ?? ''));
+        $statusFilter   = $this->normalizeSaleStatusFilter((string) ($this->request->getGet('status') ?? ''));
+        $page           = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage        = max(1, min(100, (int) ($this->request->getGet('per_page') ?? 20)));
+        $offset         = ($page - 1) * $perPage;
 
         $grouped = $productName !== '';
-        $builder = $this->buildSalesListBuilder($productName, $dateFrom, $dateTo);
-        $total   = $this->countSalesList($productName, $dateFrom, $dateTo, $grouped);
+        $builder = $this->buildSalesListBuilder($productName, $dateFrom, $dateTo, $statusFilter);
+        $total   = $this->countSalesList($productName, $dateFrom, $dateTo, $grouped, $statusFilter);
 
         $rows = $builder
             ->orderBy('sales.id', 'DESC')
             ->findAll($perPage, $offset);
 
-        $subSql  = $this->compiledSalesIdSubquery($productName, $dateFrom, $dateTo);
+        $subSql  = $this->compiledSalesIdSubquery($productName, $dateFrom, $dateTo, $statusFilter);
         $metrics = $this->getSaleMetricsBySaleIdsSubquery($subSql);
 
         foreach ($rows as &$row) {
@@ -42,7 +46,7 @@ class Sells extends BaseController
         unset($row);
 
         $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 0;
-        $summary    = $this->getSalesListSummary($productName, $dateFrom, $dateTo);
+        $summary    = $this->getSalesListSummary($productName, $dateFrom, $dateTo, $statusFilter);
 
         return $this->response->setJSON([
             'data'       => $rows,
@@ -66,14 +70,16 @@ class Sells extends BaseController
             return $this->response->setStatusCode(404)->setJSON(['message' => 'Sale not found.']);
         }
 
-        $items   = $this->getSaleItemsForSale($id);
-        $metrics = $this->getSaleMetricsForSale($id, (float) ($sale['grand_total'] ?? 0));
+        $items    = $this->getSaleItemsForSale($id);
+        $metrics  = $this->getSaleMetricsForSale($id, (float) ($sale['grand_total'] ?? 0));
+        $payments = $this->getSalePaymentsForSale($id, $sale);
 
         return $this->response->setJSON([
             'data' => [
-                'sale'    => $sale,
-                'items'   => $items,
-                'metrics' => $metrics,
+                'sale'     => $sale,
+                'items'    => $items,
+                'metrics'  => $metrics,
+                'payments' => $payments,
             ],
         ]);
     }
@@ -136,6 +142,10 @@ class Sells extends BaseController
 
             (new LedgerService())->deleteByReference($db, (string) ($sale['sale_no'] ?? ''));
 
+            if ($db->tableExists('sale_payments')) {
+                $db->table('sale_payments')->where('sale_id', $id)->delete();
+            }
+
             $saleModel->delete($id);
 
             if ($db->transStatus() === false) {
@@ -166,19 +176,13 @@ class Sells extends BaseController
         $saleDate     = (string) ($payload['sale_date'] ?? '');
         $customerName = trim((string) ($payload['customer_name'] ?? ''));
         $paymentMethod = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
+        $paymentsInput = $payload['payments'] ?? [];
         $currencyCode  = strtoupper(trim((string) ($payload['currency_code'] ?? '')));
         $items        = $payload['items'] ?? [];
 
         if ($warehouseId < 1 || $saleDate === '' || ! is_array($items) || $items === []) {
             return $this->response->setStatusCode(422)->setJSON([
                 'message' => 'warehouse_id, sale_date and at least one item are required.',
-            ]);
-        }
-
-        $allowedPaymentMethods = ['cash', 'bank_transfer', 'card', 'check', 'other'];
-        if (! in_array($paymentMethod, $allowedPaymentMethods, true)) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'message' => 'Invalid payment method.',
             ]);
         }
 
@@ -239,13 +243,24 @@ class Sells extends BaseController
         }
 
         $discountTotal = max(0, (float) ($payload['discount_total'] ?? 0));
-        $paidTotal     = (float) ($payload['paid_total'] ?? ($subTotal - $discountTotal));
-        if ($paidTotal < 0) {
-            $paidTotal = 0;
-        }
         if ($discountTotal > $subTotal) {
             $discountTotal = $subTotal;
-            $paidTotal     = 0;
+        }
+
+        $amountDue = round(max(0, $subTotal - $discountTotal), 2);
+        $payments  = $this->normalizeSalePayments($paymentsInput, $amountDue);
+        if ($payments === null) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => 'Invalid payment methods or amounts.',
+            ]);
+        }
+
+        $paidTotal    = round(array_sum(array_column($payments, 'amount')), 2);
+        $unpaidTotal  = round(max(0, $amountDue - $paidTotal), 2);
+        $saleStatus   = SaleStatus::fromPaymentBalance($amountDue, $paidTotal)->value;
+        $primaryPaymentMethod = (string) ($payments[0]['payment_method'] ?? $paymentMethod);
+        if ($primaryPaymentMethod === '' || ! $this->isValidPaymentMethod($primaryPaymentMethod)) {
+            $primaryPaymentMethod = 'cash';
         }
 
         $db->transBegin();
@@ -259,9 +274,24 @@ class Sells extends BaseController
                 'warehouse_id'   => $warehouseId,
                 'sub_total'      => $subTotal,
                 'discount_total' => $discountTotal,
-                'grand_total'    => $paidTotal,
-                'payment_method' => $paymentMethod,
+                'grand_total'    => $amountDue,
+                'paid_total'     => $paidTotal,
+                'unpaid_total'   => $unpaidTotal,
+                'payment_method' => $primaryPaymentMethod,
+                'status'         => $saleStatus,
             ]);
+
+            $salePaymentModel = new SalePaymentModel();
+            foreach ($payments as $payment) {
+                if ($db->tableExists('sale_payments')) {
+                    $salePaymentModel->createOne([
+                        'sale_id'        => $saleId,
+                        'payment_method' => $payment['payment_method'],
+                        'amount'         => $payment['amount'],
+                        'created_at'     => $this->normalizePaymentDateTime($saleDate),
+                    ]);
+                }
+            }
 
             foreach ($normalized as $item) {
                 $saleItemModel->createOne([
@@ -296,12 +326,13 @@ class Sells extends BaseController
 
             $ledger = new LedgerService();
             $ledgerCurrency = $currencyCode !== '' ? $currencyCode : null;
-            $ledger->recordSale(
+            $ledger->recordSaleWithBalance(
                 $db,
                 $saleNo,
                 $saleDate,
-                $paidTotal,
-                $paymentMethod,
+                $amountDue,
+                $payments,
+                $unpaidTotal,
                 'Sale ' . $saleNo,
                 $ledgerCurrency
             );
@@ -336,6 +367,124 @@ class Sells extends BaseController
         }
     }
 
+    public function addPayment(int $id): ResponseInterface
+    {
+        $payload = $this->request->getJSON(true);
+        if (! is_array($payload)) {
+            return $this->response->setStatusCode(400)->setJSON(['message' => 'Invalid JSON payload.']);
+        }
+
+        $saleModel = new SaleModel();
+        $sale      = $saleModel->find($id);
+
+        if ($sale === null) {
+            return $this->response->setStatusCode(404)->setJSON(['message' => 'Sale not found.']);
+        }
+
+        $status = strtolower(trim((string) ($sale['status'] ?? SaleStatus::Completed->value)));
+        if ($status === SaleStatus::Completed->value) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Sale is already fully paid.']);
+        }
+
+        $amountDue   = round((float) ($sale['grand_total'] ?? 0), 2);
+        $unpaidTotal = round((float) ($sale['unpaid_total'] ?? max(0, $amountDue - (float) ($sale['paid_total'] ?? 0))), 2);
+        if ($unpaidTotal <= 0) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'No unpaid balance on this sale.']);
+        }
+
+        $paymentsInput = $payload['payments'] ?? [];
+        if (! is_array($paymentsInput) || $paymentsInput === []) {
+            $method = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
+            $amount = round((float) ($payload['amount'] ?? 0), 2);
+            $paymentsInput = [
+                [
+                    'payment_method' => $method,
+                    'amount'         => $amount,
+                ],
+            ];
+        }
+
+        $payments = $this->normalizeSalePayments($paymentsInput, $unpaidTotal);
+        if ($payments === null) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid payment methods or amounts.']);
+        }
+
+        $paymentSum = round(array_sum(array_column($payments, 'amount')), 2);
+        if ($paymentSum <= 0) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Payment amount must be greater than 0.']);
+        }
+
+        $paymentDate = trim((string) ($payload['payment_date'] ?? $sale['sale_date'] ?? date('Y-m-d H:i:s')));
+        $db          = db_connect();
+        $db->transBegin();
+
+        try {
+            $salePaymentModel = new SalePaymentModel();
+            foreach ($payments as $payment) {
+                if ($db->tableExists('sale_payments')) {
+                    $salePaymentModel->createOne([
+                        'sale_id'        => $id,
+                        'payment_method' => $payment['payment_method'],
+                        'amount'         => $payment['amount'],
+                        'created_at'     => $this->normalizePaymentDateTime($paymentDate),
+                    ]);
+                }
+            }
+
+            $paidTotal   = round((float) ($sale['paid_total'] ?? 0) + $paymentSum, 2);
+            $newUnpaid   = round(max(0, $amountDue - $paidTotal), 2);
+            $saleStatus  = SaleStatus::fromPaymentBalance($amountDue, $paidTotal)->value;
+            $primaryMethod = (string) ($payments[0]['payment_method'] ?? $sale['payment_method'] ?? 'cash');
+
+            $saleModel->update($id, [
+                'paid_total'     => $paidTotal,
+                'unpaid_total'   => $newUnpaid,
+                'status'         => $saleStatus,
+                'payment_method' => $primaryMethod,
+            ]);
+
+            $ledger = new LedgerService();
+            $saleNo = (string) ($sale['sale_no'] ?? '');
+            foreach ($payments as $payment) {
+                $ledger->recordSaleReceivablePayment(
+                    $db,
+                    $saleNo,
+                    $paymentDate,
+                    $payment['amount'],
+                    $payment['payment_method'],
+                    'Sale payment ' . $saleNo
+                );
+            }
+
+            if ($db->transStatus() === false) {
+                throw new RuntimeException('Failed to record sale payment.');
+            }
+
+            $db->transCommit();
+
+            $updatedSale = $this->buildSalesListBuilder('', '', '')
+                ->where('sales.id', $id)
+                ->first();
+
+            return $this->response->setJSON([
+                'message' => 'Payment recorded successfully.',
+                'data'    => [
+                    'sale'     => $updatedSale,
+                    'payments' => $this->getSalePaymentsForSale($id, is_array($updatedSale) ? $updatedSale : $sale),
+                ],
+            ]);
+        } catch (Throwable $e) {
+            $db->transRollback();
+
+            $status = $e instanceof RuntimeException ? 422 : 500;
+
+            return $this->response->setStatusCode($status)->setJSON([
+                'message' => $e->getMessage() !== '' ? $e->getMessage() : 'Failed to record payment.',
+                'error'   => $e->getMessage(),
+            ]);
+        }
+    }
+
     /**
      * @return array{
      *     total_sales: int,
@@ -345,7 +494,7 @@ class Sells extends BaseController
      *     total_profit: float
      * }
      */
-    private function getSalesListSummary(string $productName, string $dateFrom, string $dateTo): array
+    private function getSalesListSummary(string $productName, string $dateFrom, string $dateTo, string $statusFilter = ''): array
     {
         $empty = [
             'total_sales'      => 0,
@@ -355,7 +504,7 @@ class Sells extends BaseController
             'total_profit'     => 0.0,
         ];
 
-        $subSql = $this->compiledSalesIdSubquery($productName, $dateFrom, $dateTo);
+        $subSql = $this->compiledSalesIdSubquery($productName, $dateFrom, $dateTo, $statusFilter);
         $db     = db_connect();
 
         $saleAgg = $db->query(
@@ -449,13 +598,14 @@ class Sells extends BaseController
             ->findAll();
     }
 
-    private function buildSalesListBuilder(string $productName, string $dateFrom, string $dateTo): SaleModel
+    private function buildSalesListBuilder(string $productName, string $dateFrom, string $dateTo, string $statusFilter = ''): SaleModel
     {
         return $this->applySalesListFilters(
             (new SaleModel())->select('sales.*, warehouses.name AS warehouse_name'),
             $productName,
             $dateFrom,
-            $dateTo
+            $dateTo,
+            $statusFilter
         );
     }
 
@@ -463,9 +613,14 @@ class Sells extends BaseController
         SaleModel $model,
         string $productName,
         string $dateFrom,
-        string $dateTo
+        string $dateTo,
+        string $statusFilter = ''
     ): SaleModel {
         $model->join('warehouses', 'warehouses.id = sales.warehouse_id', 'left');
+
+        if ($statusFilter !== '' && db_connect()->fieldExists('status', 'sales')) {
+            $model->where('sales.status', $statusFilter);
+        }
 
         if ($dateFrom !== '') {
             $model->where('DATE(sales.sale_date) >=', $dateFrom);
@@ -490,9 +645,9 @@ class Sells extends BaseController
         return $model;
     }
 
-    private function compiledSalesIdSubquery(string $productName, string $dateFrom, string $dateTo): string
+    private function compiledSalesIdSubquery(string $productName, string $dateFrom, string $dateTo, string $statusFilter = ''): string
     {
-        $model = $this->applySalesListFilters(new SaleModel(), $productName, $dateFrom, $dateTo);
+        $model = $this->applySalesListFilters(new SaleModel(), $productName, $dateFrom, $dateTo, $statusFilter);
 
         return $model->builder()->select('sales.id')->getCompiledSelect(false);
     }
@@ -501,14 +656,15 @@ class Sells extends BaseController
         string $productName,
         string $dateFrom,
         string $dateTo,
-        bool $grouped
+        bool $grouped,
+        string $statusFilter = ''
     ): int {
         if (! $grouped) {
-            return $this->buildSalesListBuilder($productName, $dateFrom, $dateTo)->countAllResults();
+            return $this->buildSalesListBuilder($productName, $dateFrom, $dateTo, $statusFilter)->countAllResults();
         }
 
         $db       = db_connect();
-        $subSql   = $this->compiledSalesIdSubquery($productName, $dateFrom, $dateTo);
+        $subSql   = $this->compiledSalesIdSubquery($productName, $dateFrom, $dateTo, $statusFilter);
         $countRow = $db->query("SELECT COUNT(*) AS aggregate FROM ({$subSql}) sale_ids")->getRow();
 
         return (int) ($countRow->aggregate ?? 0);
@@ -569,5 +725,186 @@ class Sells extends BaseController
     private function generateSaleNo(): string
     {
         return 'SO-' . date('Ymd-His') . '-' . random_int(100, 999);
+    }
+
+    /**
+     * @param array<string, mixed> $sale
+     *
+     * @return list<array{payment_method: string, payment_method_name: string, amount: float}>
+     */
+    private function getSalePaymentsForSale(int $saleId, array $sale): array
+    {
+        $db = db_connect();
+
+        if ($db->tableExists('sale_payments')) {
+            $rows = $db->table('sale_payments')
+                ->where('sale_id', $saleId)
+                ->orderBy('created_at', 'ASC')
+                ->orderBy('id', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            if ($rows !== []) {
+                return $this->formatSalePayments($rows);
+            }
+        }
+
+        $method = strtolower(trim((string) ($sale['payment_method'] ?? 'cash')));
+        $amount = round((float) ($sale['paid_total'] ?? $sale['grand_total'] ?? 0), 2);
+
+        if ($method === '' || $amount <= 0) {
+            return [];
+        }
+
+        return $this->formatSalePayments([
+            [
+                'payment_method' => $method,
+                'amount'         => $amount,
+                'created_at'     => $sale['sale_date'] ?? null,
+            ],
+        ]);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<array{payment_method: string, payment_method_name: string, amount: float, payment_date: string}>
+     */
+    private function formatSalePayments(array $rows): array
+    {
+        $nameMap = $this->paymentMethodNameMap();
+        $result  = [];
+
+        foreach ($rows as $row) {
+            $code = strtolower(trim((string) ($row['payment_method'] ?? '')));
+            if ($code === '') {
+                continue;
+            }
+
+            $result[] = [
+                'payment_method'      => $code,
+                'payment_method_name' => $nameMap[$code] ?? ucfirst(str_replace('_', ' ', $code)),
+                'amount'              => round((float) ($row['amount'] ?? 0), 2),
+                'payment_date'        => $this->formatPaymentDate($row['created_at'] ?? $row['payment_date'] ?? null),
+            ];
+        }
+
+        return $result;
+    }
+
+    private function formatPaymentDate(mixed $raw): string
+    {
+        $value = trim((string) $raw);
+        if ($value === '') {
+            return '';
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp !== false ? date('Y-m-d', $timestamp) : substr($value, 0, 10);
+    }
+
+    private function normalizePaymentDateTime(string $dateTime): string
+    {
+        $value = trim($dateTime);
+        if ($value === '') {
+            return date('Y-m-d H:i:s');
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+            return $value . ' 00:00:00';
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp !== false ? date('Y-m-d H:i:s', $timestamp) : date('Y-m-d H:i:s');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function paymentMethodNameMap(): array
+    {
+        $map = [];
+        $db  = db_connect();
+
+        if ($db->tableExists('payment_methods')) {
+            foreach ((new PaymentMethodModel())->listAll() as $row) {
+                $code = strtolower(trim((string) ($row['code'] ?? '')));
+                if ($code !== '') {
+                    $map[$code] = (string) ($row['name'] ?? $code);
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    private function isValidPaymentMethod(string $code): bool
+    {
+        $code = strtolower(trim($code));
+        if ($code === '') {
+            return false;
+        }
+
+        $legacy = ['cash', 'bank_transfer', 'card', 'check', 'other'];
+
+        if (db_connect()->tableExists('payment_methods')) {
+            return (new PaymentMethodModel())->findByCode($code) !== null
+                || in_array($code, $legacy, true);
+        }
+
+        return in_array($code, $legacy, true);
+    }
+
+    /**
+     * @param mixed $paymentsInput
+     *
+     * @return list<array{payment_method: string, amount: float}>|null
+     */
+    private function normalizeSalePayments($paymentsInput, float $maxAmount): ?array
+    {
+        $payments = [];
+
+        if (is_array($paymentsInput) && $paymentsInput !== []) {
+            foreach ($paymentsInput as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $method = strtolower(trim((string) ($row['payment_method'] ?? '')));
+                $amount = round((float) ($row['amount'] ?? 0), 2);
+                if ($method === '' || $amount <= 0) {
+                    continue;
+                }
+
+                if (! $this->isValidPaymentMethod($method)) {
+                    return null;
+                }
+
+                $payments[] = [
+                    'payment_method' => $method,
+                    'amount'         => $amount,
+                ];
+            }
+        }
+
+        $maxAmount = round(max(0, $maxAmount), 2);
+        $sum       = round(array_sum(array_column($payments, 'amount')), 2);
+
+        if ($sum > $maxAmount + 0.01) {
+            return null;
+        }
+
+        return $payments;
+    }
+
+    private function normalizeSaleStatusFilter(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return in_array($status, [SaleStatus::Incomplete->value, SaleStatus::Completed->value], true)
+            ? $status
+            : '';
     }
 }

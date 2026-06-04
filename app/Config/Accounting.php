@@ -12,6 +12,9 @@ class Accounting extends BaseConfig
     /** Inventory asset account (debited on purchase). */
     public string $inventoryAccount = '1200';
 
+    /** Customer balances for unpaid sale amounts (debited on partial sale). */
+    public string $accountsReceivableAccount = '1100';
+
     /** Sales revenue account (credited on sale). */
     public string $salesRevenueAccount = '4000';
 

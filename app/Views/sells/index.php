@@ -19,6 +19,13 @@
                             <div class="col-12 col-md-3">
                                 <input type="text" id="saleProductSearch" class="form-control" placeholder="Search by product name">
                             </div>
+                            <div class="col-12 col-md-3">
+                                <select id="saleStatusFilter" class="form-select">
+                                    <option value="">All statuses</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="incomplete">Incomplete (unpaid)</option>
+                                </select>
+                            </div>
                             <div class="col-12 col-md-6 d-flex align-items-center gap-2">
                                 <div id="saleDateFrom"></div>
                                 <span class="text-secondary">~</span>
@@ -61,7 +68,8 @@
             <div class="col-12 col-xl-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-body p-4">
-                        <div class="d-flex justify-content-end mb-4">
+                        <div class="d-flex justify-content-end gap-2 mb-4">
+                            <button type="button" id="addSalePaymentBtn" class="btn btn-sm btn-primary" style="display: none;">Add Payment</button>
                             <button type="button" id="deleteSaleBtn" class="btn btn-sm btn-outline-danger">Delete</button>
                         </div>
                         <div id="saleInfoPanel" class="border rounded bg-light p-3 mb-3 small">
@@ -92,8 +100,85 @@
                                 </div>
                             </div>
                         </div>
+                        <div id="salePaymentPanel" class="border rounded bg-light p-3 mb-3 small">
+                            <h3 class="h6 fw-semibold mb-2">Payment Details</h3>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Subtotal</span>
+                                    <div id="infoSubTotal" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Discount</span>
+                                    <div id="infoDiscount" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Grand Total</span>
+                                    <div id="infoGrandTotal" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Paid</span>
+                                    <div id="infoPaidTotal" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Unpaid</span>
+                                    <div id="infoUnpaidTotal" class="fw-semibold text-danger">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Status</span>
+                                    <div id="infoSaleStatus" class="fw-semibold">—</div>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0 bg-white">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Payment Method</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="salePaymentsBody">
+                                        <tr>
+                                            <td colspan="3" class="text-secondary">Select a sale to view payments.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                         <div id="saleItemsGrid"></div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addSalePaymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2 small">Sale: <span id="addPaymentSaleNo" class="fw-semibold">—</span></div>
+                    <div class="mb-2 small">Unpaid balance: <span id="addPaymentUnpaid" class="fw-semibold text-danger">0.00</span></div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary mb-1">Payment Date</label>
+                        <input type="date" id="addPaymentDate" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary mb-1">Payment Method</label>
+                        <select id="addPaymentMethod" class="form-select"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-secondary mb-1">Amount</label>
+                        <input type="number" id="addPaymentAmount" class="form-control text-end" min="0.01" step="0.01">
+                    </div>
+                    <div id="addPaymentError" class="text-danger small"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmAddSalePaymentBtn">Record Payment</button>
                 </div>
             </div>
         </div>
@@ -103,7 +188,8 @@
 <?= $this->section('pageScripts') ?>
 <script>
         const API_URLS = {
-            sales: "<?= site_url('api/sales') ?>"
+            sales: "<?= site_url('api/sales') ?>",
+            paymentMethods: "<?= site_url('api/payment-methods') ?>"
         };
         const SALE_PAGE_SIZE = 20;
         let saleListPage = 0;
@@ -111,6 +197,10 @@
         let saleListTotal = 0;
         let saleListLoading = false;
         let suppressSalePageEvent = false;
+        let paymentMethods = [];
+        let selectedSaleId = 0;
+        let selectedSaleUnpaid = 0;
+        let addSalePaymentModal = null;
 
         const salesGridSource = {
             localdata: [],
@@ -123,7 +213,10 @@
                 { name: "customer_name", type: "string" },
                 { name: "warehouse_name", type: "string" },
                 { name: "grand_total", type: "number" },
-                { name: "sub_total", type: "number" }
+                { name: "sub_total", type: "number" },
+                { name: "paid_total", type: "number" },
+                { name: "unpaid_total", type: "number" },
+                { name: "status", type: "string" }
             ]
         };
         let salesGridAdapter = null;
@@ -146,16 +239,108 @@
             $("#saleFilterError").text(msg || "");
         }
 
+        function formatSaleStatus(status) {
+            const value = String(status || "").toLowerCase();
+            if (value === "completed") {
+                return "Completed";
+            }
+            if (value === "incomplete") {
+                return "Incomplete";
+            }
+            return "—";
+        }
+
         function clearSaleInfo() {
+            selectedSaleId = 0;
+            selectedSaleUnpaid = 0;
+            $("#addSalePaymentBtn").hide();
             $("#infoWarehouse").text("—");
             $("#infoSaleDate").text("—");
             $("#infoCustomer").text("—");
             $("#infoTotalAmount").text("—");
             $("#infoTotalCost").text("—");
             $("#infoProfit").text("—");
+            $("#infoSubTotal").text("—");
+            $("#infoDiscount").text("—");
+            $("#infoGrandTotal").text("—");
+            $("#infoPaidTotal").text("—");
+            $("#infoUnpaidTotal").text("—");
+            $("#infoSaleStatus").text("—");
+            renderSalePayments([]);
         }
 
-        function setSaleInfo(sale, metrics) {
+        function formatPaymentDate(value) {
+            const text = String(value || "").trim();
+            if (text === "") {
+                return "—";
+            }
+            return text.length >= 10 ? text.slice(0, 10) : text;
+        }
+
+        function formatPaymentMethodLabel(code, name) {
+            const label = String(name || "").trim();
+            if (label !== "") {
+                return label;
+            }
+            return String(code || "")
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, ch => ch.toUpperCase()) || "—";
+        }
+
+        function renderSalePayments(payments) {
+            const rows = payments || [];
+            const $body = $("#salePaymentsBody").empty();
+
+            if (rows.length === 0) {
+                $body.append(`
+                    <tr>
+                        <td colspan="3" class="text-secondary">No payment details.</td>
+                    </tr>
+                `);
+                return;
+            }
+
+            rows.forEach(function (row) {
+                $body.append(`
+                    <tr>
+                        <td>${formatPaymentDate(row.payment_date)}</td>
+                        <td>${formatPaymentMethodLabel(row.payment_method, row.payment_method_name)}</td>
+                        <td class="text-end fw-semibold">${formatMoney(row.amount)}</td>
+                    </tr>
+                `);
+            });
+        }
+
+        function setSalePaymentSummary(sale) {
+            if (!sale) {
+                $("#infoSubTotal").text("—");
+                $("#infoDiscount").text("—");
+                $("#infoGrandTotal").text("—");
+                $("#infoPaidTotal").text("—");
+                $("#infoUnpaidTotal").text("—");
+                $("#infoSaleStatus").text("—");
+                return;
+            }
+
+            const unpaid = Number(sale.unpaid_total ?? Math.max(0, Number(sale.grand_total || 0) - Number(sale.paid_total || 0)));
+
+            $("#infoSubTotal").text(formatMoney(sale.sub_total));
+            $("#infoDiscount").text(formatMoney(sale.discount_total));
+            $("#infoGrandTotal").text(formatMoney(sale.grand_total));
+            $("#infoPaidTotal").text(formatMoney(sale.paid_total));
+            $("#infoUnpaidTotal").text(formatMoney(unpaid));
+            $("#infoSaleStatus").text(formatSaleStatus(sale.status));
+
+            selectedSaleId = Number(sale.id || 0);
+            selectedSaleUnpaid = unpaid;
+            if (String(sale.status || "").toLowerCase() === "incomplete" && unpaid > 0.009) {
+                $("#addSalePaymentBtn").show();
+            } else {
+                $("#addSalePaymentBtn").hide();
+            }
+        }
+
+        function setSaleInfo(sale, metrics, payments) {
             if (!sale) {
                 clearSaleInfo();
                 return;
@@ -168,6 +353,10 @@
             $("#infoTotalAmount").text(formatMoney(m.total_amount ?? sale.grand_total));
             $("#infoTotalCost").text(formatMoney(m.total_cost));
             $("#infoProfit").text(formatMoney(m.total_profit));
+            setSalePaymentSummary(sale);
+            if (payments !== undefined) {
+                renderSalePayments(payments);
+            }
         }
 
         function getDateFilterValue(selector) {
@@ -196,8 +385,96 @@
             if (dateTo) {
                 params.date_to = dateTo;
             }
+            const status = String($("#saleStatusFilter").val() || "").trim();
+            if (status !== "") {
+                params.status = status;
+            }
 
             return params;
+        }
+
+        function loadPaymentMethods() {
+            return $.getJSON(API_URLS.paymentMethods).done(function (res) {
+                paymentMethods = (res.data || []).filter(row => Number(row.is_active ?? 1) === 1);
+                const $select = $("#addPaymentMethod").empty();
+                paymentMethods.forEach(function (row) {
+                    const code = String(row.code || "");
+                    const name = String(row.name || code);
+                    $select.append(`<option value="${code}">${name}</option>`);
+                });
+                if ($select.children().length === 0) {
+                    $select.append('<option value="cash">Cash</option><option value="bank_transfer">Bank Transfer</option>');
+                }
+            });
+        }
+
+        function openAddPaymentModal() {
+            if (!selectedSaleId || selectedSaleUnpaid <= 0) {
+                setFilterError("Select an incomplete sale with unpaid balance.");
+                return;
+            }
+
+            const rowIndex = $("#salesGrid").jqxGrid("getselectedrowindex");
+            const row = rowIndex >= 0 ? $("#salesGrid").jqxGrid("getrowdata", rowIndex) : null;
+
+            $("#addPaymentSaleNo").text(row?.sale_no || ("#" + selectedSaleId));
+            $("#addPaymentUnpaid").text(formatMoney(selectedSaleUnpaid));
+            $("#addPaymentAmount").attr("max", selectedSaleUnpaid).val(selectedSaleUnpaid.toFixed(2));
+            $("#addPaymentError").text("");
+
+            const saleDate = String(row?.sale_date || "").slice(0, 10);
+            $("#addPaymentDate").val(saleDate || new Date().toISOString().slice(0, 10));
+
+            if (addSalePaymentModal) {
+                addSalePaymentModal.show();
+            }
+        }
+
+        function submitAddSalePayment() {
+            const amount = Number($("#addPaymentAmount").val() || 0);
+            const method = String($("#addPaymentMethod").val() || "cash");
+            const paymentDate = String($("#addPaymentDate").val() || "");
+
+            if (!selectedSaleId) {
+                $("#addPaymentError").text("No sale selected.");
+                return;
+            }
+            if (amount <= 0) {
+                $("#addPaymentError").text("Enter a payment amount greater than 0.");
+                return;
+            }
+            if (amount > selectedSaleUnpaid + 0.01) {
+                $("#addPaymentError").text("Amount cannot exceed the unpaid balance.");
+                return;
+            }
+
+            $("#addPaymentError").text("");
+            $("#confirmAddSalePaymentBtn").prop("disabled", true);
+
+            $.ajax({
+                url: `${API_URLS.sales}/${selectedSaleId}/payments`,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    payment_method: method,
+                    amount: amount,
+                    payment_date: paymentDate
+                })
+            }).done(function () {
+                if (addSalePaymentModal) {
+                    addSalePaymentModal.hide();
+                }
+                setFilterError("");
+                const saleId = selectedSaleId;
+                loadSales(saleListPage, saleListPageSize, false);
+                if (saleId) {
+                    loadSaleItems(saleId);
+                }
+            }).fail(function (xhr) {
+                $("#addPaymentError").text(xhr.responseJSON?.message || "Failed to record payment.");
+            }).always(function () {
+                $("#confirmAddSalePaymentBtn").prop("disabled", false);
+            });
         }
 
         function initWidgets() {
@@ -225,11 +502,18 @@
                 source: salesGridAdapter,
                 columns: [
                     { text: "ID", datafield: "id", width: 50 },
-                    { text: "Sale No", datafield: "sale_no", width: 180 },
+                    { text: "Sale No", datafield: "sale_no", width: 160 },
                     { text: "Date", datafield: "sale_date", width: 100 },
-                    { text: "Warehouse", datafield: "warehouse_name", width: 120 },
-                    { text: "Grand Total", datafield: "grand_total", cellsformat: "f2", cellsalign: "right" },
-                    { text: "Customer", datafield: "customer_name", width: 120 }
+                    { text: "Status", datafield: "status", width: 95, cellsrenderer: function (row, column, value) {
+                        const label = formatSaleStatus(value);
+                        const cls = String(value || "").toLowerCase() === "incomplete" ? "text-danger fw-semibold" : "text-success";
+                        return `<div class="d-flex align-items-center h-100 px-1 ${cls}">${label}</div>`;
+                    }},
+                    { text: "Warehouse", datafield: "warehouse_name", width: 110 },
+                    { text: "Grand Total", datafield: "grand_total", width: 95, cellsformat: "f2", cellsalign: "right" },
+                    { text: "Paid", datafield: "paid_total", width: 80, cellsformat: "f2", cellsalign: "right" },
+                    { text: "Unpaid", datafield: "unpaid_total", width: 80, cellsformat: "f2", cellsalign: "right" },
+                    { text: "Customer", datafield: "customer_name", width: 110 }
                 ]
             });
 
@@ -341,14 +625,17 @@
                     total_amount: saleRow.grand_total,
                     total_cost: saleRow.total_cost,
                     total_profit: saleRow.total_profit
-                });
+                }, []);
             }
 
             $.getJSON(`${API_URLS.sales}/${saleId}`).done(function (res) {
                 const sale = res.data?.sale;
                 const metrics = res.data?.metrics;
+                const payments = res.data?.payments || [];
                 if (sale) {
-                    setSaleInfo(sale, metrics);
+                    setSaleInfo(sale, metrics, payments);
+                } else {
+                    renderSalePayments(payments);
                 }
 
                 const items = (res.data?.items || []).map(item => ({
@@ -375,6 +662,7 @@
 
         function clearFilters() {
             $("#saleProductSearch").val("");
+            $("#saleStatusFilter").val("");
             $("#saleDateFrom").jqxDateTimeInput("val", null);
             $("#saleDateTo").jqxDateTimeInput("val", null);
             loadSales(0, saleListPageSize, true);
@@ -411,6 +699,8 @@
 
         $(function () {
             initWidgets();
+            loadPaymentMethods();
+            addSalePaymentModal = new bootstrap.Modal(document.getElementById("addSalePaymentModal"));
             clearSaleInfo();
             renderSaleSummary(null);
             loadSales(0, SALE_PAGE_SIZE, true);
@@ -419,6 +709,11 @@
                 loadSales(0, saleListPageSize, true);
             });
             $("#clearSaleFiltersBtn").on("click", clearFilters);
+            $("#saleStatusFilter").on("change", function () {
+                loadSales(0, saleListPageSize, true);
+            });
+            $("#addSalePaymentBtn").on("click", openAddPaymentModal);
+            $("#confirmAddSalePaymentBtn").on("click", submitAddSalePayment);
             $("#saleProductSearch").on("keydown", function (e) {
                 if (e.key === "Enter") {
                     e.preventDefault();

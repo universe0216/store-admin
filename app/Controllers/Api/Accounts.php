@@ -55,7 +55,17 @@ class Accounts extends BaseController
         }
 
         $validated['created_at'] = date('Y-m-d H:i:s');
-        $id = $model->createOne($validated);
+
+        try {
+            $id = $model->createOne($validated);
+        } catch (\Throwable $e) {
+            log_message('error', 'Account create failed: {message}', ['message' => $e->getMessage()]);
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'message' => 'Failed to save account.',
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
         return $this->response->setStatusCode(201)->setJSON([
             'message' => 'Account created successfully.',
@@ -81,7 +91,16 @@ class Accounts extends BaseController
             return $validated;
         }
 
-        $model->updateOne($id, $validated);
+        try {
+            $model->updateOne($id, $validated);
+        } catch (\Throwable $e) {
+            log_message('error', 'Account update failed: {message}', ['message' => $e->getMessage()]);
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'message' => 'Failed to save account.',
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
         return $this->response->setJSON(['message' => 'Account updated successfully.']);
     }

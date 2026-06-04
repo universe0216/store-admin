@@ -325,7 +325,9 @@ use App\Models\AccountModel;
                 loadAccounts();
                 resetForm();
             }).fail(function(xhr) {
-                setMessage(xhr.responseJSON?.message || "Failed to save account.", true);
+                const base = xhr.responseJSON?.message || "Failed to save account.";
+                const detail = xhr.responseJSON?.error ? ` (${xhr.responseJSON.error})` : "";
+                setMessage(base + detail, true);
             });
         });
 

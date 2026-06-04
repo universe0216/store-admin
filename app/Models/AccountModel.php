@@ -8,7 +8,7 @@ class AccountModel extends BaseModel
     protected $primaryKey       = 'id';
     protected $returnType       = 'array';
     protected $protectFields    = true;
-    protected $allowedFields    = ['code', 'name', 'account_type', 'tags', 'currency_code', 'is_active', 'created_at'];
+    protected $allowedFields    = ['code', 'name', 'account_type', 'tags', 'tag', 'currency_code', 'is_active', 'created_at'];
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
 
@@ -16,7 +16,7 @@ class AccountModel extends BaseModel
 
     /** @var array<string, string> */
     protected array $casts = [
-        'tags' => 'json',
+        'tags' => '?json',
     ];
 
     /** @var list<string> */
@@ -111,5 +111,54 @@ class AccountModel extends BaseModel
         return $this->db->table('transactions')
             ->where('account_code', $code)
             ->countAllResults() > 0;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function createOne(array $data): int
+    {
+        $this->insert($this->mapTagsForDatabase($data));
+
+        return (int) $this->getInsertID();
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function updateOne(int|string $id, array $data): bool
+    {
+        return (bool) $this->update($id, $this->mapTagsForDatabase($data));
+    }
+
+    /**
+     * Map tags payload to the column that exists on this database (tags JSON or legacy tag).
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function mapTagsForDatabase(array $data): array
+    {
+        if (! array_key_exists('tags', $data)) {
+            return $data;
+        }
+
+        $tags = self::normalizeTags($data['tags']);
+        unset($data['tags'], $data['tag']);
+
+        if ($this->db->fieldExists('tags', $this->table)) {
+            $data['tags'] = $tags;
+
+            return $data;
+        }
+
+        if ($this->db->fieldExists('tag', $this->table)) {
+            $data['tag'] = $tags[0];
+
+            return $data;
+        }
+
+        return $data;
     }
 }
