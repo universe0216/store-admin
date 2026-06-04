@@ -278,7 +278,7 @@ class Purchases extends BaseController
         $notes          = (string) ($payload['notes'] ?? '');
         $transferFee    = max(0, (float) ($payload['transfer_fee'] ?? 0));
         $shippingFee    = max(0, (float) ($payload['shipping_fee'] ?? 0));
-        $headerDiscount = max(0, (float) ($payload['discount_total'] ?? 0));
+        $headerDiscount = (float) ($payload['discount_total'] ?? 0);
         $paidTotalInput = (float) ($payload['paid_total'] ?? 0);
         $paymentMethod  = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
         $items          = $payload['items'] ?? [];
@@ -410,10 +410,7 @@ class Purchases extends BaseController
             $subTotal += (float) ($item['line_total'] ?? 0);
         }
         $subTotal      = round($subTotal, 2);
-        $discountTotal = max(0, $headerDiscount);
-        if ($discountTotal <= 0 && $paidTotalInput > 0) {
-            $discountTotal = max(0, round($subTotal - min($paidTotalInput, $subTotal), 2));
-        }
+        $discountTotal = round($headerDiscount, 2);
         $paidTotal  = $paidTotalInput > 0
             ? max(0, round($paidTotalInput, 2))
             : max(0, round($subTotal, 2));

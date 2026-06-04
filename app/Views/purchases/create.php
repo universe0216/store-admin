@@ -950,7 +950,7 @@ use App\Enums\Season;
         }
 
         function allocatePurchaseItemCosts(rows, discountTotal, shippingFee) {
-            const discount = Math.max(0, Number(discountTotal || 0));
+            const discount = Number(discountTotal || 0);
             const shipping = Math.max(0, Number(shippingFee || 0));
             const transferFee = 0;
             const weighted = rows.map(function (row) {
@@ -1010,13 +1010,7 @@ use App\Enums\Season;
                     + perUnitShipping
                     + perUnitTransfer
                 ).toFixed(4));
-                const setsCount = Number(entry.row.sets_count || 0);
-                const sizeCount = String(entry.row.size_value || "")
-                    .split(",")
-                    .map(function (v) { return v.trim(); })
-                    .filter(function (v) { return v !== ""; }).length;
-                const variantQty = setsCount > 0 ? setsCount : Number(entry.row.qty || 0);
-                const lineQty = variantQty * (sizeCount > 0 ? sizeCount : 1);
+                const lineQty = Math.max(Number(entry.row.units_count || 0), 0);
                 const lineTotal = Number((unitCost * lineQty).toFixed(2));
 
                 return {
@@ -1025,7 +1019,7 @@ use App\Enums\Season;
                         .split(",")
                         .map(function (v) { return v.trim(); })
                         .filter(function (v) { return v !== ""; }),
-                    sets_count: setsCount,
+                    sets_count: Number(entry.row.sets_count || 0),
                     qty: Number(entry.row.units_count || 0),
                     warehouse_id: Number(entry.row.warehouse_id || 0),
                     unit_price: entry.unitPrice,
@@ -1043,16 +1037,7 @@ use App\Enums\Season;
             });
         }
 
-        function refreshGridUnitCosts() {
-            const rows = $("#itemsGrid").jqxGrid("getrows") || [];
-            if (rows.length === 0) {
-                return;
-            }
-
-            const discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
-            const shipping = Math.max(Number($("#shippingFeeInput").jqxNumberInput("val") || 0), 0);
-            const allocated = allocatePurchaseItemCosts(rows, discount, shipping);
-
+        function applyAllocatedCostsToGrid(rows, allocated) {
             rows.forEach(function (row, index) {
                 const item = allocated[index];
                 if (!item) {
@@ -1073,6 +1058,7 @@ use App\Enums\Season;
             }
 
             const { subTotal, shippingFee } = getPurchaseBaseAmount();
+            const rows = $("#itemsGrid").jqxGrid("getrows") || [];
             totalsCalcLock = true;
 
             let discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
@@ -1091,28 +1077,27 @@ use App\Enums\Season;
                 $("#paidAmountInput").jqxNumberInput("val", paid);
             }
 
-            refreshGridUnitCosts();
+            if (rows.length > 0) {
+                const allocated = allocatePurchaseItemCosts(rows, discount, shippingFee);
+                applyAllocatedCostsToGrid(rows, allocated);
+            }
 
             const gridTotals = getGridTotals();
+            const grandTotal = Number((Math.max(0, paid) + shippingFee).toFixed(2));
+
             $("#subTotalDisplay").text(subTotal.toFixed(2));
             $("#referenceSubTotalDisplay").text(gridTotals.referenceTotalSum.toFixed(2));
             $("#referenceSubTotalLabel").text(gridTotals.referenceCurrency);
-
-            const inventorySubTotal = (allocatePurchaseItemCosts(
-                $("#itemsGrid").jqxGrid("getrows") || [],
-                discount,
-                shippingFee
-            )).reduce(function (sum, item) {
-                return sum + Number(item.line_total || 0);
-            }, 0);
-            const grandTotal = Number((Math.max(0, paid) + shippingFee).toFixed(2));
             $("#grandTotalDisplay").text(grandTotal.toFixed(2));
+            $("#itemsGridTotalsFooter").text(
+                `Total Counts: ${gridTotals.totalCount} | Sum Total Cost: ${gridTotals.totalCostSum.toFixed(2)}`
+            );
 
             totalsCalcLock = false;
 
             return {
                 subTotal,
-                inventorySubTotal: Number(inventorySubTotal.toFixed(2)),
+                totalCostSum: gridTotals.totalCostSum,
                 referenceSubTotal: gridTotals.referenceTotalSum,
                 referenceCurrency: gridTotals.referenceCurrency,
                 shippingFee,
