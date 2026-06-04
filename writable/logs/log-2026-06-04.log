@@ -543,3 +543,15 @@ in APPPATH\Controllers\Api\StockMovements.php on line 101.
  6 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
  7 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
  8 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-06-04 16:00:42 --> CodeIgniter\Exceptions\BadMethodCallException: Call to undefined method App\Models\DashboardModel::completedSalesFilter
+[Method: GET, Route: api/dashboard]
+in SYSTEMPATH\Model.php on line 761.
+ 1 APPPATH\Models\DashboardModel.php(350): CodeIgniter\Model->__call('completedSalesFilter', [...])
+ 2 APPPATH\Models\DashboardModel.php(41): App\Models\DashboardModel->paymentMethodBreakdown(Object(CodeIgniter\Database\MySQLi\Connection), '2026-06-01', '2026-06-05')
+ 3 APPPATH\Controllers\Api\Dashboard.php(13): App\Models\DashboardModel->getMetrics()
+ 4 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Api\Dashboard->index()
+ 5 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Api\Dashboard))
+ 6 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))

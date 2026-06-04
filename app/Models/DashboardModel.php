@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Gender;
 use CodeIgniter\Database\BaseConnection;
 
 class DashboardModel extends BaseModel
@@ -18,6 +19,10 @@ class DashboardModel extends BaseModel
     {
         $db = $this->db;
 
+        if (! $db->tableExists('sales')) {
+            return $this->emptyMetrics();
+        }
+
         $mtdStart     = date('Y-m-01');
         $mtdEnd       = date('Y-m-d', strtotime('+1 day'));
         $prevMtdStart = date('Y-m-01', strtotime('-1 month'));
@@ -32,6 +37,7 @@ class DashboardModel extends BaseModel
                 'revenue_trend'       => $this->monthlyRevenueProfit($db, (int) date('Y')),
                 'sales_by_warehouse'  => $this->salesByWarehouse($db, $mtdStart, $mtdEnd),
                 'revenue_by_category' => $this->revenueByCategory($db, $mtdStart, $mtdEnd),
+                'sales_by_gender'     => $this->salesByGender($db, $mtdStart, $mtdEnd),
                 'payment_methods'     => $this->paymentMethodBreakdown($db, $mtdStart, $mtdEnd),
                 'orders_by_week'      => $this->weeklyOrdersAndUnits($db, 6),
                 'top_products'        => $this->topProducts($db, $mtdStart, $mtdEnd, 5),
@@ -40,6 +46,46 @@ class DashboardModel extends BaseModel
                 'weekly_margin'       => $this->weeklyRevenueCost($db, 4),
             ],
         ];
+    }
+
+    /**
+     * @return array{kpis: array<string, mixed>, charts: array<string, mixed>}
+     */
+    private function emptyMetrics(): array
+    {
+        $emptyPeriod = [
+            'revenue'           => 0.0,
+            'orders'            => 0,
+            'units'             => 0,
+            'cost'              => 0.0,
+            'profit'            => 0.0,
+            'avg_order_value'   => 0.0,
+            'profit_margin_pct' => 0.0,
+        ];
+
+        return [
+            'kpis'   => $this->buildKpis($emptyPeriod, $emptyPeriod),
+            'charts' => [
+                'revenue_trend'       => ['labels' => [], 'revenue' => [], 'profit' => []],
+                'sales_by_warehouse'  => ['labels' => [], 'data' => []],
+                'revenue_by_category' => ['labels' => [], 'data' => []],
+                'sales_by_gender'     => ['labels' => [], 'data' => []],
+                'payment_methods'     => ['labels' => [], 'data' => []],
+                'orders_by_week'      => ['labels' => [], 'orders' => [], 'units' => []],
+                'top_products'        => ['labels' => [], 'data' => []],
+                'daily_activity'      => ['labels' => [], 'revenue' => [], 'orders' => []],
+                'category_scorecard'  => [
+                    'labels'   => ['Margin', 'Units sold', 'Revenue share', 'Velocity', 'Growth'],
+                    'datasets' => [],
+                ],
+                'weekly_margin' => ['labels' => [], 'revenue' => [], 'cost' => []],
+            ],
+        ];
+    }
+
+    private function saleDateWhere(string $alias): string
+    {
+        return "DATE({$alias}.sale_date) >= ? AND DATE({$alias}.sale_date) < ?";
     }
 
     /**
@@ -55,9 +101,30 @@ class DashboardModel extends BaseModel
      */
     private function periodSummary(BaseConnection $db, string $startDate, string $endDate): array
     {
+        if (! $db->tableExists('sale_items')) {
+            $saleRow = $db->query(
+                'SELECT COUNT(*) AS orders, COALESCE(SUM(grand_total), 0) AS revenue ' .
+                'FROM sales WHERE ' . $this->saleDateWhere('sales'),
+                [$startDate, $endDate]
+            )->getRowArray();
+
+            $revenue = (float) ($saleRow['revenue'] ?? 0);
+            $orders  = (int) ($saleRow['orders'] ?? 0);
+
+            return [
+                'revenue'             => $revenue,
+                'orders'              => $orders,
+                'units'               => 0,
+                'cost'                => 0.0,
+                'profit'              => $revenue,
+                'avg_order_value'     => $orders > 0 ? $revenue / $orders : 0.0,
+                'profit_margin_pct'   => $revenue > 0 ? 100.0 : 0.0,
+            ];
+        }
+
         $saleRow = $db->query(
             'SELECT COUNT(*) AS orders, COALESCE(SUM(grand_total), 0) AS revenue ' .
-            'FROM sales WHERE sale_date >= ? AND sale_date < ?',
+            'FROM sales WHERE ' . $this->saleDateWhere('sales'),
             [$startDate, $endDate]
         )->getRowArray();
 
@@ -67,7 +134,7 @@ class DashboardModel extends BaseModel
             'FROM sale_items si ' .
             'INNER JOIN sales s ON s.id = si.sale_id ' .
             'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
-            'WHERE s.sale_date >= ? AND s.sale_date < ?',
+            'WHERE ' . $this->saleDateWhere('s'),
             [$startDate, $endDate]
         )->getRowArray();
 
@@ -134,21 +201,24 @@ class DashboardModel extends BaseModel
 
         $revenueRows = $db->query(
             'SELECT MONTH(sale_date) AS month_num, COALESCE(SUM(grand_total), 0) AS revenue ' .
-            'FROM sales WHERE sale_date >= ? AND sale_date < ? ' .
+            'FROM sales WHERE ' . $this->saleDateWhere('sales') . ' ' .
             'GROUP BY MONTH(sale_date)',
             [$start, $end]
         )->getResultArray();
 
-        $profitRows = $db->query(
-            'SELECT MONTH(s.sale_date) AS month_num, ' .
-            'COALESCE(SUM(si.line_total), 0) - COALESCE(SUM(si.qty * pv.cost_price), 0) AS profit ' .
-            'FROM sale_items si ' .
-            'INNER JOIN sales s ON s.id = si.sale_id ' .
-            'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
-            'WHERE s.sale_date >= ? AND s.sale_date < ? ' .
-            'GROUP BY MONTH(s.sale_date)',
-            [$start, $end]
-        )->getResultArray();
+        $profitRows = [];
+        if ($db->tableExists('sale_items')) {
+            $profitRows = $db->query(
+                'SELECT MONTH(s.sale_date) AS month_num, ' .
+                'COALESCE(SUM(si.line_total), 0) - COALESCE(SUM(si.qty * pv.cost_price), 0) AS profit ' .
+                'FROM sale_items si ' .
+                'INNER JOIN sales s ON s.id = si.sale_id ' .
+                'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
+                'WHERE ' . $this->saleDateWhere('s') . ' ' .
+                'GROUP BY MONTH(s.sale_date)',
+                [$start, $end]
+            )->getResultArray();
+        }
 
         $byMonth = [];
         foreach ($revenueRows as $row) {
@@ -177,11 +247,15 @@ class DashboardModel extends BaseModel
      */
     private function salesByWarehouse(BaseConnection $db, string $startDate, string $endDate): array
     {
+        if (! $db->fieldExists('warehouse_id', 'sales') || ! $db->tableExists('warehouses')) {
+            return ['labels' => [], 'data' => []];
+        }
+
         $rows = $db->query(
             'SELECT COALESCE(w.name, "Unassigned") AS label, COALESCE(SUM(s.grand_total), 0) AS amount ' .
             'FROM sales s ' .
             'LEFT JOIN warehouses w ON w.id = s.warehouse_id ' .
-            'WHERE s.sale_date >= ? AND s.sale_date < ? ' .
+            'WHERE ' . $this->saleDateWhere('s') . ' ' .
             'GROUP BY s.warehouse_id, w.name ' .
             'ORDER BY amount DESC',
             [$startDate, $endDate]
@@ -193,8 +267,64 @@ class DashboardModel extends BaseModel
     /**
      * @return array{labels: list<string>, data: list<float>}
      */
+    private function salesByGender(BaseConnection $db, string $startDate, string $endDate): array
+    {
+        if (! $db->tableExists('sale_items')
+            || ! $db->fieldExists('gender', 'products')) {
+            return ['labels' => [], 'data' => []];
+        }
+
+        $rows = $db->query(
+            'SELECT COALESCE(NULLIF(TRIM(p.gender), ""), "unspecified") AS gender_key, ' .
+            'COALESCE(SUM(si.line_total), 0) AS amount ' .
+            'FROM sale_items si ' .
+            'INNER JOIN sales s ON s.id = si.sale_id ' .
+            'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
+            'INNER JOIN products p ON p.id = pv.product_id ' .
+            'WHERE ' . $this->saleDateWhere('s') . ' ' .
+            'GROUP BY p.gender ' .
+            'ORDER BY amount DESC',
+            [$startDate, $endDate]
+        )->getResultArray();
+
+        $labels = [];
+        $data   = [];
+
+        foreach ($rows as $row) {
+            $labels[] = $this->genderLabel((string) ($row['gender_key'] ?? ''));
+            $data[]   = (float) ($row['amount'] ?? 0);
+        }
+
+        if ($labels === []) {
+            return ['labels' => [], 'data' => []];
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
+    private function genderLabel(string $value): string
+    {
+        $value = strtolower(trim($value));
+        if ($value === '' || $value === 'unspecified') {
+            return 'Unspecified';
+        }
+
+        if (! Gender::isValid($value)) {
+            return ucfirst($value);
+        }
+
+        return Gender::from($value)->label();
+    }
+
+    /**
+     * @return array{labels: list<string>, data: list<float>}
+     */
     private function revenueByCategory(BaseConnection $db, string $startDate, string $endDate): array
     {
+        if (! $db->tableExists('sale_items')) {
+            return ['labels' => [], 'data' => []];
+        }
+
         $rows = $db->query(
             'SELECT COALESCE(c.name, "Uncategorized") AS label, COALESCE(SUM(si.line_total), 0) AS amount ' .
             'FROM sale_items si ' .
@@ -202,7 +332,7 @@ class DashboardModel extends BaseModel
             'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
             'INNER JOIN products p ON p.id = pv.product_id ' .
             'LEFT JOIN categories c ON c.id = p.category_id ' .
-            'WHERE s.sale_date >= ? AND s.sale_date < ? ' .
+            'WHERE ' . $this->saleDateWhere('s') . ' ' .
             'GROUP BY p.category_id, c.name ' .
             'ORDER BY amount DESC ' .
             'LIMIT 8',
@@ -217,10 +347,24 @@ class DashboardModel extends BaseModel
      */
     private function paymentMethodBreakdown(BaseConnection $db, string $startDate, string $endDate): array
     {
+        if ($db->tableExists('sale_payments')) {
+            $rows = $db->query(
+                'SELECT COALESCE(NULLIF(TRIM(sp.payment_method), ""), "other") AS label, COUNT(*) AS cnt ' .
+                'FROM sale_payments sp ' .
+                'INNER JOIN sales s ON s.id = sp.sale_id ' .
+                'WHERE ' . $this->saleDateWhere('s') . ' ' .
+                'GROUP BY sp.payment_method ' .
+                'ORDER BY cnt DESC',
+                [$startDate, $endDate]
+            )->getResultArray();
+
+            return $this->labelsAndValues($rows, 'label', 'cnt', true);
+        }
+
         $rows = $db->query(
-            'SELECT COALESCE(NULLIF(TRIM(payment_method), ""), "Other") AS label, COUNT(*) AS cnt ' .
+            'SELECT COALESCE(NULLIF(TRIM(payment_method), ""), "other") AS label, COUNT(*) AS cnt ' .
             'FROM sales ' .
-            'WHERE sale_date >= ? AND sale_date < ? ' .
+            'WHERE ' . $this->saleDateWhere('sales') . ' ' .
             'GROUP BY payment_method ' .
             'ORDER BY cnt DESC',
             [$startDate, $endDate]
@@ -244,17 +388,20 @@ class DashboardModel extends BaseModel
             $label = 'W' . ($weeks - $i);
 
             $saleRow = $db->query(
-                'SELECT COUNT(*) AS orders FROM sales WHERE sale_date >= ? AND sale_date < ?',
+                'SELECT COUNT(*) AS orders FROM sales WHERE ' . $this->saleDateWhere('sales'),
                 [$start->format('Y-m-d'), $end->format('Y-m-d')]
             )->getRowArray();
 
-            $unitRow = $db->query(
-                'SELECT COALESCE(SUM(si.qty), 0) AS units ' .
-                'FROM sale_items si ' .
-                'INNER JOIN sales s ON s.id = si.sale_id ' .
-                'WHERE s.sale_date >= ? AND s.sale_date < ?',
-                [$start->format('Y-m-d'), $end->format('Y-m-d')]
-            )->getRowArray();
+            $unitRow = ['units' => 0];
+            if ($db->tableExists('sale_items')) {
+                $unitRow = $db->query(
+                    'SELECT COALESCE(SUM(si.qty), 0) AS units ' .
+                    'FROM sale_items si ' .
+                    'INNER JOIN sales s ON s.id = si.sale_id ' .
+                    'WHERE ' . $this->saleDateWhere('s'),
+                    [$start->format('Y-m-d'), $end->format('Y-m-d')]
+                )->getRowArray() ?? ['units' => 0];
+            }
 
             $labels[] = $label;
             $orders[] = (int) ($saleRow['orders'] ?? 0);
@@ -269,13 +416,17 @@ class DashboardModel extends BaseModel
      */
     private function topProducts(BaseConnection $db, string $startDate, string $endDate, int $limit): array
     {
+        if (! $db->tableExists('sale_items')) {
+            return ['labels' => [], 'data' => []];
+        }
+
         $rows = $db->query(
             'SELECT p.name AS label, COALESCE(SUM(si.qty), 0) AS units ' .
             'FROM sale_items si ' .
             'INNER JOIN sales s ON s.id = si.sale_id ' .
             'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
             'INNER JOIN products p ON p.id = pv.product_id ' .
-            'WHERE s.sale_date >= ? AND s.sale_date < ? ' .
+            'WHERE ' . $this->saleDateWhere('s') . ' ' .
             'GROUP BY p.id, p.name ' .
             'ORDER BY units DESC ' .
             'LIMIT ' . (int) $limit,
@@ -301,7 +452,7 @@ class DashboardModel extends BaseModel
 
             $saleRow = $db->query(
                 'SELECT COUNT(*) AS orders, COALESCE(SUM(grand_total), 0) AS revenue ' .
-                'FROM sales WHERE sale_date >= ? AND sale_date < ?',
+                'FROM sales WHERE ' . $this->saleDateWhere('sales'),
                 [$start, $end]
             )->getRowArray();
 
@@ -318,6 +469,13 @@ class DashboardModel extends BaseModel
      */
     private function categoryScorecard(BaseConnection $db, string $startDate, string $endDate): array
     {
+        if (! $db->tableExists('sale_items') || ! $db->tableExists('categories')) {
+            return [
+                'labels'   => ['Margin', 'Units sold', 'Revenue share', 'Velocity', 'Growth'],
+                'datasets' => [],
+            ];
+        }
+
         $rows = $db->query(
             'SELECT c.id AS category_id, c.name AS category_name, ' .
             'COALESCE(SUM(si.line_total), 0) AS revenue, ' .
@@ -328,7 +486,7 @@ class DashboardModel extends BaseModel
             'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
             'INNER JOIN products p ON p.id = pv.product_id ' .
             'INNER JOIN categories c ON c.id = p.category_id ' .
-            'WHERE s.sale_date >= ? AND s.sale_date < ? ' .
+            'WHERE ' . $this->saleDateWhere('s') . ' ' .
             'GROUP BY c.id, c.name ' .
             'ORDER BY revenue DESC ' .
             'LIMIT 2',
@@ -386,18 +544,21 @@ class DashboardModel extends BaseModel
 
             $saleRow = $db->query(
                 'SELECT COALESCE(SUM(grand_total), 0) AS revenue FROM sales ' .
-                'WHERE sale_date >= ? AND sale_date < ?',
+                'WHERE ' . $this->saleDateWhere('sales'),
                 [$start->format('Y-m-d'), $end->format('Y-m-d')]
             )->getRowArray();
 
-            $costRow = $db->query(
-                'SELECT COALESCE(SUM(si.qty * pv.cost_price), 0) AS cost ' .
-                'FROM sale_items si ' .
-                'INNER JOIN sales s ON s.id = si.sale_id ' .
-                'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
-                'WHERE s.sale_date >= ? AND s.sale_date < ?',
-                [$start->format('Y-m-d'), $end->format('Y-m-d')]
-            )->getRowArray();
+            $costRow = ['cost' => 0];
+            if ($db->tableExists('sale_items')) {
+                $costRow = $db->query(
+                    'SELECT COALESCE(SUM(si.qty * pv.cost_price), 0) AS cost ' .
+                    'FROM sale_items si ' .
+                    'INNER JOIN sales s ON s.id = si.sale_id ' .
+                    'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
+                    'WHERE ' . $this->saleDateWhere('s'),
+                    [$start->format('Y-m-d'), $end->format('Y-m-d')]
+                )->getRowArray() ?? ['cost' => 0];
+            }
 
             $labels[]  = 'W' . ($weeks - $i);
             $revenue[] = (float) ($saleRow['revenue'] ?? 0);
@@ -423,7 +584,7 @@ class DashboardModel extends BaseModel
         }
 
         if ($labels === []) {
-            return ['labels' => ['No data'], 'data' => [$asInt ? 0 : 0.0]];
+            return ['labels' => [], 'data' => []];
         }
 
         return ['labels' => $labels, 'data' => $data];

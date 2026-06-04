@@ -43,7 +43,7 @@
                     <div class="card-body">
                         <div class="text-muted small">Avg. order value</div>
                         <div id="kpiAov" class="metric-value">—</div>
-                        <div class="small text-muted">From completed sales</div>
+                        <div class="small text-muted">All sales this month</div>
                     </div>
                 </div>
             </div>
@@ -80,7 +80,7 @@
         </div>
 
         <div class="row g-3 mb-3">
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-4">
                 <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h2 class="h6 fw-semibold mb-1">Revenue by category</h2>
@@ -89,11 +89,20 @@
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h2 class="h6 fw-semibold mb-1">Sales by gender</h2>
+                        <p class="small text-muted mb-3">Revenue share by product gender (MTD).</p>
+                        <div class="chart-wrap chart-wrap-sm"><canvas id="chartGenderPie"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
                 <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h2 class="h6 fw-semibold mb-1">Payment methods</h2>
-                        <p class="small text-muted mb-3">Order count by payment type (MTD).</p>
+                        <p class="small text-muted mb-3">Payment count by type (MTD).</p>
                         <div class="chart-wrap"><canvas id="chartPaymentDoughnut"></canvas></div>
                     </div>
                 </div>
@@ -207,6 +216,21 @@
         mEl.className = 'small ' + mCh.cls;
     }
 
+    function emptyChartMessage(canvasId, message) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !canvas.parentElement) return;
+        const wrap = canvas.parentElement;
+        canvas.style.display = 'none';
+        const note = document.createElement('p');
+        note.className = 'small text-muted text-center mb-0 py-5';
+        note.textContent = message;
+        wrap.appendChild(note);
+    }
+
+    function hasChartData(values) {
+        return Array.isArray(values) && values.some(v => Number(v) > 0);
+    }
+
     function initCharts(payload) {
         const c = payload.charts || {};
 
@@ -229,15 +253,20 @@
             }
         });
 
-        charts.channelPie = new Chart(document.getElementById('chartChannelPie'), {
-            type: 'pie',
-            data: {
-                labels: c.sales_by_warehouse?.labels || [],
-                datasets: [{ data: c.sales_by_warehouse?.data || [], backgroundColor: palette }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+        if (hasChartData(c.sales_by_warehouse?.data)) {
+            charts.channelPie = new Chart(document.getElementById('chartChannelPie'), {
+                type: 'pie',
+                data: {
+                    labels: c.sales_by_warehouse?.labels || [],
+                    datasets: [{ data: c.sales_by_warehouse?.data || [], backgroundColor: palette }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        } else {
+            emptyChartMessage('chartChannelPie', 'No warehouse sales this month.');
+        }
 
+        if (hasChartData(c.revenue_by_category?.data)) {
         charts.categoryBar = new Chart(document.getElementById('chartCategoryBar'), {
             type: 'bar',
             data: {
@@ -250,8 +279,38 @@
                 scales: { y: { beginAtZero: true, grid: { color: gridColor } }, x: { grid: { display: false } } }
             }
         });
+        } else {
+            emptyChartMessage('chartCategoryBar', 'No category sales this month.');
+        }
+
+        if (hasChartData(c.sales_by_gender?.data)) {
+            charts.genderPie = new Chart(document.getElementById('chartGenderPie'), {
+                type: 'pie',
+                data: {
+                    labels: c.sales_by_gender?.labels || [],
+                    datasets: [{ data: c.sales_by_gender?.data || [], backgroundColor: palette }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label(ctx) {
+                                    const v = Number(ctx.raw || 0);
+                                    return (ctx.label || '') + ': $' + v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            emptyChartMessage('chartGenderPie', 'No gender sales data this month.');
+        }
 
         const payLabels = (c.payment_methods?.labels || []).map(titleCasePayment);
+        if (hasChartData(c.payment_methods?.data)) {
         charts.paymentDoughnut = new Chart(document.getElementById('chartPaymentDoughnut'), {
             type: 'doughnut',
             data: {
@@ -260,6 +319,9 @@
             },
             options: { responsive: true, maintainAspectRatio: false, cutout: '58%' }
         });
+        } else {
+            emptyChartMessage('chartPaymentDoughnut', 'No payments recorded this month.');
+        }
 
         charts.ordersStacked = new Chart(document.getElementById('chartOrdersStacked'), {
             type: 'bar',
@@ -274,8 +336,8 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { stacked: true, grid: { display: false } },
-                    y: { stacked: true, beginAtZero: true, grid: { color: gridColor } }
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: gridColor } }
                 }
             }
         });
@@ -337,6 +399,7 @@
             const style = radarStyles[i % radarStyles.length];
             return { label: ds.label, data: ds.data, borderColor: style.border, backgroundColor: style.bg };
         });
+        if (radarDatasets.length > 0) {
         charts.categoryRadar = new Chart(document.getElementById('chartCategoryRadar'), {
             type: 'radar',
             data: {
@@ -349,8 +412,12 @@
                 scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } }
             }
         });
+        } else {
+            emptyChartMessage('chartCategoryRadar', 'Not enough category data for scorecard.');
+        }
 
         charts.mixedMargin = new Chart(document.getElementById('chartMixedMargin'), {
+            type: 'bar',
             data: {
                 labels: c.weekly_margin?.labels || [],
                 datasets: [
@@ -380,6 +447,10 @@
         .then(json => {
             const data = json.data || {};
             applyKpis(data.kpis || {});
+            if (typeof Chart === 'undefined') {
+                showError('Chart library failed to load.');
+                return;
+            }
             initCharts(data);
         })
         .catch(err => showError(err.message || 'Could not load dashboard data.'));
