@@ -34,4 +34,30 @@ class Sells extends BaseController
             'departments' => Department::cases(),
         ]);
     }
+
+    public function yearlyStatistics(): string
+    {
+        $year = (int) ($this->request->getGet('year') ?? date('Y'));
+        if ($year < 2025 || $year > (int) date('Y')) {
+            $year = (int) date('Y');
+        }
+
+        $warehouseId = (int) ($this->request->getGet('warehouse_id') ?? 0);
+        $department  = strtolower(trim((string) ($this->request->getGet('department') ?? '')));
+        if ($department !== '' && ! Department::isValid($department)) {
+            $department = '';
+        }
+
+        return view('sells/yearly_statistics', [
+            'year'        => $year,
+            'warehouseId' => $warehouseId,
+            'department'  => $department,
+            'warehouses'  => (new \App\Models\WarehouseModel())->listActive(),
+            'departments' => Department::cases(),
+            'report'      => (new \App\Models\SaleStatisticsModel())->getYearlyReport($year, [
+                'warehouse_id' => $warehouseId,
+                'department'   => $department,
+            ]),
+        ]);
+    }
 }

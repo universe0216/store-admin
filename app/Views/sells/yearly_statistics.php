@@ -2,14 +2,19 @@
 
 use App\Enums\Department;
 
-/** @var string $month */
+/** @var int $year */
 /** @var int $warehouseId */
 /** @var string $department */
 /** @var list<array<string, mixed>> $warehouses */
 /** @var list<Department> $departments */
-/** @var array{grouped: array<string, array{rowspan: int, total_income: float, profit: float, orders: int, quantity: int, warehouses: array<int, array{name: string, rowspan: int, total_income: float, profit: float, orders: int, quantity: int, lines: list<array<string, mixed>>}>}>, month_total: array{total_income: float, profit: float}, warehouse_totals: list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float}>} $report */
+/** @var array{grouped: array<string, array{rowspan: int, total_income: float, profit: float, orders: int, quantity: int, warehouses: array<int, array{name: string, rowspan: int, total_income: float, profit: float, orders: int, quantity: int, lines: list<array<string, mixed>>}>}>, year_total: array{total_income: float, profit: float}, warehouse_totals: list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float}>} $report */
 
 $formatMoney = static fn (float $value): string => number_format($value, 2, '.', ',');
+$formatMonthKey = static function (string $monthKey): string {
+    $dt = \DateTimeImmutable::createFromFormat('Y-m-d', $monthKey . '-01');
+
+    return $dt !== false ? $dt->format('F Y') : $monthKey;
+};
 
 $renderMetricsStack = static function (float $revenue, int $units, int $orders, float $profit) use ($formatMoney): void {
     $profitClass = $profit >= 0 ? 'metrics-profit-positive' : 'metrics-profit-negative';
@@ -24,13 +29,14 @@ $renderMetricsStack = static function (float $revenue, int $units, int $orders, 
 };
 
 $grouped = $report['grouped'] ?? [];
-$monthTotal = $report['month_total'] ?? ['total_income' => 0.0, 'profit' => 0.0];
+$yearTotal = $report['year_total'] ?? ['total_income' => 0.0, 'profit' => 0.0];
 $warehouseTotals = $report['warehouse_totals'] ?? [];
-$monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y') ?? $month;
+$currentYear = (int) date('Y');
+$minYear = 2025;
 ?>
 <?= $this->extend('layout/main_layout') ?>
 
-<?= $this->section('title') ?>Sales Monthly Statistics<?= $this->endSection() ?>
+<?= $this->section('title') ?>Sales Yearly Statistics<?= $this->endSection() ?>
 
 <?= $this->section('pageStyles') ?>
 <style>
@@ -38,7 +44,7 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
     .sales-stats-table td {
         vertical-align: middle;
     }
-    .sales-stats-table .date-cell {
+    .sales-stats-table .period-cell {
         background-color: #f8f9fa;
         font-weight: 600;
         white-space: nowrap;
@@ -96,17 +102,24 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
 
 <?= $this->section('content') ?>
     <div class="container-fluid px-5 py-4">
-        <div class="mb-4">
-            <h1 class="h3 fw-bold mb-1">Sales Monthly Statistics</h1>
-            <p class="text-muted mb-0">Comprehensive sales history grouped by date and warehouse.</p>
+        <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h1 class="h3 fw-bold mb-1">Sales Yearly Statistics</h1>
+                <p class="text-muted mb-0">Sales history grouped by month and warehouse.</p>
+            </div>
+            <a href="<?= site_url('inventory/sales-statistics') ?>" class="btn btn-outline-secondary btn-sm">Monthly Statistics</a>
         </div>
 
         <div class="card shadow-sm mb-4">
             <div class="card-body p-4">
-                <form method="get" action="<?= site_url('inventory/sales-statistics') ?>" class="row g-3 align-items-end">
+                <form method="get" action="<?= site_url('sells/yearly-statistics') ?>" class="row g-3 align-items-end">
                     <div class="col-12 col-md-4 col-lg-3">
-                        <label for="monthFilter" class="form-label text-secondary mb-1">Month</label>
-                        <input type="month" id="monthFilter" name="month" class="form-control" value="<?= esc($month) ?>">
+                        <label for="yearFilter" class="form-label text-secondary mb-1">Year</label>
+                        <select id="yearFilter" name="year" class="form-select">
+                            <?php for ($y = $currentYear; $y >= $minYear; $y--): ?>
+                                <option value="<?= $y ?>" <?= $y === $year ? 'selected' : '' ?>><?= $y ?></option>
+                            <?php endfor; ?>
+                        </select>
                     </div>
                     <div class="col-12 col-md-4 col-lg-3">
                         <label for="departmentFilter" class="form-label text-secondary mb-1">Department</label>
@@ -139,7 +152,7 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
 
         <div class="card shadow-sm mb-4">
             <div class="card-body p-4">
-                <h2 class="h6 fw-semibold mb-3"><?= esc($monthLabel) ?> Sales History</h2>
+                <h2 class="h6 fw-semibold mb-3"><?= esc((string) $year) ?> Sales History</h2>
 
                 <?php if ($grouped === []): ?>
                     <div class="text-muted">No sales found for the selected filters.</div>
@@ -148,9 +161,9 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                         <table class="table table-bordered table-sm sales-stats-table mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 110px;">Date</th>
+                                    <th style="width: 120px;">Month</th>
                                     <th class="text-end" style="width: 110px;">
-                                        Date Totals
+                                        Month Totals
                                         <div class="metrics-legend small fw-normal mt-1">
                                             <span class="legend-revenue">Revenue</span> ·
                                             <span class="legend-revenue">Units</span> ·
@@ -177,31 +190,31 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($grouped as $saleDate => $dateGroup): ?>
-                                    <?php $dateRendered = false; ?>
-                                    <?php $dateTotalsRendered = false; ?>
-                                    <?php foreach ($dateGroup['warehouses'] as $warehouseGroup): ?>
+                                <?php foreach ($grouped as $saleMonth => $monthGroup): ?>
+                                    <?php $monthRendered = false; ?>
+                                    <?php $monthTotalsRendered = false; ?>
+                                    <?php foreach ($monthGroup['warehouses'] as $warehouseGroup): ?>
                                         <?php $warehouseRendered = false; ?>
                                         <?php $warehouseTotalsRendered = false; ?>
                                         <?php foreach ($warehouseGroup['lines'] as $line): ?>
                                             <tr>
-                                                <?php if (! $dateRendered): ?>
-                                                    <td class="date-cell" rowspan="<?= (int) $dateGroup['rowspan'] ?>">
-                                                        <?= esc($saleDate) ?>
+                                                <?php if (! $monthRendered): ?>
+                                                    <td class="period-cell" rowspan="<?= (int) $monthGroup['rowspan'] ?>">
+                                                        <?= esc($formatMonthKey($saleMonth)) ?>
                                                     </td>
-                                                    <?php $dateRendered = true; ?>
+                                                    <?php $monthRendered = true; ?>
                                                 <?php endif; ?>
 
-                                                <?php if (! $dateTotalsRendered): ?>
-                                                    <td class="date-cell" rowspan="<?= (int) $dateGroup['rowspan'] ?>">
+                                                <?php if (! $monthTotalsRendered): ?>
+                                                    <td class="period-cell" rowspan="<?= (int) $monthGroup['rowspan'] ?>">
                                                         <?php $renderMetricsStack(
-                                                            (float) ($dateGroup['total_income'] ?? 0),
-                                                            (int) ($dateGroup['quantity'] ?? 0),
-                                                            (int) ($dateGroup['orders'] ?? 0),
-                                                            (float) ($dateGroup['profit'] ?? 0)
+                                                            (float) ($monthGroup['total_income'] ?? 0),
+                                                            (int) ($monthGroup['quantity'] ?? 0),
+                                                            (int) ($monthGroup['orders'] ?? 0),
+                                                            (float) ($monthGroup['profit'] ?? 0)
                                                         ); ?>
                                                     </td>
-                                                    <?php $dateTotalsRendered = true; ?>
+                                                    <?php $monthTotalsRendered = true; ?>
                                                 <?php endif; ?>
 
                                                 <?php if (! $warehouseRendered): ?>
@@ -236,9 +249,9 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="8" class="text-end">Month Total</td>
-                                    <td class="text-end"><?= esc($formatMoney((float) $monthTotal['total_income'])) ?></td>
-                                    <td class="text-end"><?= esc($formatMoney((float) $monthTotal['profit'])) ?></td>
+                                    <td colspan="8" class="text-end">Year Total</td>
+                                    <td class="text-end"><?= esc($formatMoney((float) $yearTotal['total_income'])) ?></td>
+                                    <td class="text-end"><?= esc($formatMoney((float) $yearTotal['profit'])) ?></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -250,7 +263,7 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
         <?php if ($warehouseTotals !== []): ?>
             <div class="card shadow-sm">
                 <div class="card-body p-4">
-                    <h2 class="h6 fw-semibold mb-3">Warehouse Totals for <?= esc($monthLabel) ?></h2>
+                    <h2 class="h6 fw-semibold mb-3">Warehouse Totals for <?= esc((string) $year) ?></h2>
                     <div class="table-responsive">
                         <table class="table table-bordered table-sm warehouse-totals-table mb-0">
                             <thead class="table-light">
@@ -271,9 +284,9 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td class="text-end">Month Total</td>
-                                    <td class="text-end"><?= esc($formatMoney((float) $monthTotal['total_income'])) ?></td>
-                                    <td class="text-end"><?= esc($formatMoney((float) $monthTotal['profit'])) ?></td>
+                                    <td class="text-end">Year Total</td>
+                                    <td class="text-end"><?= esc($formatMoney((float) $yearTotal['total_income'])) ?></td>
+                                    <td class="text-end"><?= esc($formatMoney((float) $yearTotal['profit'])) ?></td>
                                 </tr>
                             </tfoot>
                         </table>

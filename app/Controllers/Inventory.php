@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Enums\Department;
+
 class Inventory extends BaseController
 {
     public function index(): string
@@ -22,13 +24,21 @@ class Inventory extends BaseController
         }
 
         $warehouseId = (int) ($this->request->getGet('warehouse_id') ?? 0);
-        $warehouseFilter = $warehouseId > 0 ? $warehouseId : null;
+        $department  = strtolower(trim((string) ($this->request->getGet('department') ?? '')));
+        if ($department !== '' && ! Department::isValid($department)) {
+            $department = '';
+        }
 
         return view('inventory/sales_statistics', [
             'month'       => $month,
             'warehouseId' => $warehouseId,
+            'department'  => $department,
             'warehouses'  => (new \App\Models\WarehouseModel())->listActive(),
-            'report'      => (new \App\Models\SaleStatisticsModel())->getMonthlyReport($month, $warehouseFilter),
+            'departments' => Department::cases(),
+            'report'      => (new \App\Models\SaleStatisticsModel())->getMonthlyReport($month, [
+                'warehouse_id' => $warehouseId,
+                'department'   => $department,
+            ]),
         ]);
     }
 }
