@@ -27,12 +27,15 @@ class DashboardModel extends BaseModel
         $mtdEnd       = date('Y-m-d', strtotime('+1 day'));
         $prevMtdStart = date('Y-m-01', strtotime('-1 month'));
         $prevMtdEnd   = $mtdStart;
+        $yoyMtdStart  = date('Y-m-01', strtotime('-1 year'));
+        $yoyMtdEnd    = date('Y-m-d', strtotime($mtdEnd . ' -1 year'));
 
         $mtd     = $this->periodSummary($db, $mtdStart, $mtdEnd);
         $prevMtd = $this->periodSummary($db, $prevMtdStart, $prevMtdEnd);
+        $yoyMtd  = $this->periodSummary($db, $yoyMtdStart, $yoyMtdEnd);
 
         return [
-            'kpis'   => $this->buildKpis($mtd, $prevMtd),
+            'kpis'   => $this->buildKpis($mtd, $prevMtd, $yoyMtd),
             'charts' => [
                 'revenue_trend'       => $this->monthlyRevenueProfit($db, (int) date('Y')),
                 'sales_by_warehouse'  => $this->salesByWarehouse($db, $mtdStart, $mtdEnd),
@@ -64,7 +67,7 @@ class DashboardModel extends BaseModel
         ];
 
         return [
-            'kpis'   => $this->buildKpis($emptyPeriod, $emptyPeriod),
+            'kpis'   => $this->buildKpis($emptyPeriod, $emptyPeriod, $emptyPeriod),
             'charts' => [
                 'revenue_trend'       => ['labels' => [], 'revenue' => [], 'profit' => []],
                 'sales_by_warehouse'  => ['labels' => [], 'data' => []],
@@ -157,27 +160,32 @@ class DashboardModel extends BaseModel
     /**
      * @param array<string, float|int> $mtd
      * @param array<string, float|int> $prevMtd
+     * @param array<string, float|int> $yoyMtd
      *
      * @return array<string, mixed>
      */
-    private function buildKpis(array $mtd, array $prevMtd): array
+    private function buildKpis(array $mtd, array $prevMtd, array $yoyMtd): array
     {
         return [
             'revenue_mtd' => [
-                'value'       => $mtd['revenue'],
-                'change_pct'  => $this->percentChange((float) $prevMtd['revenue'], (float) $mtd['revenue']),
+                'value'          => $mtd['revenue'],
+                'change_pct'     => $this->percentChange((float) $prevMtd['revenue'], (float) $mtd['revenue']),
+                'change_pct_yoy' => $this->percentChange((float) $yoyMtd['revenue'], (float) $mtd['revenue']),
             ],
             'orders' => [
-                'value'      => $mtd['orders'],
-                'change_pct' => $this->percentChange((float) $prevMtd['orders'], (float) $mtd['orders']),
+                'value'          => $mtd['orders'],
+                'change_pct'     => $this->percentChange((float) $prevMtd['orders'], (float) $mtd['orders']),
+                'change_pct_yoy' => $this->percentChange((float) $yoyMtd['orders'], (float) $mtd['orders']),
             ],
             'avg_order_value' => [
-                'value'  => round($mtd['avg_order_value'], 2),
-                'target' => 0.0,
+                'value'          => round($mtd['avg_order_value'], 2),
+                'change_pct'     => $this->percentChange((float) $prevMtd['avg_order_value'], (float) $mtd['avg_order_value']),
+                'change_pct_yoy' => $this->percentChange((float) $yoyMtd['avg_order_value'], (float) $mtd['avg_order_value']),
             ],
             'profit_margin_pct' => [
-                'value'      => round($mtd['profit_margin_pct'], 1),
-                'change_pts' => round($mtd['profit_margin_pct'] - $prevMtd['profit_margin_pct'], 1),
+                'value'          => round($mtd['profit_margin_pct'], 1),
+                'change_pts'     => round($mtd['profit_margin_pct'] - $prevMtd['profit_margin_pct'], 1),
+                'change_pts_yoy' => round($mtd['profit_margin_pct'] - $yoyMtd['profit_margin_pct'], 1),
             ],
         ];
     }

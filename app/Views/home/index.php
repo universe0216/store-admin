@@ -25,7 +25,8 @@
                     <div class="card-body">
                         <div class="text-muted small">Revenue (MTD)</div>
                         <div id="kpiRevenue" class="metric-value text-primary">—</div>
-                        <div id="kpiRevenueChange" class="small text-muted">—</div>
+                        <div id="kpiRevenueChangeMom" class="small text-muted">—</div>
+                        <div id="kpiRevenueChangeYoy" class="small text-muted">—</div>
                     </div>
                 </div>
             </div>
@@ -34,7 +35,8 @@
                     <div class="card-body">
                         <div class="text-muted small">Orders</div>
                         <div id="kpiOrders" class="metric-value">—</div>
-                        <div id="kpiOrdersChange" class="small text-muted">—</div>
+                        <div id="kpiOrdersChangeMom" class="small text-muted">—</div>
+                        <div id="kpiOrdersChangeYoy" class="small text-muted">—</div>
                     </div>
                 </div>
             </div>
@@ -43,7 +45,8 @@
                     <div class="card-body">
                         <div class="text-muted small">Avg. order value</div>
                         <div id="kpiAov" class="metric-value">—</div>
-                        <div class="small text-muted">All sales this month</div>
+                        <div id="kpiAovChangeMom" class="small text-muted">—</div>
+                        <div id="kpiAovChangeYoy" class="small text-muted">—</div>
                     </div>
                 </div>
             </div>
@@ -52,7 +55,8 @@
                     <div class="card-body">
                         <div class="text-muted small">Profit margin</div>
                         <div id="kpiMargin" class="metric-value">—</div>
-                        <div id="kpiMarginChange" class="small text-muted">—</div>
+                        <div id="kpiMarginChangeMom" class="small text-muted">—</div>
+                        <div id="kpiMarginChangeYoy" class="small text-muted">—</div>
                     </div>
                 </div>
             </div>
@@ -189,6 +193,14 @@
         return String(label || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     }
 
+    function setKpiComparison(elementId, value, suffix, periodLabel) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const ch = pctText(value, suffix);
+        el.textContent = ch.text + ' ' + periodLabel;
+        el.className = 'small ' + ch.cls;
+    }
+
     function applyKpis(kpis) {
         const rev = kpis.revenue_mtd || {};
         const ord = kpis.orders || {};
@@ -196,24 +208,20 @@
         const margin = kpis.profit_margin_pct || {};
 
         document.getElementById('kpiRevenue').textContent = money(rev.value);
-        const revCh = pctText(rev.change_pct ?? 0, '% vs last month');
-        const revEl = document.getElementById('kpiRevenueChange');
-        revEl.textContent = revCh.text + ' vs last month';
-        revEl.className = 'small ' + revCh.cls;
+        setKpiComparison('kpiRevenueChangeMom', rev.change_pct ?? 0, '%', 'vs last month');
+        setKpiComparison('kpiRevenueChangeYoy', rev.change_pct_yoy ?? 0, '%', 'vs last year');
 
         document.getElementById('kpiOrders').textContent = Number(ord.value || 0).toLocaleString();
-        const ordCh = pctText(ord.change_pct ?? 0, '%');
-        const ordEl = document.getElementById('kpiOrdersChange');
-        ordEl.textContent = ordCh.text + ' vs last month';
-        ordEl.className = 'small ' + ordCh.cls;
+        setKpiComparison('kpiOrdersChangeMom', ord.change_pct ?? 0, '%', 'vs last month');
+        setKpiComparison('kpiOrdersChangeYoy', ord.change_pct_yoy ?? 0, '%', 'vs last year');
 
         document.getElementById('kpiAov').textContent = money(aov.value);
+        setKpiComparison('kpiAovChangeMom', aov.change_pct ?? 0, '%', 'vs last month');
+        setKpiComparison('kpiAovChangeYoy', aov.change_pct_yoy ?? 0, '%', 'vs last year');
 
         document.getElementById('kpiMargin').textContent = (margin.value ?? 0) + '%';
-        const mCh = pctText(margin.change_pts ?? 0, ' pts');
-        const mEl = document.getElementById('kpiMarginChange');
-        mEl.textContent = mCh.text + ' vs last month';
-        mEl.className = 'small ' + mCh.cls;
+        setKpiComparison('kpiMarginChangeMom', margin.change_pts ?? 0, ' pts', 'vs last month');
+        setKpiComparison('kpiMarginChangeYoy', margin.change_pts_yoy ?? 0, ' pts', 'vs last year');
     }
 
     function emptyChartMessage(canvasId, message) {
