@@ -11,12 +11,32 @@ use App\Enums\Season;
 
 <?= $this->section('pageStyles') ?>
 <style>
-    #purchaseHeaderForm .jqx-numberinput input,
-    #purchaseItemForm .jqx-numberinput input,
+    .purchase-create-page {
+        --purchase-control-height: 34px;
+    }
+    .purchase-create-page .form-control,
+    .purchase-create-page .form-select,
+    #purchaseConfirmModal .form-control,
+    #purchaseConfirmModal .form-select,
+    #exchangeRateModal .form-control {
+        height: var(--purchase-control-height);
+        min-height: var(--purchase-control-height);
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
+        font-size: 0.875rem;
+        line-height: 1.25;
+    }
+    .purchase-create-page .jqx-dropdownlist,
+    .purchase-create-page .jqx-datetimeinput,
+    .purchase-create-page .jqx-numberinput {
+        height: var(--purchase-control-height) !important;
+    }
+    .purchase-create-page .jqx-numberinput input,
     #discountTotalInput input,
-    #paidAmountInput input {
+    #paidAmountInput input,
+    #shippingFeeInput input {
         height: 100% !important;
-        line-height: 34px !important;
+        line-height: var(--purchase-control-height) !important;
         padding-top: 0 !important;
         padding-bottom: 0 !important;
     }
@@ -40,6 +60,11 @@ use App\Enums\Season;
         cursor: pointer;
         font-weight: 500;
     }
+    #unitPriceUsdHint {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #212529;
+    }
     #unitPriceInput {
         min-width: 0;
     }
@@ -57,7 +82,31 @@ use App\Enums\Season;
         min-width: 140px;
         text-align: right;
     }
-    .purchase-summary-row .summary-value input.form-control,
+    .purchase-summary-row .summary-value.summary-subtotal-group {
+        min-width: 240px;
+    }
+    .purchase-summary-row .summary-subtotal-group {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .purchase-summary-row .summary-subtotal-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .purchase-summary-row .summary-subtotal-item .summary-subtotal-currency {
+        color: #6c757d;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+    }
+    .purchase-summary-row .summary-amount {
+        font-weight: 700;
+        color: #212529;
+        white-space: nowrap;
+    }
     .purchase-summary-row .summary-value .jqx-numberinput {
         text-align: right;
     }
@@ -72,7 +121,7 @@ use App\Enums\Season;
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-    <div class="container-fluid py-4 px-5">
+    <div class="container-fluid py-4 px-5 purchase-create-page">
         <div class="card shadow-sm mb-4">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -97,12 +146,12 @@ use App\Enums\Season;
 
 
         <div class="row g-4">
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-5">
                 <div class="card shadow-sm h-100">
                     <div class="card-body p-4">
                         <h2 class="h6 fw-semibold mb-3">Add Product</h2>
                         <form id="purchaseItemForm" class="row g-3">
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label text-secondary mb-1">Department</label>
                                 <select id="productDepartmentSelect" class="form-select">
                                     <option value="">Select department</option>
@@ -111,7 +160,7 @@ use App\Enums\Season;
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label text-secondary mb-1">Gender</label>
                                 <select id="productGenderSelect" class="form-select">
                                     <option value="">Select gender</option>
@@ -120,7 +169,7 @@ use App\Enums\Season;
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label text-secondary mb-1">Season</label>
                                 <select id="productSeasonSelect" class="form-select">
                                     <option value="">Select season</option>
@@ -129,7 +178,7 @@ use App\Enums\Season;
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label text-secondary mb-1">Category</label>
                                 <select id="productCategorySelect" class="form-select" disabled>
                                     <option value="">Select category</option>
@@ -168,8 +217,8 @@ use App\Enums\Season;
                                     <select id="unitPriceCurrency" class="form-select" style="max-width: 110px;">
                                         <option value="USD">USD</option>
                                     </select>
-                                    <span id="unitPriceUsdHint" class="text-muted small text-nowrap d-none"></span>
-                                    <input type="number" id="unitPriceInput" class="form-control flex-grow-1" min="0" step="0.01" value="0">
+                                    <input type="number" id="unitPriceInput" class="form-control flex-grow-1" min="0" step="0.01" value="0" style="max-width: 160px;">
+                                    <span id="unitPriceUsdHint" class="fw-bold text-nowrap d-none pl-4"></span>
                                 </div>
                             </div>
                             <div class="col-12 col-md-6">
@@ -186,7 +235,7 @@ use App\Enums\Season;
                                     <div id="purchaseTagsChips" class="d-flex flex-wrap gap-1 mb-2"></div>
                                     <div class="d-flex flex-wrap gap-2 align-items-center">
                                         <div id="purchaseTagsDropdown" class="flex-grow-1" style="min-width: 200px;"></div>
-                                        <input type="text" id="newTagNameInput" class="form-control form-control-sm" placeholder="New tag name" style="max-width: 160px;">
+                                        <input type="text" id="newTagNameInput" class="form-control" placeholder="New tag name" style="max-width: 160px;">
                                         <button type="button" id="createTagBtn" class="btn btn-sm btn-outline-primary text-nowrap">Add Tag</button>
                                     </div>
                                 </div>
@@ -199,10 +248,13 @@ use App\Enums\Season;
                 </div>
             </div>
 
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-7">
                 <div class="card shadow-sm">
                     <div class="card-body p-4">
-                        <h2 class="h6 fw-semibold mb-3">Purchase Items (<span id="purchaseItemsCount">0</span>)</h2>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2 class="h6 fw-semibold mb-0">Purchase Items (<span id="purchaseItemsCount">0</span>)</h2>
+                            <button type="button" id="deleteSelectedGridRowBtn" class="btn btn-sm btn-outline-danger">Delete Selected Row</button>
+                        </div>
                         <div id="itemsGrid"></div>
                     </div>
                 </div>
@@ -211,28 +263,22 @@ use App\Enums\Season;
                     <div class="card-body p-4">
                         <h2 class="h6 fw-semibold mb-3">Purchase Summary</h2>
                         <div class="purchase-summary-row">
-                            <span class="summary-label">Subtotal (<span id="referenceSubTotalLabel">USD</span>)</span>
-                            <div class="summary-value">
-                                <input id="referenceSubTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
-                            </div>
-                        </div>
-                        <div class="purchase-summary-row">
-                            <span class="summary-label">Subtotal (USD)</span>
-                            <div class="summary-value">
-                                <input id="subTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
+                            <span class="summary-label">Subtotal</span>
+                            <div class="summary-value summary-subtotal-group">
+                                <div class="summary-subtotal-item">
+                                    <span id="referenceSubTotalDisplay" class="summary-amount">0.00</span>
+                                    <span class="summary-subtotal-currency">(<span id="referenceSubTotalLabel">$</span>)</span>
+                                </div>
+                                <div class="summary-subtotal-item">
+                                    <span id="subTotalDisplay" class="summary-amount">0.00</span>
+                                    <span class="summary-subtotal-currency">$</span>
+                                </div>
                             </div>
                         </div>
                         <div class="purchase-summary-row">
                             <span class="summary-label">Discount</span>
                             <div class="summary-value">
                                 <div id="discountTotalInput"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="purchase-summary-row">
-                            <span class="summary-label text-dark">Grand Total (Paid + Transfer Fee)</span>
-                            <div class="summary-value">
-                                <input id="grandTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end fw-semibold" readonly value="0.00">
                             </div>
                         </div>
                         <div class="purchase-summary-row">
@@ -242,9 +288,15 @@ use App\Enums\Season;
                             </div>
                         </div>
                         <div class="purchase-summary-row">
-                            <span class="summary-label">Transfer Fee</span>
+                            <span class="summary-label">Shipping Fee</span>
                             <div class="summary-value">
-                                <div id="transferFeeInput"></div>
+                                <div id="shippingFeeInput"></div>
+                            </div>
+                        </div>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label fw-semibold text-dark">Grand Total (Paid + Shipping Fee)</span>
+                            <div class="summary-value">
+                                <span id="grandTotalDisplay" class="summary-amount">0.00</span>$
                             </div>
                         </div>
                         <div class="mt-3">
@@ -299,8 +351,8 @@ use App\Enums\Season;
                     <div class="mb-2">Subtotal (USD): <span id="confirmTotalPriceSum" class="fw-semibold">0.00</span></div>
                     <div class="mb-2">Discount: <span id="confirmDiscount" class="fw-semibold">0.00</span></div>
                     <div class="mb-2">Paid Total: <span id="confirmPaidAmount" class="fw-semibold">0.00</span></div>
-                    <div class="mb-2">Transfer Fee: <span id="confirmTransferFee" class="fw-semibold">0.00</span></div>
-                    <div class="mb-2">Grand Total (Paid + Transfer Fee): <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Shipping Fee: <span id="confirmShippingFee" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Grand Total (Paid + Shipping Fee): <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
                     <hr>
                     <div class="mb-2 fw-semibold">Payment Methods</div>
                     <div id="confirmPaymentRows" class="d-flex flex-column gap-2 mb-2"></div>
@@ -493,7 +545,7 @@ use App\Enums\Season;
             $("#supplierDropdown").jqxDropDownList({ width: "100%", height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select supplier" });
             $("#purchaseDate").jqxDateTimeInput({ width: "100%", height: 34, formatString: "yyyy-MM-dd" });
             $("#purchaseWarehouseDropdown").jqxDropDownList({ width: "100%", height: 34, displayMember: "name", valueMember: "id", placeHolder: "Select warehouse" });
-            $("#transferFeeInput").jqxNumberInput({
+            $("#shippingFeeInput").jqxNumberInput({
                 width: "100%",
                 height: 34,
                 decimalDigits: 2,
@@ -578,16 +630,8 @@ use App\Enums\Season;
                 editmode: "click",
                 selectionmode: "singlerow",
                 columnsresize: true,
-                showtoolbar: true,
                 showstatusbar: true,
                 statusbarheight: 34,
-                rendertoolbar: function (toolbar) {
-                    const container = $('<div class="d-flex align-items-center h-100 px-2"></div>');
-                    const deleteBtn = $('<button type="button" id="deleteSelectedGridRowBtn" class="btn btn-sm btn-outline-danger">Delete Selected Row</button>');
-                    container.append(deleteBtn);
-                    toolbar.append(container);
-                    container.on("click", "#deleteSelectedGridRowBtn", removeSelectedRow);
-                },
                 renderstatusbar: function (statusbar) {
                     const footer = $('<div id="itemsGridTotalsFooter" class="d-flex align-items-center h-100 px-2 small fw-semibold text-secondary"></div>');
                     statusbar.append(footer);
@@ -597,18 +641,19 @@ use App\Enums\Season;
                     {
                         text: "Product",
                         datafield: "product_name",
-                        width: 180,
+                        width: 160,
                         editable: false
                     },
-                    { text: "Product Number", datafield: "sku", width: 150, editable: false },
-                    { text: "Brand", datafield: "brand", width: 120, editable: false },
-                    { text: "Style", datafield: "style", width: 120, editable: false },
-                    { text: "Warehouse", datafield: "warehouse_name", width: 140, editable: false },
-                    { text: "Unit Cost", datafield: "unit_cost", width: 110, cellsformat: "f2", editable: false, cellsalign: "right" },
+                    { text: "Product Number", datafield: "sku", width: 120, editable: false },
+                    { text: "Brand", datafield: "brand", width: 80, editable: false },
+                    { text: "Style", datafield: "style", width: 80, editable: false },
+                    { text: "Original Cost", datafield: "original_cost_display", width: 140, editable: false, cellsalign: "right" },
+                    { text: "Unit Price", datafield: "unit_price", width: 100, cellsformat: "f4", editable: false, cellsalign: "right" },
+                    { text: "Unit Cost", datafield: "unit_cost", width: 100, cellsformat: "f4", editable: false, cellsalign: "right" },
                     { text: "Size", datafield: "size_value", width: 120, editable: false },
                     { text: "Sets Count", datafield: "sets_count", width: 95, editable: false, cellsalign: "right" },
                     { text: "Units Count", datafield: "units_count", width: 95, editable: false, cellsalign: "right" },
-                    { text: "Total Price", datafield: "total_price", width: 120, cellsformat: "f2", editable: false, cellsalign: "right" }
+                    { text: "Total Cost", datafield: "total_cost", width: 120, cellsformat: "f2", editable: false, cellsalign: "right" }
                 ]
             });
         }
@@ -619,6 +664,13 @@ use App\Enums\Season;
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;");
+        }
+
+        function formatOriginalCost(referenceCost, referenceCurrency) {
+            const amount = Number(referenceCost || 0).toFixed(2);
+            const currency = String(referenceCurrency || "USD").toUpperCase();
+
+            return `${amount} (${currency})`;
         }
 
         function getSelectedTagIds() {
@@ -864,23 +916,155 @@ use App\Enums\Season;
             updateGridFooterTotals();
         }
 
+        function getRowTotalCost(row) {
+            const unitCost = Number(row.unit_cost ?? row.unit_price ?? 0);
+            const unitsCount = Math.max(Number(row.units_count || 0), 0);
+
+            return Number((unitCost * unitsCount).toFixed(2));
+        }
+
+        function getRowMerchandiseTotal(row) {
+            const unitPrice = Number(row.unit_price ?? row.unit_cost ?? 0);
+            const unitsCount = Math.max(Number(row.units_count || 0), 0);
+
+            return Number((unitPrice * unitsCount).toFixed(2));
+        }
+
         function updateGridFooterTotals() {
             const totals = getGridTotals();
             $("#purchaseItemsCount").text(totals.totalCount);
             $("#itemsGridTotalsFooter").text(
-                `Total Counts: ${totals.totalCount} | Sum Total Price: ${totals.totalPriceSum.toFixed(2)}`
+                `Total Counts: ${totals.totalCount} | Sum Total Cost: ${totals.totalCostSum.toFixed(2)}`
             );
             recalcPurchaseTotals("items");
         }
 
         function getPurchaseBaseAmount() {
             const totals = getGridTotals();
-            const transferFee = Math.max(Number($("#transferFeeInput").jqxNumberInput("val") || 0), 0);
+            const shippingFee = Math.max(Number($("#shippingFeeInput").jqxNumberInput("val") || 0), 0);
 
             return {
-                subTotal: totals.totalPriceSum,
-                transferFee
+                subTotal: totals.merchandiseSubTotal,
+                shippingFee
             };
+        }
+
+        function allocatePurchaseItemCosts(rows, discountTotal, shippingFee) {
+            const discount = Math.max(0, Number(discountTotal || 0));
+            const shipping = Math.max(0, Number(shippingFee || 0));
+            const transferFee = 0;
+            const weighted = rows.map(function (row) {
+                const unitPrice = Number(row.unit_price ?? row.unit_cost ?? 0);
+                const unitsCount = Math.max(Number(row.units_count || 0), 0);
+                const lineWeight = getRowMerchandiseTotal(row);
+
+                return {
+                    row: row,
+                    unitPrice: unitPrice,
+                    unitsCount: unitsCount,
+                    lineWeight: lineWeight
+                };
+            });
+            const subTotal = weighted.reduce(function (sum, entry) {
+                return sum + entry.lineWeight;
+            }, 0);
+
+            if (subTotal <= 0) {
+                return [];
+            }
+
+            let allocatedDiscount = 0;
+            let allocatedShipping = 0;
+            let allocatedTransfer = 0;
+            const lastIndex = weighted.length - 1;
+
+            return weighted.map(function (entry, index) {
+                const isLast = index === lastIndex;
+                const ratio = entry.lineWeight / subTotal;
+                const lineDiscount = isLast
+                    ? Number((discount - allocatedDiscount).toFixed(4))
+                    : Number((discount * ratio).toFixed(4));
+                const lineShipping = isLast
+                    ? Number((shipping - allocatedShipping).toFixed(4))
+                    : Number((shipping * ratio).toFixed(4));
+                const lineTransfer = isLast
+                    ? Number((transferFee - allocatedTransfer).toFixed(4))
+                    : Number((transferFee * ratio).toFixed(4));
+
+                allocatedDiscount += lineDiscount;
+                allocatedShipping += lineShipping;
+                allocatedTransfer += lineTransfer;
+
+                const perUnitDiscount = entry.unitsCount > 0
+                    ? Number((lineDiscount / entry.unitsCount).toFixed(4))
+                    : 0;
+                const perUnitShipping = entry.unitsCount > 0
+                    ? Number((lineShipping / entry.unitsCount).toFixed(4))
+                    : 0;
+                const perUnitTransfer = entry.unitsCount > 0
+                    ? Number((lineTransfer / entry.unitsCount).toFixed(4))
+                    : 0;
+                const unitCost = Number((
+                    entry.unitPrice
+                    - perUnitDiscount
+                    + perUnitShipping
+                    + perUnitTransfer
+                ).toFixed(4));
+                const setsCount = Number(entry.row.sets_count || 0);
+                const sizeCount = String(entry.row.size_value || "")
+                    .split(",")
+                    .map(function (v) { return v.trim(); })
+                    .filter(function (v) { return v !== ""; }).length;
+                const variantQty = setsCount > 0 ? setsCount : Number(entry.row.qty || 0);
+                const lineQty = variantQty * (sizeCount > 0 ? sizeCount : 1);
+                const lineTotal = Number((unitCost * lineQty).toFixed(2));
+
+                return {
+                    product_id: Number(entry.row.product_id || 0),
+                    sizes: String(entry.row.size_value || "")
+                        .split(",")
+                        .map(function (v) { return v.trim(); })
+                        .filter(function (v) { return v !== ""; }),
+                    sets_count: setsCount,
+                    qty: Number(entry.row.units_count || 0),
+                    warehouse_id: Number(entry.row.warehouse_id || 0),
+                    unit_price: entry.unitPrice,
+                    unit_cost: unitCost,
+                    allocated_discount: perUnitDiscount,
+                    allocated_shipping: perUnitShipping,
+                    allocated_transfer_fee: perUnitTransfer,
+                    line_total: lineTotal,
+                    reference_currency: String(entry.row.reference_currency || "USD"),
+                    reference_cost: Number(entry.row.reference_cost || entry.unitPrice || 0),
+                    exchange_rate: Number(entry.row.exchange_rate || 1),
+                    discount_amount: 0,
+                    style: String(entry.row.style || "")
+                };
+            });
+        }
+
+        function refreshGridUnitCosts() {
+            const rows = $("#itemsGrid").jqxGrid("getrows") || [];
+            if (rows.length === 0) {
+                return;
+            }
+
+            const discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
+            const shipping = Math.max(Number($("#shippingFeeInput").jqxNumberInput("val") || 0), 0);
+            const allocated = allocatePurchaseItemCosts(rows, discount, shipping);
+
+            rows.forEach(function (row, index) {
+                const item = allocated[index];
+                if (!item) {
+                    return;
+                }
+                const rowId = $("#itemsGrid").jqxGrid("getrowid", index);
+                $("#itemsGrid").jqxGrid("setcellvalue", rowId, "unit_cost", item.unit_cost);
+                $("#itemsGrid").jqxGrid("setcellvalue", rowId, "total_cost", getRowTotalCost({
+                    unit_cost: item.unit_cost,
+                    units_count: row.units_count
+                }));
+            });
         }
 
         function recalcPurchaseTotals(changedField) {
@@ -888,7 +1072,7 @@ use App\Enums\Season;
                 return;
             }
 
-            const { subTotal, transferFee } = getPurchaseBaseAmount();
+            const { subTotal, shippingFee } = getPurchaseBaseAmount();
             totalsCalcLock = true;
 
             let discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
@@ -907,21 +1091,31 @@ use App\Enums\Season;
                 $("#paidAmountInput").jqxNumberInput("val", paid);
             }
 
+            refreshGridUnitCosts();
+
             const gridTotals = getGridTotals();
-            $("#subTotalDisplay").val(subTotal.toFixed(2));
-            $("#referenceSubTotalDisplay").val(gridTotals.referenceTotalSum.toFixed(2));
+            $("#subTotalDisplay").text(subTotal.toFixed(2));
+            $("#referenceSubTotalDisplay").text(gridTotals.referenceTotalSum.toFixed(2));
             $("#referenceSubTotalLabel").text(gridTotals.referenceCurrency);
 
-            const grandTotal = Number((Math.max(0, paid) + transferFee).toFixed(2));
-            $("#grandTotalDisplay").val(grandTotal.toFixed(2));
+            const inventorySubTotal = (allocatePurchaseItemCosts(
+                $("#itemsGrid").jqxGrid("getrows") || [],
+                discount,
+                shippingFee
+            )).reduce(function (sum, item) {
+                return sum + Number(item.line_total || 0);
+            }, 0);
+            const grandTotal = Number((Math.max(0, paid) + shippingFee).toFixed(2));
+            $("#grandTotalDisplay").text(grandTotal.toFixed(2));
 
             totalsCalcLock = false;
 
             return {
                 subTotal,
+                inventorySubTotal: Number(inventorySubTotal.toFixed(2)),
                 referenceSubTotal: gridTotals.referenceTotalSum,
                 referenceCurrency: gridTotals.referenceCurrency,
-                transferFee,
+                shippingFee,
                 discount,
                 paid,
                 grandTotal
@@ -938,7 +1132,8 @@ use App\Enums\Season;
             return {
                 totalCount: rows.length,
                 totalUnitsCount: rows.reduce((sum, r) => sum + Number(r.units_count || 0), 0),
-                totalPriceSum: rows.reduce((sum, r) => sum + Number(r.total_price || 0), 0),
+                merchandiseSubTotal: rows.reduce((sum, r) => sum + getRowMerchandiseTotal(r), 0),
+                totalCostSum: rows.reduce((sum, r) => sum + getRowTotalCost(r), 0),
                 referenceTotalSum: rows.reduce((sum, r) => sum + Number(r.reference_total_price || 0), 0),
                 referenceCurrency
             };
@@ -1147,16 +1342,17 @@ use App\Enums\Season;
                     brand: brand,
                     style: styleValue,
                     warehouse_id: warehouseId,
-                    warehouse_name: String(selectedWarehouse?.label || ""),
+                    unit_price: Number(unitCost.toFixed(4)),
                     unit_cost: Number(unitCost.toFixed(4)),
                     reference_currency: selectedCurrency,
                     reference_cost: Number(referenceUnitCost.toFixed(4)),
+                    original_cost_display: formatOriginalCost(referenceUnitCost, selectedCurrency),
                     exchange_rate: exchangeRate > 0 ? exchangeRate : 1,
                     reference_total_price: Number(referenceTotalPrice.toFixed(2)),
                     size_value: checkedSizes.map(s => String(s.value)).join(", "),
                     sets_count: setsCount,
                     units_count: unitsCount,
-                    total_price: Number(totalPrice.toFixed(2))
+                    total_cost: Number(totalPrice.toFixed(2))
                 };
                 $("#itemsGrid").jqxGrid("addrow", null, rowData);
                 updateGridFooterTotals();
@@ -1181,25 +1377,14 @@ use App\Enums\Season;
         }
 
         function getValidItems() {
-            const rows = $("#itemsGrid").jqxGrid("getrows") || [];
-            return rows
-                .filter(r => Number(r.product_id) > 0 && Number(r.sets_count) > 0)
-                .map(r => ({
-                    product_id: Number(r.product_id || 0),
-                    sizes: String(r.size_value || "")
-                        .split(",")
-                        .map(v => v.trim())
-                        .filter(v => v !== ""),
-                    sets_count: Number(r.sets_count || 0),
-                    qty: Number(r.units_count),
-                    warehouse_id: Number(r.warehouse_id || 0),
-                    unit_cost: Number(r.unit_cost || 0),
-                    reference_currency: String(r.reference_currency || "USD"),
-                    reference_cost: Number(r.reference_cost || r.unit_cost || 0),
-                    exchange_rate: Number(r.exchange_rate || 1),
-                    discount_amount: 0,
-                    style: String(r.style || "")
-                }));
+            const rows = ($("#itemsGrid").jqxGrid("getrows") || [])
+                .filter(function (r) {
+                    return Number(r.product_id) > 0 && Number(r.sets_count) > 0;
+                });
+            const discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
+            const shipping = Math.max(Number($("#shippingFeeInput").jqxNumberInput("val") || 0), 0);
+
+            return allocatePurchaseItemCosts(rows, discount, shipping);
         }
 
         function loadPaymentMethods() {
@@ -1267,10 +1452,10 @@ use App\Enums\Season;
             rows.forEach(function (row, index) {
                 const rowEl = $(`
                     <div class="confirm-payment-row d-flex gap-2 align-items-center">
-                        <select class="form-select form-select-sm confirm-payment-method" style="max-width: 180px;">
+                        <select class="form-select confirm-payment-method" style="max-width: 180px;">
                             ${buildPaymentMethodOptions(String(row.payment_method || "cash"))}
                         </select>
-                        <input type="number" class="form-control form-control-sm confirm-payment-amount text-end" min="0" step="0.01" value="${Number(row.amount || 0).toFixed(2)}">
+                        <input type="number" class="form-control confirm-payment-amount text-end" min="0" step="0.01" value="${Number(row.amount || 0).toFixed(2)}">
                         <button type="button" class="btn btn-sm btn-outline-danger confirm-remove-payment-row"${index === 0 ? " disabled" : ""}>Remove</button>
                     </div>
                 `);
@@ -1322,14 +1507,15 @@ use App\Enums\Season;
                 return;
             }
 
-            const { subTotal, transferFee } = getPurchaseBaseAmount();
+            const { subTotal, shippingFee } = getPurchaseBaseAmount();
             const totalsSummary = recalcPurchaseTotals("discount");
             const totals = getGridTotals();
             const payload = {
                 supplier_id: supplierId,
                 purchase_date: purchaseDate,
                 notes: $("#notesInput").val(),
-                transfer_fee: transferFee,
+                transfer_fee: 0,
+                shipping_fee: shippingFee,
                 discount_total: totalsSummary.discount,
                 paid_total: totalsSummary.paid,
                 payment_method: "cash",
@@ -1340,7 +1526,7 @@ use App\Enums\Season;
             $("#confirmReferenceSubTotal").text(totalsSummary.referenceSubTotal.toFixed(2));
             $("#confirmRefCurrencyLabel").text(totalsSummary.referenceCurrency);
             $("#confirmTotalPriceSum").text(subTotal.toFixed(2));
-            $("#confirmTransferFee").text(transferFee.toFixed(2));
+            $("#confirmShippingFee").text(shippingFee.toFixed(2));
             $("#confirmDiscount").text(totalsSummary.discount.toFixed(2));
             $("#confirmPaidAmount").text(totalsSummary.paid.toFixed(2));
             $("#confirmGrandTotal").text(totalsSummary.grandTotal.toFixed(2));
@@ -1426,8 +1612,8 @@ use App\Enums\Season;
                 updateUnitPriceCurrencyUi();
                 recalcTotalPrice();
             });
-            $("#transferFeeInput").on("valueChanged", function () {
-                recalcPurchaseTotals("transfer");
+            $("#shippingFeeInput").on("valueChanged", function () {
+                recalcPurchaseTotals("shipping");
             });
             $("#discountTotalInput").on("valueChanged", function () {
                 recalcPurchaseTotals("discount");
@@ -1436,6 +1622,7 @@ use App\Enums\Season;
                 recalcPurchaseTotals("paid");
             });
 
+            $("#deleteSelectedGridRowBtn").on("click", removeSelectedRow);
             $("#addProductsBtn").on("click", addProductToGrid);
             $("#createTagBtn").on("click", createTagFromInput);
             $("#newTagNameInput").on("keydown", function (e) {

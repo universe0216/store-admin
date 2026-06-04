@@ -256,7 +256,7 @@
                     { text: "Size", datafield: "size_value", width: 90 },
                     { text: "Sets Count", datafield: "sets_count", width: 90, cellsalign: "right" },
                     { text: "Units Count", datafield: "units_count", width: 90, cellsalign: "right" },
-                    { text: "Total Price", datafield: "total_price", cellsformat: "f2", cellsalign: "right" }
+                    { text: "Total Cost", datafield: "total_cost", cellsformat: "f2", cellsalign: "right" }
                 ]
             });
         }
@@ -366,7 +366,7 @@
                     size_value: item.size_value || "",
                     sets_count: Number(item.sets_count || 0),
                     units_count: Number(item.units_count || 0),
-                    total_price: Number(item.total_price || 0)
+                    total_cost: Number(item.total_cost ?? item.total_price ?? 0)
                 }));
                 $("#purchaseItemsGrid").jqxGrid({
                     source: new $.jqx.dataAdapter({ localdata: items, datatype: "array" })

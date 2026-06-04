@@ -195,7 +195,7 @@ class Purchases extends BaseController
                 "GROUP_CONCAT(DISTINCT product_variants.size ORDER BY product_variants.size SEPARATOR ', ') AS size_value, " .
                 "MAX(purchase_items.qty) AS sets_count, " .
                 "SUM(purchase_items.qty) AS units_count, " .
-                "SUM(purchase_items.line_total) AS total_price"
+                "SUM(purchase_items.line_total) AS total_cost"
             )
             ->join('product_variants', 'product_variants.id = purchase_items.product_variant_id')
             ->join('products', 'products.id = product_variants.product_id')
@@ -277,6 +277,7 @@ class Purchases extends BaseController
         $status         = 'received';
         $notes          = (string) ($payload['notes'] ?? '');
         $transferFee    = max(0, (float) ($payload['transfer_fee'] ?? 0));
+        $shippingFee    = max(0, (float) ($payload['shipping_fee'] ?? 0));
         $headerDiscount = max(0, (float) ($payload['discount_total'] ?? 0));
         $paidTotalInput = (float) ($payload['paid_total'] ?? 0);
         $paymentMethod  = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
@@ -308,7 +309,11 @@ class Purchases extends BaseController
             $variantId         = (int) ($item['product_variant_id'] ?? 0);
             $setsCount         = (int) ($item['sets_count'] ?? 0);
             $qty               = (int) ($item['qty'] ?? 0);
-            $unitCost          = round((float) ($item['unit_cost'] ?? 0), 4);
+            $unitPrice         = round((float) ($item['unit_price'] ?? $item['unit_cost'] ?? 0), 4);
+            $unitCost          = round((float) ($item['unit_cost'] ?? $unitPrice), 4);
+            $allocatedDiscount = round((float) ($item['allocated_discount'] ?? 0), 4);
+            $allocatedShipping = round((float) ($item['allocated_shipping'] ?? 0), 4);
+            $allocatedTransfer = round((float) ($item['allocated_transfer_fee'] ?? 0), 4);
             $discountAmount    = 0.0;
             $sizes             = $item['sizes'] ?? [];
             $style             = $item['style'] ?? '';
@@ -355,17 +360,20 @@ class Purchases extends BaseController
                         continue;
                     }
 
-                    $lineBase  = $setsCount * $unitCost;
-                    $lineTotal = max($lineBase - $discountAmount, 0);
-                    $subTotal += $lineBase;
+                    $lineTotal = round((float) ($item['line_total'] ?? ($setsCount * $unitCost)), 2);
+                    $subTotal += $lineTotal;
 
                     $normalized[] = array_merge([
-                        'product_variant_id' => $resolvedVariantId,
-                        'qty'                => $setsCount,
-                        'warehouse_id'       => $warehouseId,
-                        'unit_cost'          => $unitCost,
-                        'discount_amount'    => $discountAmount,
-                        'line_total'         => $lineTotal,
+                        'product_variant_id'      => $resolvedVariantId,
+                        'qty'                     => $setsCount,
+                        'warehouse_id'            => $warehouseId,
+                        'unit_price'              => $unitPrice,
+                        'allocated_discount'      => $allocatedDiscount,
+                        'allocated_shipping'      => $allocatedShipping,
+                        'allocated_transfer_fee'  => $allocatedTransfer,
+                        'unit_cost'               => $unitCost,
+                        'discount_amount'         => $discountAmount,
+                        'line_total'              => $lineTotal,
                     ], $currencyFields);
                 }
 
@@ -376,17 +384,20 @@ class Purchases extends BaseController
                 continue;
             }
 
-            $lineBase  = $qty * $unitCost;
-            $lineTotal = max($lineBase - $discountAmount, 0);
-            $subTotal += $lineBase;
+            $lineTotal = round((float) ($item['line_total'] ?? ($qty * $unitCost)), 2);
+            $subTotal += $lineTotal;
 
             $normalized[] = array_merge([
-                'product_variant_id' => $variantId,
-                'qty'                => $qty,
-                'warehouse_id'       => $warehouseId,
-                'unit_cost'          => $unitCost,
-                'discount_amount'    => $discountAmount,
-                'line_total'         => $lineTotal,
+                'product_variant_id'      => $variantId,
+                'qty'                     => $qty,
+                'warehouse_id'            => $warehouseId,
+                'unit_price'              => $unitPrice,
+                'allocated_discount'      => $allocatedDiscount,
+                'allocated_shipping'      => $allocatedShipping,
+                'allocated_transfer_fee'  => $allocatedTransfer,
+                'unit_cost'               => $unitCost,
+                'discount_amount'         => $discountAmount,
+                'line_total'              => $lineTotal,
             ], $currencyFields);
         }
 
@@ -394,25 +405,19 @@ class Purchases extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'No valid purchase items.']);
         }
 
-        $originalSubTotal = $subTotal;
-        $headerDiscount   = max(0, min($headerDiscount, $originalSubTotal));
-        $effectiveDiscount = $headerDiscount;
-        if ($effectiveDiscount <= 0 && $paidTotalInput > 0) {
-            $effectiveDiscount = max(0, round($originalSubTotal - min($paidTotalInput, $originalSubTotal), 2));
-        }
-
-        if ($effectiveDiscount > 0) {
-            $normalized = $this->applyDiscountToUnitCosts($normalized, $originalSubTotal, $effectiveDiscount);
-        }
-
         $subTotal = 0.0;
         foreach ($normalized as $item) {
             $subTotal += (float) ($item['line_total'] ?? 0);
         }
         $subTotal      = round($subTotal, 2);
-        $paidTotal     = $subTotal;
-        $discountTotal = 0.0;
-        $grandTotal    = round($paidTotal + $transferFee, 2);
+        $discountTotal = max(0, $headerDiscount);
+        if ($discountTotal <= 0 && $paidTotalInput > 0) {
+            $discountTotal = max(0, round($subTotal - min($paidTotalInput, $subTotal), 2));
+        }
+        $paidTotal  = $paidTotalInput > 0
+            ? max(0, round($paidTotalInput, 2))
+            : max(0, round($subTotal, 2));
+        $grandTotal = round($paidTotal + $shippingFee + $transferFee, 2);
 
         $payments = $this->normalizePurchasePayments($paymentsInput, $paymentMethod, $grandTotal);
         if ($payments === null) {
@@ -425,7 +430,7 @@ class Purchases extends BaseController
 
         try {
             $purchaseNo = $this->generatePurchaseNo();
-            $purchaseId   = $purchaseModel->createOne([
+            $purchaseData = [
                 'purchase_no'    => $purchaseNo,
                 'purchase_date'  => $purchaseDate,
                 'supplier_id'    => $supplierId,
@@ -437,7 +442,13 @@ class Purchases extends BaseController
                 'paid_total'     => $paidTotal,
                 'payment_method' => $primaryPaymentMethod,
                 'notes'          => $notes !== '' ? $notes : null,
-            ]);
+            ];
+
+            if ($db->fieldExists('shipping_fee', 'purchases')) {
+                $purchaseData['shipping_fee'] = $shippingFee;
+            }
+
+            $purchaseId = $purchaseModel->createOne($purchaseData);
 
             $purchasePaymentModel = new PurchasePaymentModel();
             foreach ($payments as $payment) {
@@ -464,6 +475,13 @@ class Purchases extends BaseController
                     $itemPayload['reference_currency'] = $item['reference_currency'];
                     $itemPayload['reference_cost']     = $item['reference_cost'];
                     $itemPayload['exchange_rate']      = $item['exchange_rate'];
+                }
+
+                if ($db->fieldExists('unit_price', 'purchase_items')) {
+                    $itemPayload['unit_price']             = $item['unit_price'];
+                    $itemPayload['allocated_discount']     = $item['allocated_discount'];
+                    $itemPayload['allocated_shipping']     = $item['allocated_shipping'];
+                    $itemPayload['allocated_transfer_fee'] = $item['allocated_transfer_fee'];
                 }
 
                 $purchaseItemModel->createOne($itemPayload);
@@ -515,7 +533,7 @@ class Purchases extends BaseController
                     $db,
                     $purchaseNo,
                     $purchaseDate,
-                    $paidTotal,
+                    $subTotal,
                     $transferFee,
                     $payments,
                     'Purchase ' . $purchaseNo
@@ -525,7 +543,7 @@ class Purchases extends BaseController
                     $db,
                     $purchaseNo,
                     $purchaseDate,
-                    $paidTotal,
+                    $subTotal,
                     $primaryPaymentMethod,
                     'Purchase ' . $purchaseNo
                 );

@@ -16,6 +16,7 @@ class PurchaseModel extends BaseModel
         'sub_total',
         'discount_total',
         'transfer_fee',
+        'shipping_fee',
         'grand_total',
         'paid_total',
         'payment_method',
