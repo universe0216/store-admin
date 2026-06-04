@@ -91,16 +91,6 @@ use App\Enums\Season;
                         <label class="form-label text-secondary mb-1">Purchase Date</label>
                         <div id="purchaseDate"></div>
                     </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label text-secondary mb-1">Payment Method</label>
-                        <select id="paymentMethodSelect" class="form-select">
-                            <option value="cash">Cash</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="card">Card</option>
-                            <option value="check">Check</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
                 </div>
             </div>
         </div>
@@ -221,7 +211,13 @@ use App\Enums\Season;
                     <div class="card-body p-4">
                         <h2 class="h6 fw-semibold mb-3">Purchase Summary</h2>
                         <div class="purchase-summary-row">
-                            <span class="summary-label">Subtotal</span>
+                            <span class="summary-label">Subtotal (<span id="referenceSubTotalLabel">USD</span>)</span>
+                            <div class="summary-value">
+                                <input id="referenceSubTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
+                            </div>
+                        </div>
+                        <div class="purchase-summary-row">
+                            <span class="summary-label">Subtotal (USD)</span>
                             <div class="summary-value">
                                 <input id="subTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
                             </div>
@@ -234,7 +230,7 @@ use App\Enums\Season;
                         </div>
                         
                         <div class="purchase-summary-row">
-                            <span class="summary-label text-dark">Grand Total</span>
+                            <span class="summary-label text-dark">Grand Total (Paid + Transfer Fee)</span>
                             <div class="summary-value">
                                 <input id="grandTotalDisplay" type="text" class="form-control form-control-sm bg-light text-end fw-semibold" readonly value="0.00">
                             </div>
@@ -249,12 +245,6 @@ use App\Enums\Season;
                             <span class="summary-label">Transfer Fee</span>
                             <div class="summary-value">
                                 <div id="transferFeeInput"></div>
-                            </div>
-                        </div>
-                        <div class="purchase-summary-row">
-                            <span class="summary-label">Total Cash Out (Paid + Transfer Fee)</span>
-                            <div class="summary-value">
-                                <input id="totalCashOutDisplay" type="text" class="form-control form-control-sm bg-light text-end" readonly value="0.00">
                             </div>
                         </div>
                         <div class="mt-3">
@@ -305,13 +295,17 @@ use App\Enums\Season;
                 </div>
                 <div class="modal-body">
                     <div class="mb-2">Total Units Count: <span id="confirmTotalUnitsCount" class="fw-semibold">0</span></div>
-                    <div class="mb-2">Items Total: <span id="confirmTotalPriceSum" class="fw-semibold">0.00</span></div>
-                    <div class="mb-2">Transfer Fee: <span id="confirmTransferFee" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Subtotal (<span id="confirmRefCurrencyLabel">USD</span>): <span id="confirmReferenceSubTotal" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Subtotal (USD): <span id="confirmTotalPriceSum" class="fw-semibold">0.00</span></div>
                     <div class="mb-2">Discount: <span id="confirmDiscount" class="fw-semibold">0.00</span></div>
-                    <div class="mb-2">Paid Amount: <span id="confirmPaidAmount" class="fw-semibold">0.00</span></div>
-                    <div class="mb-2">Grand Total (Subtotal − Discount): <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
-                    <div class="mb-2">Total Cash Out (Paid + Transfer Fee): <span id="confirmTotalCashOut" class="fw-semibold">0.00</span></div>
-
+                    <div class="mb-2">Paid Total: <span id="confirmPaidAmount" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Transfer Fee: <span id="confirmTransferFee" class="fw-semibold">0.00</span></div>
+                    <div class="mb-2">Grand Total (Paid + Transfer Fee): <span id="confirmGrandTotal" class="fw-semibold">0.00</span></div>
+                    <hr>
+                    <div class="mb-2 fw-semibold">Payment Methods</div>
+                    <div id="confirmPaymentRows" class="d-flex flex-column gap-2 mb-2"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addPaymentRowBtn">+ Add Payment Method</button>
+                    <div class="small text-muted mt-2">Payment amounts must equal the grand total.</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -332,11 +326,14 @@ use App\Enums\Season;
             purchases: "<?= site_url('api/purchases') ?>",
             tags: "<?= site_url('api/tags') ?>",
             currencies: "<?= site_url('api/currencies') ?>",
-            exchangeRates: "<?= site_url('api/exchange-rates') ?>"
+            exchangeRates: "<?= site_url('api/exchange-rates') ?>",
+            paymentMethods: "<?= site_url('api/payment-methods') ?>"
         };
 
         const items = [];
         let suppliers = [];
+        let paymentMethods = [];
+        let confirmPaymentRows = [];
         let categories = [];
         let warehouses = [];
         let currencies = [];
@@ -910,28 +907,40 @@ use App\Enums\Season;
                 $("#paidAmountInput").jqxNumberInput("val", paid);
             }
 
+            const gridTotals = getGridTotals();
             $("#subTotalDisplay").val(subTotal.toFixed(2));
+            $("#referenceSubTotalDisplay").val(gridTotals.referenceTotalSum.toFixed(2));
+            $("#referenceSubTotalLabel").text(gridTotals.referenceCurrency);
 
-            const grandTotal = Number(Math.max(0, subTotal - discount).toFixed(2));
-            if (changedField !== "paid") {
-                paid = grandTotal;
-                $("#paidAmountInput").jqxNumberInput("val", paid);
-            }
-            const totalCashOut = Number((grandTotal + transferFee).toFixed(2));
+            const grandTotal = Number((Math.max(0, paid) + transferFee).toFixed(2));
             $("#grandTotalDisplay").val(grandTotal.toFixed(2));
-            $("#totalCashOutDisplay").val(totalCashOut.toFixed(2));
 
             totalsCalcLock = false;
 
-            return { subTotal, transferFee, discount, paid, grandTotal, totalCashOut };
+            return {
+                subTotal,
+                referenceSubTotal: gridTotals.referenceTotalSum,
+                referenceCurrency: gridTotals.referenceCurrency,
+                transferFee,
+                discount,
+                paid,
+                grandTotal
+            };
         }
 
         function getGridTotals() {
             const rows = $("#itemsGrid").jqxGrid("getrows") || [];
+            const currencies = new Set(
+                rows.map(r => String(r.reference_currency || "USD").toUpperCase()).filter(Boolean)
+            );
+            const referenceCurrency = currencies.size === 1 ? Array.from(currencies)[0] : "—";
+
             return {
                 totalCount: rows.length,
                 totalUnitsCount: rows.reduce((sum, r) => sum + Number(r.units_count || 0), 0),
-                totalPriceSum: rows.reduce((sum, r) => sum + Number(r.total_price || 0), 0)
+                totalPriceSum: rows.reduce((sum, r) => sum + Number(r.total_price || 0), 0),
+                referenceTotalSum: rows.reduce((sum, r) => sum + Number(r.reference_total_price || 0), 0),
+                referenceCurrency
             };
         }
 
@@ -954,10 +963,23 @@ use App\Enums\Season;
             });
         }
 
+        function applySupplierCurrency(supplierId) {
+            const supplier = suppliers.find(row => Number(row.id) === Number(supplierId));
+            const currency = String(supplier?.default_currency || "USD").toUpperCase();
+            $("#unitPriceCurrency").val(currency);
+            loadExchangeRateForCurrency(currency);
+        }
+
         function loadSuppliers() {
             return $.getJSON(API_URLS.suppliers).done(function(res) {
                 suppliers = res.data || [];
                 $("#supplierDropdown").jqxDropDownList({ source: suppliers });
+                $("#supplierDropdown").off("select").on("select", function () {
+                    const item = $("#supplierDropdown").jqxDropDownList("getSelectedItem");
+                    if (item) {
+                        applySupplierCurrency(Number(item.value));
+                    }
+                });
                 if (suppliers.length === 0) {
                     setMessage("No suppliers found. Please add supplier data first.");
                 }
@@ -1046,8 +1068,11 @@ use App\Enums\Season;
                 openExchangeRateModal();
                 return;
             }
+            const referenceUnitCost = Number($("#unitPriceInput").val() || 0);
             const unitCost = getUsdUnitPrice();
+            const exchangeRate = getExchangeRateForCurrency(selectedCurrency);
             const totalPrice = Number((unitCost * unitsCount).toFixed(2));
+            const referenceTotalPrice = Number((referenceUnitCost * unitsCount).toFixed(2));
             const selectedWarehouse = $("#purchaseWarehouseDropdown").jqxDropDownList("getSelectedItem");
             const warehouseId = Number(selectedWarehouse?.value || 0);
 
@@ -1103,7 +1128,9 @@ use App\Enums\Season;
                     department,
                     gender,
                     season,
-                    tags: getSelectedTagIds()
+                    tags: getSelectedTagIds(),
+                    reference_currency: selectedCurrency,
+                    reference_cost: referenceUnitCost
                 })
             }).done(function (res) {
                 const createdId = Number(res.data?.id || 0);
@@ -1121,7 +1148,11 @@ use App\Enums\Season;
                     style: styleValue,
                     warehouse_id: warehouseId,
                     warehouse_name: String(selectedWarehouse?.label || ""),
-                    unit_cost: Number(unitCost.toFixed(2)),
+                    unit_cost: Number(unitCost.toFixed(4)),
+                    reference_currency: selectedCurrency,
+                    reference_cost: Number(referenceUnitCost.toFixed(4)),
+                    exchange_rate: exchangeRate > 0 ? exchangeRate : 1,
+                    reference_total_price: Number(referenceTotalPrice.toFixed(2)),
                     size_value: checkedSizes.map(s => String(s.value)).join(", "),
                     sets_count: setsCount,
                     units_count: unitsCount,
@@ -1163,9 +1194,112 @@ use App\Enums\Season;
                     qty: Number(r.units_count),
                     warehouse_id: Number(r.warehouse_id || 0),
                     unit_cost: Number(r.unit_cost || 0),
+                    reference_currency: String(r.reference_currency || "USD"),
+                    reference_cost: Number(r.reference_cost || r.unit_cost || 0),
+                    exchange_rate: Number(r.exchange_rate || 1),
                     discount_amount: 0,
                     style: String(r.style || "")
                 }));
+        }
+
+        function loadPaymentMethods() {
+            return $.getJSON(API_URLS.paymentMethods).done(function (res) {
+                paymentMethods = (res.data || []).filter(row => Number(row.is_active ?? 1) === 1);
+            }).fail(function (xhr) {
+                setMessage(xhr.responseJSON?.message || "Failed to load payment methods.");
+            });
+        }
+
+        function buildPaymentMethodOptions(selectedCode) {
+            const options = paymentMethods.map(row => {
+                const code = String(row.code || "");
+                const selected = code === selectedCode ? " selected" : "";
+                return `<option value="${escapeHtml(code)}"${selected}>${escapeHtml(row.name || code)}</option>`;
+            }).join("");
+
+            if (options === "") {
+                return `
+                    <option value="cash"${selectedCode === "cash" ? " selected" : ""}>Cash</option>
+                    <option value="bank_transfer"${selectedCode === "bank_transfer" ? " selected" : ""}>Bank Transfer</option>
+                `;
+            }
+
+            return options;
+        }
+
+        function getConfirmPaymentRowsData() {
+            const rows = [];
+            $("#confirmPaymentRows .confirm-payment-row").each(function () {
+                const method = String($(this).find(".confirm-payment-method").val() || "").trim();
+                const amount = Number($(this).find(".confirm-payment-amount").val() || 0);
+                if (method !== "" && amount > 0) {
+                    rows.push({ payment_method: method, amount: Number(amount.toFixed(2)) });
+                }
+            });
+            return rows;
+        }
+
+        function redistributePaymentRemainder() {
+            const grandTotal = Number($("#confirmGrandTotal").text() || 0);
+            const $rowEls = $("#confirmPaymentRows .confirm-payment-row");
+            let allocated = 0;
+
+            $rowEls.each(function (index) {
+                const $amount = $(this).find(".confirm-payment-amount");
+                const amount = Number($amount.val() || 0);
+                allocated += amount;
+
+                if (index === $rowEls.length - 1) {
+                    const remaining = Number((grandTotal - allocated + amount).toFixed(2));
+                    if (remaining >= 0 && Math.abs(remaining - amount) > 0.009) {
+                        $amount.val(remaining.toFixed(2));
+                    }
+                }
+            });
+        }
+
+        function renderConfirmPaymentRows(grandTotal) {
+            const $container = $("#confirmPaymentRows").empty();
+            const rows = confirmPaymentRows.length > 0
+                ? confirmPaymentRows
+                : [{ payment_method: "cash", amount: grandTotal }];
+
+            rows.forEach(function (row, index) {
+                const rowEl = $(`
+                    <div class="confirm-payment-row d-flex gap-2 align-items-center">
+                        <select class="form-select form-select-sm confirm-payment-method" style="max-width: 180px;">
+                            ${buildPaymentMethodOptions(String(row.payment_method || "cash"))}
+                        </select>
+                        <input type="number" class="form-control form-control-sm confirm-payment-amount text-end" min="0" step="0.01" value="${Number(row.amount || 0).toFixed(2)}">
+                        <button type="button" class="btn btn-sm btn-outline-danger confirm-remove-payment-row"${index === 0 ? " disabled" : ""}>Remove</button>
+                    </div>
+                `);
+                $container.append(rowEl);
+            });
+
+            $container.off("input", ".confirm-payment-amount").on("input", ".confirm-payment-amount", function () {
+                const $rows = $("#confirmPaymentRows .confirm-payment-row");
+                const idx = $rows.index($(this).closest(".confirm-payment-row"));
+                const grand = Number($("#confirmGrandTotal").text() || 0);
+                let allocated = 0;
+
+                $rows.each(function (rowIndex) {
+                    const amount = Number($(this).find(".confirm-payment-amount").val() || 0);
+                    allocated += amount;
+                    if (rowIndex === idx && rowIndex < $rows.length - 1) {
+                        const remaining = Number((grand - allocated).toFixed(2));
+                        const $nextAmount = $rows.eq(rowIndex + 1).find(".confirm-payment-amount");
+                        if (remaining > 0) {
+                            $nextAmount.val(remaining.toFixed(2));
+                        }
+                    }
+                });
+            });
+
+            $container.off("click", ".confirm-remove-payment-row").on("click", ".confirm-remove-payment-row", function () {
+                $(this).closest(".confirm-payment-row").remove();
+                redistributePaymentRemainder();
+            });
         }
 
         function savePurchase() {
@@ -1190,6 +1324,7 @@ use App\Enums\Season;
 
             const { subTotal, transferFee } = getPurchaseBaseAmount();
             const totalsSummary = recalcPurchaseTotals("discount");
+            const totals = getGridTotals();
             const payload = {
                 supplier_id: supplierId,
                 purchase_date: purchaseDate,
@@ -1197,20 +1332,38 @@ use App\Enums\Season;
                 transfer_fee: transferFee,
                 discount_total: totalsSummary.discount,
                 paid_total: totalsSummary.paid,
-                payment_method: String($("#paymentMethodSelect").val() || "cash"),
-                calculation_currency: getSelectedUnitCurrency(),
-                // tag_ids: getSelectedTagIds(),
+                payment_method: "cash",
                 items: validItems
             };
-            const totals = getGridTotals();
+
             $("#confirmTotalUnitsCount").text(totals.totalUnitsCount);
+            $("#confirmReferenceSubTotal").text(totalsSummary.referenceSubTotal.toFixed(2));
+            $("#confirmRefCurrencyLabel").text(totalsSummary.referenceCurrency);
             $("#confirmTotalPriceSum").text(subTotal.toFixed(2));
             $("#confirmTransferFee").text(transferFee.toFixed(2));
             $("#confirmDiscount").text(totalsSummary.discount.toFixed(2));
-            $("#confirmGrandTotal").text(totalsSummary.grandTotal.toFixed(2));
             $("#confirmPaidAmount").text(totalsSummary.paid.toFixed(2));
-            $("#confirmTotalCashOut").text(totalsSummary.totalCashOut.toFixed(2));
+            $("#confirmGrandTotal").text(totalsSummary.grandTotal.toFixed(2));
+
+            confirmPaymentRows = [{ payment_method: "cash", amount: totalsSummary.grandTotal }];
+            renderConfirmPaymentRows(totalsSummary.grandTotal);
+
             $("#confirmSavePurchaseBtn").off("click").on("click", function () {
+                const confirmGrandTotal = Number($("#confirmGrandTotal").text() || 0);
+                const confirmPaid = Number($("#confirmPaidAmount").text() || 0);
+                const confirmDiscount = Number($("#confirmDiscount").text() || 0);
+                const payments = getConfirmPaymentRowsData();
+                const paymentSum = payments.reduce((sum, row) => sum + row.amount, 0);
+                if (Math.abs(paymentSum - confirmGrandTotal) > 0.01) {
+                    setMessage("Payment amounts must equal the grand total.");
+                    return;
+                }
+
+                payload.paid_total = confirmPaid;
+                payload.discount_total = confirmDiscount;
+                payload.payments = payments;
+                payload.payment_method = payments[0]?.payment_method || "cash";
+
                 if (confirmPurchaseModal) {
                     confirmPurchaseModal.hide();
                 }
@@ -1228,6 +1381,7 @@ use App\Enums\Season;
             loadWarehouses();
             loadTags();
             loadCurrencies();
+            loadPaymentMethods();
             confirmPurchaseModal = new bootstrap.Modal(document.getElementById("purchaseConfirmModal"));
             exchangeRateModal = new bootstrap.Modal(document.getElementById("exchangeRateModal"));
 
@@ -1292,6 +1446,18 @@ use App\Enums\Season;
             });
             recalcPurchaseTotals("items");
             $("#savePurchaseBtn").on("click", savePurchase);
+            $("#addPaymentRowBtn").on("click", function () {
+                const payments = getConfirmPaymentRowsData();
+                const grandTotal = Number($("#confirmGrandTotal").text() || 0);
+                const allocated = payments.reduce((sum, row) => sum + row.amount, 0);
+                const remaining = Number(Math.max(0, grandTotal - allocated).toFixed(2));
+                confirmPaymentRows = payments;
+                confirmPaymentRows.push({
+                    payment_method: paymentMethods[1]?.code || "bank_transfer",
+                    amount: remaining
+                });
+                renderConfirmPaymentRows(grandTotal);
+            });
         });
 </script>
 <?= $this->endSection() ?>

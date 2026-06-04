@@ -39,12 +39,19 @@ class Suppliers extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Supplier name is required.']);
         }
 
-        $id = (new SupplierModel())->createOne([
+        $data = [
             'name'    => $name,
             'phone'   => $payload['phone'] ?? null,
             'email'   => $payload['email'] ?? null,
             'address' => $payload['address'] ?? null,
-        ]);
+        ];
+
+        if (db_connect()->fieldExists('default_currency', 'suppliers')) {
+            $defaultCurrency = strtoupper(trim((string) ($payload['default_currency'] ?? 'USD')));
+            $data['default_currency'] = $defaultCurrency !== '' ? $defaultCurrency : 'USD';
+        }
+
+        $id = (new SupplierModel())->createOne($data);
 
         return $this->response->setStatusCode(201)->setJSON([
             'message' => 'Supplier created successfully.',
@@ -69,12 +76,19 @@ class Suppliers extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Supplier name is required.']);
         }
 
-        $model->updateOne($id, [
+        $data = [
             'name'    => $name,
             'phone'   => $payload['phone'] ?? null,
             'email'   => $payload['email'] ?? null,
             'address' => $payload['address'] ?? null,
-        ]);
+        ];
+
+        if (db_connect()->fieldExists('default_currency', 'suppliers')) {
+            $defaultCurrency = strtoupper(trim((string) ($payload['default_currency'] ?? 'USD')));
+            $data['default_currency'] = $defaultCurrency !== '' ? $defaultCurrency : 'USD';
+        }
+
+        $model->updateOne($id, $data);
 
         return $this->response->setJSON(['message' => 'Supplier updated successfully.']);
     }

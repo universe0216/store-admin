@@ -53,6 +53,106 @@ class LedgerService
         );
     }
 
+    /**
+     * @param list<array{payment_method: string, amount: float}> $payments
+     */
+    public function recordPurchaseSplit(
+        BaseConnection $db,
+        string $referenceNo,
+        string $transactionDate,
+        float $inventoryAmount,
+        float $transferFeeAmount,
+        array $payments,
+        ?string $description = null
+    ): void {
+        if ($payments === []) {
+            return;
+        }
+
+        $base = strtoupper($this->config->baseCurrency);
+        $desc = $description ?? "Purchase {$referenceNo}";
+        $date = self::toTransactionDate($transactionDate);
+        $now  = date('Y-m-d H:i:s');
+        $rows = [];
+
+        if ($inventoryAmount > 0) {
+            $inventoryMonetary = $this->resolveMonetary(
+                $db,
+                $inventoryAmount,
+                $base,
+                $this->config->inventoryAccount
+            );
+
+            $rows[] = $this->transactionRow(
+                $date,
+                $this->config->inventoryAccount,
+                $referenceNo,
+                $desc,
+                $inventoryMonetary['usd_amount'],
+                0.00,
+                $inventoryMonetary,
+                $now
+            );
+        }
+
+        if ($transferFeeAmount > 0) {
+            $feeMonetary = $this->resolveMonetary(
+                $db,
+                $transferFeeAmount,
+                $base,
+                $this->config->transferFeeAccount
+            );
+
+            $rows[] = $this->transactionRow(
+                $date,
+                $this->config->transferFeeAccount,
+                $referenceNo,
+                $description ?? "Purchase transfer fee {$referenceNo}",
+                $feeMonetary['usd_amount'],
+                0.00,
+                $feeMonetary,
+                $now
+            );
+        }
+
+        if ($rows === []) {
+            return;
+        }
+
+        foreach ($payments as $payment) {
+            $amount = round((float) ($payment['amount'] ?? 0), 2);
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $methodCode = strtolower(trim((string) ($payment['payment_method'] ?? '')));
+            if ($methodCode === '') {
+                continue;
+            }
+
+            $resolved = $this->resolvePaymentMethod($db, $methodCode);
+            $creditMonetary = $this->resolveMonetary(
+                $db,
+                $this->convertCurrency($amount, $base, $resolved['currency_code']),
+                $resolved['currency_code'],
+                $resolved['account_code']
+            );
+
+            $rows[] = $this->transactionRow(
+                $date,
+                $resolved['account_code'],
+                $referenceNo,
+                $desc,
+                0.00,
+                $creditMonetary['usd_amount'],
+                $creditMonetary,
+                $now
+            );
+        }
+
+        $db->table('transactions')->insertBatch($rows);
+    }
+
     public function recordPurchaseTransferFee(
         BaseConnection $db,
         string $referenceNo,

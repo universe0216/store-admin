@@ -12,6 +12,7 @@ use App\Models\ProductVariantModel;
 use App\Models\PurchaseItemModel;
 use App\Models\PaymentMethodModel;
 use App\Models\PurchaseModel;
+use App\Models\PurchasePaymentModel;
 use App\Models\StockMovementModel;
 use App\Models\SupplierModel;
 use App\Models\TaggingModel;
@@ -239,6 +240,10 @@ class Purchases extends BaseController
 
             (new LedgerService())->deleteByReference($db, (string) ($purchase['purchase_no'] ?? ''));
 
+            if ($db->tableExists('purchase_payments')) {
+                $db->table('purchase_payments')->where('purchase_id', $id)->delete();
+            }
+
             $purchaseModel->delete($id);
 
             if ($db->transStatus() === false) {
@@ -267,25 +272,20 @@ class Purchases extends BaseController
             return $this->response->setStatusCode(400)->setJSON(['message' => 'Invalid JSON payload.']);
         }
 
-        $supplierId   = (int) ($payload['supplier_id'] ?? 0);
-        $purchaseDate = (string) ($payload['purchase_date'] ?? '');
-        $status       = 'received';
-        $notes        = (string) ($payload['notes'] ?? '');
-        $transferFee   = max(0, (float) ($payload['transfer_fee'] ?? 0));
-        $headerDiscount = (float) ($payload['discount_total'] ?? 0);
-        $paidTotal      = (float) ($payload['paid_total'] ?? 0);
-        $paymentMethod = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
-        $items = $payload['items'] ?? [];
+        $supplierId     = (int) ($payload['supplier_id'] ?? 0);
+        $purchaseDate   = (string) ($payload['purchase_date'] ?? '');
+        $status         = 'received';
+        $notes          = (string) ($payload['notes'] ?? '');
+        $transferFee    = max(0, (float) ($payload['transfer_fee'] ?? 0));
+        $headerDiscount = max(0, (float) ($payload['discount_total'] ?? 0));
+        $paidTotalInput = (float) ($payload['paid_total'] ?? 0);
+        $paymentMethod  = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
+        $items          = $payload['items'] ?? [];
+        $paymentsInput  = $payload['payments'] ?? [];
 
         if ($supplierId < 1 || $purchaseDate === '' || ! is_array($items) || $items === []) {
             return $this->response->setStatusCode(422)->setJSON([
                 'message' => 'supplier_id, purchase_date and at least one item are required.',
-            ]);
-        }
-
-        if (! $this->isValidPaymentMethod($paymentMethod)) {
-            return $this->response->setStatusCode(422)->setJSON([
-                'message' => 'Invalid payment method.',
             ]);
         }
 
@@ -295,31 +295,47 @@ class Purchases extends BaseController
         $stockMovementModel  = new StockMovementModel();
         $productModel        = new ProductModel();
 
-        $subTotal      = 0.0;
-        $discountTotal = 0.0;
-        $normalized    = [];
-        $db            = db_connect();
+        $subTotal   = 0.0;
+        $normalized = [];
+        $db         = db_connect();
 
         foreach ($items as $item) {
             if (! is_array($item)) {
                 continue;
             }
 
-            $productId      = (int) ($item['product_id'] ?? 0);
-            $variantId      = (int) ($item['product_variant_id'] ?? 0);
-            $setsCount      = (int) ($item['sets_count'] ?? 0);
-            $qty            = (int) ($item['qty'] ?? 0);
-            $unitCost       = (float) ($item['unit_cost'] ?? 0);
-            $discountAmount = 0.0;
-            $sizes          = $item['sizes'] ?? [];
-            $style          = $item['style'] ?? '';
-            $warehouseId    = (int) ($item['warehouse_id'] ?? 0);
+            $productId         = (int) ($item['product_id'] ?? 0);
+            $variantId         = (int) ($item['product_variant_id'] ?? 0);
+            $setsCount         = (int) ($item['sets_count'] ?? 0);
+            $qty               = (int) ($item['qty'] ?? 0);
+            $unitCost          = round((float) ($item['unit_cost'] ?? 0), 4);
+            $discountAmount    = 0.0;
+            $sizes             = $item['sizes'] ?? [];
+            $style             = $item['style'] ?? '';
+            $warehouseId       = (int) ($item['warehouse_id'] ?? 0);
+            $referenceCurrency = strtoupper(trim((string) ($item['reference_currency'] ?? 'USD')));
+            $referenceCost     = round((float) ($item['reference_cost'] ?? $unitCost), 4);
+            $exchangeRate      = (float) ($item['exchange_rate'] ?? 1);
+            if ($referenceCurrency === '') {
+                $referenceCurrency = 'USD';
+            }
+            if ($exchangeRate <= 0) {
+                $exchangeRate = 1.0;
+            }
+
+            $currencyFields = [
+                'reference_currency' => $referenceCurrency,
+                'reference_cost'     => $referenceCost,
+                'exchange_rate'      => $exchangeRate,
+            ];
 
             if ($productId > 0 && is_array($sizes) && $sizes !== [] && $setsCount > 0) {
                 $product = $productModel->find($productId);
                 if (! is_array($product)) {
                     continue;
                 }
+
+                $this->updateProductReference($productModel, $productId, $referenceCurrency, $referenceCost);
 
                 foreach ($sizes as $size) {
                     $sizeText = trim((string) $size);
@@ -341,18 +357,16 @@ class Purchases extends BaseController
 
                     $lineBase  = $setsCount * $unitCost;
                     $lineTotal = max($lineBase - $discountAmount, 0);
+                    $subTotal += $lineBase;
 
-                    $subTotal      += $lineBase;
-                    $discountTotal += $discountAmount;
-
-                    $normalized[] = [
+                    $normalized[] = array_merge([
                         'product_variant_id' => $resolvedVariantId,
                         'qty'                => $setsCount,
                         'warehouse_id'       => $warehouseId,
                         'unit_cost'          => $unitCost,
                         'discount_amount'    => $discountAmount,
                         'line_total'         => $lineTotal,
-                    ];
+                    ], $currencyFields);
                 }
 
                 continue;
@@ -364,32 +378,54 @@ class Purchases extends BaseController
 
             $lineBase  = $qty * $unitCost;
             $lineTotal = max($lineBase - $discountAmount, 0);
+            $subTotal += $lineBase;
 
-            $subTotal      += $lineBase;
-            $discountTotal += $discountAmount;
-
-            $normalized[] = [
+            $normalized[] = array_merge([
                 'product_variant_id' => $variantId,
                 'qty'                => $qty,
                 'warehouse_id'       => $warehouseId,
                 'unit_cost'          => $unitCost,
                 'discount_amount'    => $discountAmount,
                 'line_total'         => $lineTotal,
-            ];
+            ], $currencyFields);
         }
 
         if ($normalized === []) {
             return $this->response->setStatusCode(422)->setJSON(['message' => 'No valid purchase items.']);
         }
 
-        $discountTotal = max(0, min($headerDiscount, $subTotal));
-        $grandTotal    = round($subTotal - $discountTotal, 2);
-        $paidTotal     = $grandTotal;
+        $originalSubTotal = $subTotal;
+        $headerDiscount   = max(0, min($headerDiscount, $originalSubTotal));
+        $effectiveDiscount = $headerDiscount;
+        if ($effectiveDiscount <= 0 && $paidTotalInput > 0) {
+            $effectiveDiscount = max(0, round($originalSubTotal - min($paidTotalInput, $originalSubTotal), 2));
+        }
+
+        if ($effectiveDiscount > 0) {
+            $normalized = $this->applyDiscountToUnitCosts($normalized, $originalSubTotal, $effectiveDiscount);
+        }
+
+        $subTotal = 0.0;
+        foreach ($normalized as $item) {
+            $subTotal += (float) ($item['line_total'] ?? 0);
+        }
+        $subTotal      = round($subTotal, 2);
+        $paidTotal     = $subTotal;
+        $discountTotal = 0.0;
+        $grandTotal    = round($paidTotal + $transferFee, 2);
+
+        $payments = $this->normalizePurchasePayments($paymentsInput, $paymentMethod, $grandTotal);
+        if ($payments === null) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid payment methods or amounts.']);
+        }
+
+        $primaryPaymentMethod = (string) ($payments[0]['payment_method'] ?? 'cash');
+
         $db->transBegin();
 
         try {
             $purchaseNo = $this->generatePurchaseNo();
-            $purchaseId = $purchaseModel->createOne([
+            $purchaseId   = $purchaseModel->createOne([
                 'purchase_no'    => $purchaseNo,
                 'purchase_date'  => $purchaseDate,
                 'supplier_id'    => $supplierId,
@@ -399,19 +435,38 @@ class Purchases extends BaseController
                 'transfer_fee'   => $transferFee,
                 'grand_total'    => $grandTotal,
                 'paid_total'     => $paidTotal,
-                'payment_method' => $paymentMethod,
+                'payment_method' => $primaryPaymentMethod,
                 'notes'          => $notes !== '' ? $notes : null,
             ]);
 
+            $purchasePaymentModel = new PurchasePaymentModel();
+            foreach ($payments as $payment) {
+                if ($db->tableExists('purchase_payments')) {
+                    $purchasePaymentModel->createOne([
+                        'purchase_id'    => $purchaseId,
+                        'payment_method' => $payment['payment_method'],
+                        'amount'         => $payment['amount'],
+                    ]);
+                }
+            }
+
             foreach ($normalized as $item) {
-                $purchaseItemModel->createOne([
+                $itemPayload = [
                     'purchase_id'        => $purchaseId,
                     'product_variant_id' => $item['product_variant_id'],
                     'qty'                => $item['qty'],
                     'unit_cost'          => $item['unit_cost'],
                     'discount_amount'    => $item['discount_amount'],
                     'line_total'         => $item['line_total'],
-                ]);
+                ];
+
+                if ($db->fieldExists('reference_currency', 'purchase_items')) {
+                    $itemPayload['reference_currency'] = $item['reference_currency'];
+                    $itemPayload['reference_cost']     = $item['reference_cost'];
+                    $itemPayload['exchange_rate']      = $item['exchange_rate'];
+                }
+
+                $purchaseItemModel->createOne($itemPayload);
 
                 $productVariantModel
                     ->set('stock_qty', 'stock_qty + ' . (int) $item['qty'], false)
@@ -444,36 +499,47 @@ class Purchases extends BaseController
                             ->update();
                     } else {
                         $db->table('inventory')->insert([
-                            'variant_id'         => (int) $item['product_variant_id'],
-                            'warehouse_id'       => (int) $item['warehouse_id'],
-                            'quantity'           => (int) $item['qty'],
-                            'reserved_quantity'  => 0,
-                            'updated_at'         => date('Y-m-d H:i:s'),
+                            'variant_id'        => (int) $item['product_variant_id'],
+                            'warehouse_id'      => (int) $item['warehouse_id'],
+                            'quantity'          => (int) $item['qty'],
+                            'reserved_quantity' => 0,
+                            'updated_at'        => date('Y-m-d H:i:s'),
                         ]);
                     }
                 }
             }
 
-            // $calcCurrency = trim((string) ($payload['calculation_currency'] ?? ''));
-            $ledger       = new LedgerService();
-            $ledger->recordPurchase(
-                $db,
-                $purchaseNo,
-                $purchaseDate,
-                $grandTotal,
-                $paymentMethod,
-                'Purchase ' . $purchaseNo,
-            );
-
-            if ($transferFee > 0) {
-                $ledger->recordPurchaseTransferFee(
+            $ledger = new LedgerService();
+            if (count($payments) > 1) {
+                $ledger->recordPurchaseSplit(
                     $db,
                     $purchaseNo,
                     $purchaseDate,
+                    $paidTotal,
                     $transferFee,
-                    $paymentMethod,
-                    'Purchase transfer fee ' . $purchaseNo,
+                    $payments,
+                    'Purchase ' . $purchaseNo
                 );
+            } else {
+                $ledger->recordPurchase(
+                    $db,
+                    $purchaseNo,
+                    $purchaseDate,
+                    $paidTotal,
+                    $primaryPaymentMethod,
+                    'Purchase ' . $purchaseNo
+                );
+
+                if ($transferFee > 0) {
+                    $ledger->recordPurchaseTransferFee(
+                        $db,
+                        $purchaseNo,
+                        $purchaseDate,
+                        $transferFee,
+                        $primaryPaymentMethod,
+                        'Purchase transfer fee ' . $purchaseNo
+                    );
+                }
             }
 
             if ($db->transStatus() === false) {
@@ -570,7 +636,10 @@ class Purchases extends BaseController
             return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid season.']);
         }
 
-        $id = (new ProductModel())->createOne([
+        $referenceCurrency = strtoupper(trim((string) ($payload['reference_currency'] ?? 'USD')));
+        $referenceCost     = isset($payload['reference_cost']) ? (float) $payload['reference_cost'] : null;
+
+        $productData = [
             'name'          => $name,
             'category_id'   => $categoryId,
             'serial_number' => $payload['serial_number'] ?? null,
@@ -580,7 +649,16 @@ class Purchases extends BaseController
             'season'        => $season,
             'description'   => null,
             'is_active'     => 1,
-        ]);
+        ];
+
+        if (db_connect()->fieldExists('reference_currency', 'products')) {
+            $productData['reference_currency'] = $referenceCurrency !== '' ? $referenceCurrency : 'USD';
+            if ($referenceCost !== null) {
+                $productData['reference_cost'] = round($referenceCost, 4);
+            }
+        }
+
+        $id = (new ProductModel())->createOne($productData);
 
         $tagIds = $payload['tags'] ?? [];
         if (is_array($tagIds) && $tagIds !== []) {
@@ -841,10 +919,143 @@ class Purchases extends BaseController
             return false;
         }
 
+        $legacy = ['cash', 'bank_transfer', 'card', 'check', 'other'];
+
         if (db_connect()->tableExists('payment_methods')) {
-            return (new PaymentMethodModel())->findByCode($code) !== null;
+            return (new PaymentMethodModel())->findByCode($code) !== null
+                || in_array($code, $legacy, true);
         }
 
-        return in_array($code, ['cash', 'bank_transfer', 'card', 'check', 'other'], true);
+        return in_array($code, $legacy, true);
+    }
+
+    private function updateProductReference(
+        ProductModel $productModel,
+        int $productId,
+        string $referenceCurrency,
+        float $referenceCost
+    ): void {
+        if (! db_connect()->fieldExists('reference_currency', 'products')) {
+            return;
+        }
+
+        $productModel->updateOne($productId, [
+            'reference_currency' => $referenceCurrency,
+            'reference_cost'     => $referenceCost,
+        ]);
+    }
+
+    /**
+     * Spread header discount into line unit costs; persisted discount fields stay zero.
+     *
+     * @param list<array<string, mixed>> $items
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function applyDiscountToUnitCosts(array $items, float $subTotal, float $discount): array
+    {
+        if ($subTotal <= 0 || $discount <= 0) {
+            return $items;
+        }
+
+        $targetTotal = round($subTotal - $discount, 2);
+        $lastIndex   = null;
+
+        foreach ($items as $index => $item) {
+            $qty = (int) ($item['qty'] ?? 0);
+            if ($qty < 1) {
+                continue;
+            }
+
+            $lastIndex = $index;
+        }
+
+        $allocated = 0.0;
+
+        foreach ($items as $index => $item) {
+            $qty = (int) ($item['qty'] ?? 0);
+            if ($qty < 1) {
+                continue;
+            }
+
+            $lineTotal     = (float) ($item['line_total'] ?? 0);
+            $newLineTotal  = $index === $lastIndex
+                ? round($targetTotal - $allocated, 2)
+                : round(max($lineTotal - ($discount * ($lineTotal / $subTotal)), 0), 2);
+            $allocated    += $newLineTotal;
+            $newUnitCost   = round($newLineTotal / $qty, 4);
+
+            $items[$index]['unit_cost']       = $newUnitCost;
+            $items[$index]['line_total']      = $newLineTotal;
+            $items[$index]['discount_amount'] = 0.0;
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param mixed $paymentsInput
+     *
+     * @return list<array{payment_method: string, amount: float}>|null
+     */
+    private function normalizePurchasePayments($paymentsInput, string $fallbackMethod, float $grandTotal): ?array
+    {
+        $payments = [];
+
+        if (is_array($paymentsInput) && $paymentsInput !== []) {
+            foreach ($paymentsInput as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $method = strtolower(trim((string) ($row['payment_method'] ?? '')));
+                $amount = round((float) ($row['amount'] ?? 0), 2);
+                if ($method === '' || $amount <= 0) {
+                    continue;
+                }
+
+                if (! $this->isValidPaymentMethod($method)) {
+                    return null;
+                }
+
+                $payments[] = [
+                    'payment_method' => $method,
+                    'amount'         => $amount,
+                ];
+            }
+        }
+
+        if ($payments === []) {
+            if (! $this->isValidPaymentMethod($fallbackMethod)) {
+                return null;
+            }
+
+            $payments[] = [
+                'payment_method' => strtolower(trim($fallbackMethod)),
+                'amount'         => round($grandTotal, 2),
+            ];
+        }
+
+        $expected = round($grandTotal, 2);
+        $sum      = round(array_sum(array_column($payments, 'amount')), 2);
+
+        if (abs($sum - $expected) > 0.01) {
+            if ($payments === []) {
+                return null;
+            }
+
+            $lastIndex = count($payments) - 1;
+            $payments[$lastIndex]['amount'] = round(
+                max(0, $payments[$lastIndex]['amount'] + ($expected - $sum)),
+                2
+            );
+            $sum = round(array_sum(array_column($payments, 'amount')), 2);
+        }
+
+        if (abs($sum - $expected) > 0.01) {
+            return null;
+        }
+
+        return $payments;
     }
 }

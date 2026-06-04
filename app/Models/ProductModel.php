@@ -19,6 +19,8 @@ class ProductModel extends BaseModel
         'gender',
         'season',
         'is_active',
+        'reference_currency',
+        'reference_cost',
     ];
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

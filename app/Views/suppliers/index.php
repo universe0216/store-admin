@@ -52,6 +52,10 @@
                             <input id="emailInput" type="email" class="form-control">
                         </div>
                         <div class="col-12">
+                            <label class="form-label">Default Currency</label>
+                            <input id="defaultCurrencyInput" type="text" class="form-control" maxlength="10" placeholder="USD" value="USD">
+                        </div>
+                        <div class="col-12">
                             <label class="form-label">Address</label>
                             <textarea id="addressInput" class="form-control" rows="2"></textarea>
                         </div>
@@ -80,6 +84,7 @@
         $("#phoneInput").val("");
         $("#emailInput").val("");
         $("#addressInput").val("");
+        $("#defaultCurrencyInput").val("USD");
         $("#formTitle").text("New Supplier");
         $("#saveBtn").text("Save");
     }
@@ -125,7 +130,8 @@
             name: $("#nameInput").val().trim(),
             phone: $("#phoneInput").val().trim(),
             email: $("#emailInput").val().trim(),
-            address: $("#addressInput").val().trim()
+            address: $("#addressInput").val().trim(),
+            default_currency: String($("#defaultCurrencyInput").val() || "USD").trim().toUpperCase()
         };
     }
 
@@ -138,6 +144,7 @@
                 $("#phoneInput").val(row.phone || "");
                 $("#emailInput").val(row.email || "");
                 $("#addressInput").val(row.address || "");
+                $("#defaultCurrencyInput").val(row.default_currency || "USD");
                 $("#formTitle").text("Edit Supplier");
                 $("#saveBtn").text("Update");
                 setMessage("");

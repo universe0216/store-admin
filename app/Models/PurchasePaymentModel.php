@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
-class SupplierModel extends BaseModel
+class PurchasePaymentModel extends BaseModel
 {
-    protected $table            = 'suppliers';
+    protected $table            = 'purchase_payments';
     protected $primaryKey       = 'id';
     protected $returnType       = 'array';
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'phone', 'email', 'address', 'default_currency'];
+    protected $allowedFields    = [
+        'purchase_id',
+        'payment_method',
+        'amount',
+    ];
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
 
