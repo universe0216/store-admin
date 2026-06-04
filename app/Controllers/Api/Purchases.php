@@ -646,6 +646,216 @@ class Purchases extends BaseController
         return $this->response->setJSON(['data' => $rows]);
     }
 
+    public function purchaseProducts(): ResponseInterface
+    {
+        $filters = $this->parsePurchaseProductFilters();
+        $page    = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage = max(1, min(100, (int) ($this->request->getGet('per_page') ?? 20)));
+        $offset  = ($page - 1) * $perPage;
+
+        $total = $this->countPurchaseProducts($filters);
+        $rows  = $this->fetchPurchaseProducts($filters, $perPage, $offset);
+
+        $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 0;
+
+        return $this->response->setJSON([
+            'data'       => $rows,
+            'pagination' => [
+                'page'        => $page,
+                'per_page'    => $perPage,
+                'total'       => $total,
+                'total_pages' => $totalPages,
+            ],
+        ]);
+    }
+
+    /**
+     * @return array{search: string, supplier_id: int, department: string, gender: string}
+     */
+    private function parsePurchaseProductFilters(): array
+    {
+        $search     = trim((string) ($this->request->getGet('search') ?? ''));
+        $supplierId = (int) ($this->request->getGet('supplier_id') ?? 0);
+        $department = trim((string) ($this->request->getGet('department') ?? ''));
+        $gender     = trim((string) ($this->request->getGet('gender') ?? ''));
+
+        if ($department !== '' && ! Department::isValid($department)) {
+            $department = '';
+        }
+        if ($gender !== '' && ! Gender::isValid($gender)) {
+            $gender = '';
+        }
+
+        return [
+            'search'      => $search,
+            'supplier_id' => max(0, $supplierId),
+            'department'  => $department,
+            'gender'      => $gender,
+        ];
+    }
+
+    /**
+     * @param array{search: string, supplier_id: int, department: string, gender: string} $filters
+     */
+    private function appendPurchaseProductFilterSql(string &$where, array &$params, array $filters): void
+    {
+        if ($filters['search'] !== '') {
+            $where .= ' AND (products.name LIKE ? OR products.serial_number LIKE ?)';
+            $like = '%' . $filters['search'] . '%';
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        if ($filters['department'] !== '' && db_connect()->fieldExists('department', 'products')) {
+            $where .= ' AND products.department = ?';
+            $params[] = $filters['department'];
+        }
+
+        if ($filters['gender'] !== '' && db_connect()->fieldExists('gender', 'products')) {
+            $where .= ' AND products.gender = ?';
+            $params[] = $filters['gender'];
+        }
+
+        if ($filters['supplier_id'] > 0) {
+            $where .= ' AND EXISTS (
+                SELECT 1
+                FROM product_variants pv_filter
+                INNER JOIN purchase_items pi_filter ON pi_filter.product_variant_id = pv_filter.id
+                INNER JOIN purchases pur_filter ON pur_filter.id = pi_filter.purchase_id
+                WHERE pv_filter.product_id = products.id
+                  AND pur_filter.supplier_id = ?
+            )';
+            $params[] = $filters['supplier_id'];
+        }
+    }
+
+    /**
+     * @param array{search: string, supplier_id: int, department: string, gender: string} $filters
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fetchPurchaseProducts(array $filters, int $limit, int $offset): array
+    {
+        $db = db_connect();
+
+        $refCostExpr = $db->fieldExists('reference_cost', 'products')
+            ? 'products.reference_cost'
+            : '0';
+        $refCurrencyExpr = $db->fieldExists('reference_currency', 'products')
+            ? 'products.reference_currency'
+            : "'USD'";
+        $departmentExpr = $db->fieldExists('department', 'products')
+            ? 'products.department'
+            : "''";
+        $genderExpr = $db->fieldExists('gender', 'products')
+            ? 'products.gender'
+            : "''";
+
+        $supplierSelect = 'NULL AS supplier_name';
+        $firstDateSelect = 'NULL AS first_purchase_date';
+        $joins = '';
+
+        if (
+            $db->tableExists('purchase_items')
+            && $db->tableExists('product_variants')
+            && $db->tableExists('purchases')
+        ) {
+            $joins = ' LEFT JOIN product_variants ON product_variants.product_id = products.id'
+                . ' LEFT JOIN purchase_items ON purchase_items.product_variant_id = product_variants.id'
+                . ' LEFT JOIN purchases ON purchases.id = purchase_items.purchase_id';
+            $firstDateSelect = 'MIN(purchases.purchase_date) AS first_purchase_date';
+            $supplierSelect  = '(
+                SELECT s.name
+                FROM purchase_items pi
+                INNER JOIN product_variants pv ON pv.id = pi.product_variant_id
+                INNER JOIN purchases pur ON pur.id = pi.purchase_id
+                LEFT JOIN suppliers s ON s.id = pur.supplier_id
+                WHERE pv.product_id = products.id
+                ORDER BY pur.purchase_date ASC, pur.id ASC
+                LIMIT 1
+            ) AS supplier_name';
+        }
+
+        $where  = 'WHERE 1=1';
+        $params = [];
+        $this->appendPurchaseProductFilterSql($where, $params, $filters);
+
+        $groupBy = 'GROUP BY products.id, products.name, products.serial_number, '
+            . $refCostExpr . ', ' . $refCurrencyExpr . ', ' . $departmentExpr . ', ' . $genderExpr;
+
+        $sql = 'SELECT products.id, products.name, products.serial_number, '
+            . "{$refCostExpr} AS reference_cost, {$refCurrencyExpr} AS reference_currency, "
+            . "{$departmentExpr} AS department, {$genderExpr} AS gender, "
+            . "{$firstDateSelect}, {$supplierSelect} "
+            . 'FROM products '
+            . $joins . ' '
+            . $where . ' '
+            . $groupBy . ' '
+            . 'ORDER BY products.name ASC '
+            . 'LIMIT ? OFFSET ?';
+
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $rows = $db->query($sql, $params)->getResultArray();
+
+        return array_map(function (array $row): array {
+            $firstDate = $row['first_purchase_date'] ?? null;
+            if ($firstDate !== null && $firstDate !== '') {
+                $timestamp = strtotime((string) $firstDate);
+                $row['first_purchase_date'] = $timestamp !== false
+                    ? date('Y-m-d', $timestamp)
+                    : substr((string) $firstDate, 0, 10);
+            } else {
+                $row['first_purchase_date'] = null;
+            }
+
+            $row['reference_cost']     = round((float) ($row['reference_cost'] ?? 0), 4);
+            $row['reference_currency'] = strtoupper(trim((string) ($row['reference_currency'] ?? 'USD')));
+            $row['department']         = $this->formatDepartmentLabel((string) ($row['department'] ?? ''));
+            $row['gender']             = $this->formatGenderLabel((string) ($row['gender'] ?? ''));
+
+            return $row;
+        }, $rows);
+    }
+
+    /**
+     * @param array{search: string, supplier_id: int, department: string, gender: string} $filters
+     */
+    private function countPurchaseProducts(array $filters): int
+    {
+        $db = db_connect();
+
+        $where  = 'WHERE 1=1';
+        $params = [];
+        $this->appendPurchaseProductFilterSql($where, $params, $filters);
+
+        $sql = 'SELECT COUNT(products.id) AS aggregate FROM products ' . $where;
+        $row = $db->query($sql, $params)->getRowArray();
+
+        return (int) ($row['aggregate'] ?? 0);
+    }
+
+    private function formatDepartmentLabel(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || ! Department::isValid($value)) {
+            return '';
+        }
+
+        return Department::from($value)->label();
+    }
+
+    private function formatGenderLabel(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || ! Gender::isValid($value)) {
+            return '';
+        }
+
+        return Gender::from($value)->label();
+    }
+
     public function createProduct(): ResponseInterface
     {
         $payload = $this->request->getJSON(true);

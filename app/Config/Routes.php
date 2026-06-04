@@ -8,6 +8,7 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'Home::index');
 $routes->get('purchases', 'Purchases::index');
 $routes->get('purchases/create', 'Purchases::create');
+$routes->get('purchases/products', 'Purchases::products');
 $routes->get('sells', 'Sells::index');
 $routes->get('sells/create', 'Sells::create');
 $routes->get('stock', 'Stock::index');
@@ -27,6 +28,7 @@ $routes->get('finance/balances', 'Finance::balances');
 
 $routes->group('api', static function ($routes): void {
     $routes->get('purchases', 'Api\Purchases::index');
+    $routes->get('purchase-products', 'Api\Purchases::purchaseProducts');
     $routes->get('purchases/(:num)', 'Api\Purchases::show/$1');
     $routes->post('purchases', 'Api\Purchases::create');
     $routes->delete('purchases/(:num)', 'Api\Purchases::delete/$1');

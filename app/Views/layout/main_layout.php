@@ -53,6 +53,7 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="<?= site_url('purchases') ?>">Purchase</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('purchases/create') ?>">New Purchase</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('purchases/products') ?>">Products</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -62,6 +63,7 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="<?= site_url('sells') ?>">Sells</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('sells/create') ?>">New Sell</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('inventory/sales-statistics') ?>">Sales Monthly Statistics</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -70,7 +72,6 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="<?= site_url('inventory') ?>">Inventory</a></li>
-                            <li><a class="dropdown-item" href="<?= site_url('inventory/sales-statistics') ?>">Sales Monthly Statistics</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('transfers') ?>">Transfer</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('transfers/create') ?>">New Transfer</a></li>
                         </ul>
