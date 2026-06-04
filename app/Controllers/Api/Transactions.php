@@ -458,6 +458,7 @@ class Transactions extends BaseController
      *     sales_revenue: float,
      *     cost_of_goods: float,
      *     transfer_fees: float,
+     *     shipping_fees: float,
      *     net_profit: float
      * }
      */
@@ -468,20 +469,23 @@ class Transactions extends BaseController
         string $dateTo,
         string $referenceNo
     ): array {
-        $revenueCode = $db->escape($accounting->salesRevenueAccount);
-        $cogsCode    = $db->escape($accounting->cogsAccount);
+        $revenueCode  = $db->escape($accounting->salesRevenueAccount);
+        $cogsCode     = $db->escape($accounting->cogsAccount);
+        $shippingCode = $db->escape($accounting->shippingFeeAccount);
 
         $ledgerBuilder = $db->table('transactions t')
             ->select(
                 "COALESCE(SUM(CASE WHEN t.account_code = {$revenueCode} THEN t.credit - t.debit ELSE 0 END), 0) AS sales_revenue, " .
-                "COALESCE(SUM(CASE WHEN t.account_code = {$cogsCode} THEN t.debit - t.credit ELSE 0 END), 0) AS cost_of_goods",
+                "COALESCE(SUM(CASE WHEN t.account_code = {$cogsCode} THEN t.debit - t.credit ELSE 0 END), 0) AS cost_of_goods, " .
+                "COALESCE(SUM(CASE WHEN t.account_code = {$shippingCode} THEN t.debit - t.credit ELSE 0 END), 0) AS shipping_fees",
                 false
             );
         $this->applyTransactionFilters($ledgerBuilder, $dateFrom, $dateTo, $referenceNo, []);
 
         $ledger = $ledgerBuilder->get()->getRowArray();
-        $salesRevenue = round((float) ($ledger['sales_revenue'] ?? 0), 2);
-        $costOfGoods  = round((float) ($ledger['cost_of_goods'] ?? 0), 2);
+        $salesRevenue  = round((float) ($ledger['sales_revenue'] ?? 0), 2);
+        $costOfGoods   = round((float) ($ledger['cost_of_goods'] ?? 0), 2);
+        $shippingFees  = round((float) ($ledger['shipping_fees'] ?? 0), 2);
 
         $transferFees = 0.0;
         if ($db->tableExists('purchases') && $db->fieldExists('transfer_fee', 'purchases')) {
@@ -504,7 +508,8 @@ class Transactions extends BaseController
             'sales_revenue'  => $salesRevenue,
             'cost_of_goods'  => $costOfGoods,
             'transfer_fees'  => $transferFees,
-            'net_profit'     => round($salesRevenue - $costOfGoods - $transferFees, 2),
+            'shipping_fees'  => $shippingFees,
+            'net_profit'     => round($salesRevenue - $costOfGoods - $transferFees - $shippingFees, 2),
         ];
     }
 

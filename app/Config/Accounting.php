@@ -24,6 +24,9 @@ class Accounting extends BaseConfig
     /** Bank/wire transfer fees on purchases (expense). */
     public string $transferFeeAccount = '5100';
 
+    /** Shipping fees on purchases (expense). */
+    public string $shippingFeeAccount = '5110';
+
     /** Cash account (default payment). */
     public string $cashAccount = '1000';
 

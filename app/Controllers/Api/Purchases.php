@@ -525,13 +525,16 @@ class Purchases extends BaseController
                 }
             }
 
-            $ledger = new LedgerService();
+            $ledger                = new LedgerService();
+            $inventoryLedgerAmount = max(0, round($subTotal - $shippingFee - $transferFee, 2));
+
             if (count($payments) > 1) {
                 $ledger->recordPurchaseSplit(
                     $db,
                     $purchaseNo,
                     $purchaseDate,
-                    $subTotal,
+                    $inventoryLedgerAmount,
+                    $shippingFee,
                     $transferFee,
                     $payments,
                     'Purchase ' . $purchaseNo
@@ -541,10 +544,21 @@ class Purchases extends BaseController
                     $db,
                     $purchaseNo,
                     $purchaseDate,
-                    $subTotal,
+                    $inventoryLedgerAmount,
                     $primaryPaymentMethod,
                     'Purchase ' . $purchaseNo
                 );
+
+                if ($shippingFee > 0) {
+                    $ledger->recordPurchaseShippingFee(
+                        $db,
+                        $purchaseNo,
+                        $purchaseDate,
+                        $shippingFee,
+                        $primaryPaymentMethod,
+                        'Purchase shipping fee ' . $purchaseNo
+                    );
+                }
 
                 if ($transferFee > 0) {
                     $ledger->recordPurchaseTransferFee(

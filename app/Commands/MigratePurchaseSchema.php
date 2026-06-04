@@ -16,9 +16,11 @@ class MigratePurchaseSchema extends BaseCommand
     {
         require_once APPPATH . 'Database/Migrations/2026-05-29-000002_AddTransferFeeToPurchases.php';
         require_once APPPATH . 'Database/Migrations/2026-06-05-000004_AddPurchaseShippingAndItemAllocations.php';
+        require_once APPPATH . 'Database/Migrations/2026-06-05-000005_SeedShippingFeeAccount.php';
 
         (new AddTransferFeeToPurchases())->up();
         (new \App\Database\Migrations\AddPurchaseShippingAndItemAllocations())->up();
+        (new \App\Database\Migrations\SeedShippingFeeAccount())->up();
         CLI::write('Purchase schema migration applied.', 'green');
     }
 }

@@ -61,6 +61,7 @@ class LedgerService
         string $referenceNo,
         string $transactionDate,
         float $inventoryAmount,
+        float $shippingFeeAmount,
         float $transferFeeAmount,
         array $payments,
         ?string $description = null
@@ -91,6 +92,26 @@ class LedgerService
                 $inventoryMonetary['usd_amount'],
                 0.00,
                 $inventoryMonetary,
+                $now
+            );
+        }
+
+        if ($shippingFeeAmount > 0) {
+            $shippingMonetary = $this->resolveMonetary(
+                $db,
+                $shippingFeeAmount,
+                $base,
+                $this->config->shippingFeeAccount
+            );
+
+            $rows[] = $this->transactionRow(
+                $date,
+                $this->config->shippingFeeAccount,
+                $referenceNo,
+                $description ?? "Purchase shipping fee {$referenceNo}",
+                $shippingMonetary['usd_amount'],
+                0.00,
+                $shippingMonetary,
                 $now
             );
         }
@@ -184,6 +205,42 @@ class LedgerService
             $creditAccount,
             $paymentAmount,
             $description ?? "Purchase transfer fee {$referenceNo}",
+            $paymentCurrency,
+            $creditAccount
+        );
+    }
+
+    public function recordPurchaseShippingFee(
+        BaseConnection $db,
+        string $referenceNo,
+        string $transactionDate,
+        float $amount,
+        string $paymentMethod,
+        ?string $description = null,
+        ?string $calculationCurrency = null
+    ): void {
+        if ($amount <= 0) {
+            return;
+        }
+
+        $payment = $this->resolvePaymentMethod($db, $paymentMethod);
+        $creditAccount   = $payment['account_code'];
+        $paymentCurrency = $payment['currency_code'];
+        $calcCurrency    = strtoupper(trim((string) ($calculationCurrency ?? '')));
+        if ($calcCurrency === '') {
+            $calcCurrency = $paymentCurrency;
+        }
+
+        $paymentAmount = $this->convertCurrency($amount, $calcCurrency, $paymentCurrency);
+
+        $this->postPair(
+            $db,
+            $referenceNo,
+            $transactionDate,
+            $this->config->shippingFeeAccount,
+            $creditAccount,
+            $paymentAmount,
+            $description ?? "Purchase shipping fee {$referenceNo}",
             $paymentCurrency,
             $creditAccount
         );

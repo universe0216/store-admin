@@ -92,11 +92,15 @@
                         <span class="text-secondary">Cost of Goods</span>
                         <div id="metricCostOfGoods" class="fw-semibold" style="color:#b42318;">0.00</div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <span class="text-secondary">Transfer Fees</span>
                         <div id="metricTransferFees" class="fw-semibold" style="color:#b42318;">0.00</div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
+                        <span class="text-secondary">Shipping Fees</span>
+                        <div id="metricShippingFees" class="fw-semibold" style="color:#b42318;">0.00</div>
+                    </div>
+                    <div class="col-6 col-md-2">
                         <span class="text-secondary">Net Business Profit</span>
                         <div id="metricNetBusinessProfit" class="fw-bold fs-5 text-primary">0.00</div>
                     </div>
@@ -402,6 +406,7 @@ $accountingConfig = config(Accounting::class);
             $("#metricSalesRevenue").text(formatMoney(bp.sales_revenue));
             $("#metricCostOfGoods").text(formatMoney(bp.cost_of_goods));
             $("#metricTransferFees").text(formatMoney(bp.transfer_fees));
+            $("#metricShippingFees").text(formatMoney(bp.shipping_fees ?? 0));
             $("#metricNetBusinessProfit").text(formatMoney(bp.net_profit));
         } else {
             $bpPanel.addClass("d-none");
