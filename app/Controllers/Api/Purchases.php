@@ -61,7 +61,7 @@ class Purchases extends BaseController
      *     total_products: int,
      *     total_product_variants: int,
      *     total_paid_total: float,
-     *     total_transfer_fee: float,
+     *     total_shipping_fee: float,
      *     total_grand_total: float
      * }
      */
@@ -72,17 +72,21 @@ class Purchases extends BaseController
             'total_products'         => 0,
             'total_product_variants' => 0,
             'total_paid_total'       => 0.0,
-            'total_transfer_fee'     => 0.0,
+            'total_shipping_fee'     => 0.0,
             'total_grand_total'      => 0.0,
         ];
 
         $subSql = $this->compiledPurchasesIdSubquery($productName, $dateFrom, $dateTo);
         $db     = db_connect();
 
+        $shippingSum = $db->fieldExists('shipping_fee', 'purchases')
+            ? 'COALESCE(SUM(shipping_fee), 0)'
+            : '0';
+
         $purchaseAgg = $db->query(
             "SELECT COUNT(*) AS total_purchases, " .
             "COALESCE(SUM(paid_total), 0) AS total_paid_total, " .
-            "COALESCE(SUM(transfer_fee), 0) AS total_transfer_fee, " .
+            "{$shippingSum} AS total_shipping_fee, " .
             "COALESCE(SUM(grand_total), 0) AS total_grand_total " .
             "FROM purchases WHERE id IN ({$subSql})"
         )->getRowArray();
@@ -105,7 +109,7 @@ class Purchases extends BaseController
             'total_products'         => (int) ($itemAgg['total_products'] ?? 0),
             'total_product_variants' => (int) ($itemAgg['total_product_variants'] ?? 0),
             'total_paid_total'       => (float) ($purchaseAgg['total_paid_total'] ?? 0),
-            'total_transfer_fee'     => (float) ($purchaseAgg['total_transfer_fee'] ?? 0),
+            'total_shipping_fee'     => (float) ($purchaseAgg['total_shipping_fee'] ?? 0),
             'total_grand_total'      => (float) ($purchaseAgg['total_grand_total'] ?? 0),
         ];
     }
@@ -203,10 +207,13 @@ class Purchases extends BaseController
             ->groupBy('products.id, products.name, products.serial_number, products.brand, purchase_items.unit_cost')
             ->findAll();
 
+        $payments = $this->getPurchasePaymentsForPurchase($id, is_array($purchase) ? $purchase : []);
+
         return $this->response->setJSON([
             'data' => [
                 'purchase' => $purchase,
                 'items'    => $items,
+                'payments' => $payments,
             ],
         ]);
     }
@@ -1096,5 +1103,102 @@ class Purchases extends BaseController
         }
 
         return $payments;
+    }
+
+    /**
+     * @param array<string, mixed> $purchase
+     *
+     * @return list<array{payment_method: string, payment_method_name: string, amount: float, payment_date: string}>
+     */
+    private function getPurchasePaymentsForPurchase(int $purchaseId, array $purchase): array
+    {
+        $db = db_connect();
+
+        if ($db->tableExists('purchase_payments')) {
+            $rows = $db->table('purchase_payments')
+                ->where('purchase_id', $purchaseId)
+                ->orderBy('created_at', 'ASC')
+                ->orderBy('id', 'ASC')
+                ->get()
+                ->getResultArray();
+
+            if ($rows !== []) {
+                return $this->formatPurchasePayments($rows);
+            }
+        }
+
+        $method = strtolower(trim((string) ($purchase['payment_method'] ?? 'cash')));
+        $amount = round((float) ($purchase['grand_total'] ?? $purchase['paid_total'] ?? 0), 2);
+
+        if ($method === '' || $amount <= 0) {
+            return [];
+        }
+
+        return $this->formatPurchasePayments([
+            [
+                'payment_method' => $method,
+                'amount'         => $amount,
+                'created_at'     => $purchase['purchase_date'] ?? null,
+            ],
+        ]);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return list<array{payment_method: string, payment_method_name: string, amount: float, payment_date: string}>
+     */
+    private function formatPurchasePayments(array $rows): array
+    {
+        $nameMap = $this->paymentMethodNameMap();
+        $result  = [];
+
+        foreach ($rows as $row) {
+            $code = strtolower(trim((string) ($row['payment_method'] ?? '')));
+            if ($code === '') {
+                continue;
+            }
+
+            $result[] = [
+                'payment_method'      => $code,
+                'payment_method_name' => $nameMap[$code] ?? ucfirst(str_replace('_', ' ', $code)),
+                'amount'              => round((float) ($row['amount'] ?? 0), 2),
+                'payment_date'        => $this->formatPaymentDate($row['created_at'] ?? $row['payment_date'] ?? null),
+            ];
+        }
+
+        return $result;
+    }
+
+    private function formatPaymentDate(mixed $raw): string
+    {
+        $value = trim((string) $raw);
+        if ($value === '') {
+            return '';
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp !== false ? date('Y-m-d', $timestamp) : substr($value, 0, 10);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function paymentMethodNameMap(): array
+    {
+        $map = [];
+        $db  = db_connect();
+
+        if ($db->tableExists('payment_methods')) {
+            foreach ((new PaymentMethodModel())->listAll() as $row) {
+                $code = strtolower(trim((string) ($row['code'] ?? '')));
+                if ($code !== '') {
+                    $map[$code] = (string) ($row['name'] ?? $code);
+                }
+            }
+        }
+
+        return $map;
     }
 }

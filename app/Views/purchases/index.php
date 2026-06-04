@@ -49,8 +49,8 @@
                                     <div id="metricTotalPaid" class="fw-semibold">0.00</div>
                                 </div>
                                 <div class="col-6 col-md-4">
-                                    <span class="text-secondary">Total Transfer Fee</span>
-                                    <div id="metricTotalTransferFee" class="fw-semibold">0.00</div>
+                                    <span class="text-secondary">Total Shipping Fee</span>
+                                    <div id="metricTotalShippingFee" class="fw-semibold">0.00</div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <span class="text-secondary">Total Grand Total</span>
@@ -82,21 +82,44 @@
                                     <div id="infoSupplier" class="fw-semibold">—</div>
                                 </div>
                                 <div class="col-6 col-md-4">
-                                    <span class="text-secondary">Discount</span>
-                                    <div id="infoDiscount" class="fw-semibold">—</div>
-                                </div>
-                                <div class="col-6 col-md-4">
-                                    <span class="text-secondary">Transfer Fee</span>
-                                    <div id="infoTransferFee" class="fw-semibold">—</div>
-                                </div>
-                                <div class="col-6 col-md-4">
                                     <span class="text-secondary">Sub Total</span>
                                     <div id="infoSubTotal" class="fw-semibold">—</div>
+                                </div>
+                                <!-- <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Discount</span>
+                                    <div id="infoDiscount" class="fw-semibold">—</div>
+                                </div> -->
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Paid Amount</span>
+                                    <div id="infoPaidTotal" class="fw-semibold">—</div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <span class="text-secondary">Shipping Fee</span>
+                                    <div id="infoShippingFee" class="fw-semibold">—</div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <span class="text-secondary">Grand Total</span>
                                     <div id="infoGrandTotal" class="fw-semibold">—</div>
                                 </div>
+                            </div>
+                        </div>
+                        <div id="purchasePaymentPanel" class="border rounded bg-light p-3 mb-3 small">
+                            <h3 class="h6 fw-semibold mb-2">Payment Details</h3>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0 bg-white">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Payment Method</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="purchasePaymentsBody">
+                                        <tr>
+                                            <td colspan="3" class="text-secondary">Select a purchase to view payments.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                         <div id="purchaseItemsGrid"></div>
@@ -131,7 +154,8 @@
                 { name: "status", type: "string" },
                 { name: "grand_total", type: "number" },
                 { name: "discount_total", type: "number" },
-                { name: "transfer_fee", type: "number" },
+                { name: "shipping_fee", type: "number" },
+                { name: "paid_total", type: "number" },
                 { name: "sub_total", type: "number" }
             ]
         };
@@ -143,7 +167,7 @@
             $("#metricTotalProducts").text(Number(s.total_products || 0));
             $("#metricTotalVariants").text(Number(s.total_product_variants || 0));
             $("#metricTotalPaid").text(formatMoney(s.total_paid_total));
-            $("#metricTotalTransferFee").text(formatMoney(s.total_transfer_fee));
+            $("#metricTotalShippingFee").text(formatMoney(s.total_shipping_fee ?? s.total_transfer_fee));
             $("#metricTotalGrandTotal").text(formatMoney(s.total_grand_total));
             $("#purchaseFilterError").text("");
         }
@@ -156,16 +180,60 @@
             return Number(value || 0).toFixed(2);
         }
 
+        function formatPaymentDate(value) {
+            const text = String(value || "").trim();
+            if (text === "") {
+                return "—";
+            }
+            return text.length >= 10 ? text.substring(0, 10) : text;
+        }
+
+        function formatPaymentMethodLabel(code, name) {
+            const label = String(name || "").trim();
+            if (label !== "") {
+                return label;
+            }
+            return String(code || "")
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, ch => ch.toUpperCase()) || "—";
+        }
+
+        function renderPurchasePayments(payments) {
+            const rows = payments || [];
+            const $body = $("#purchasePaymentsBody").empty();
+
+            if (rows.length === 0) {
+                $body.append(`
+                    <tr>
+                        <td colspan="3" class="text-secondary">No payment details.</td>
+                    </tr>
+                `);
+                return;
+            }
+
+            rows.forEach(function (row) {
+                $body.append(`
+                    <tr>
+                        <td>${formatPaymentDate(row.payment_date)}</td>
+                        <td>${formatPaymentMethodLabel(row.payment_method, row.payment_method_name)}</td>
+                        <td class="text-end fw-semibold">${formatMoney(row.amount)}</td>
+                    </tr>
+                `);
+            });
+        }
+
         function clearPurchaseInfo() {
             $("#infoPurchaseDate").text("—");
             $("#infoSupplier").text("—");
-            $("#infoDiscount").text("—");
-            $("#infoTransferFee").text("—");
             $("#infoSubTotal").text("—");
+            $("#infoDiscount").text("—");
+            $("#infoPaidTotal").text("—");
+            $("#infoShippingFee").text("—");
             $("#infoGrandTotal").text("—");
+            renderPurchasePayments([]);
         }
 
-        function setPurchaseInfo(purchase) {
+        function setPurchaseInfo(purchase, payments) {
             if (!purchase) {
                 clearPurchaseInfo();
                 return;
@@ -173,10 +241,14 @@
 
             $("#infoPurchaseDate").text(purchase.purchase_date || "—");
             $("#infoSupplier").text(purchase.supplier_name || "—");
-            $("#infoDiscount").text(formatMoney(purchase.discount_total));
-            $("#infoTransferFee").text(formatMoney(purchase.transfer_fee));
             $("#infoSubTotal").text(formatMoney(purchase.sub_total));
+            $("#infoDiscount").text(formatMoney(purchase.discount_total));
+            $("#infoPaidTotal").text(formatMoney(purchase.paid_total));
+            $("#infoShippingFee").text(formatMoney(purchase.shipping_fee ?? purchase.transfer_fee));
             $("#infoGrandTotal").text(formatMoney(purchase.grand_total));
+            if (payments !== undefined) {
+                renderPurchasePayments(payments);
+            }
         }
 
         function getDateFilterValue(selector) {
@@ -352,8 +424,9 @@
 
             $.getJSON(`${API_URLS.purchases}/${purchaseId}`).done(function(res) {
                 const purchase = res.data?.purchase;
+                const payments = res.data?.payments || [];
                 if (purchase) {
-                    setPurchaseInfo(purchase);
+                    setPurchaseInfo(purchase, payments);
                 }
 
                 const items = (res.data?.items || []).map(item => ({
@@ -375,6 +448,7 @@
                 const msg = xhr.responseJSON?.message || "Failed to load purchase items.";
                 console.error(msg);
                 clearPurchaseInfo();
+                renderPurchasePayments([]);
                 $("#purchaseItemsGrid").jqxGrid({
                     source: new $.jqx.dataAdapter({ localdata: [], datatype: "array" })
                 });
