@@ -1010,8 +1010,8 @@ use App\Enums\Season;
                     + perUnitShipping
                     + perUnitTransfer
                 ).toFixed(4));
-                const lineQty = Math.max(Number(entry.row.units_count || 0), 0);
-                const lineTotal = Number((unitCost * lineQty).toFixed(2));
+                const variantQty = Math.max(Number(entry.row.sets_count || 0), 0);
+                const lineTotal = Number((unitCost * variantQty).toFixed(2));
 
                 return {
                     product_id: Number(entry.row.product_id || 0),
@@ -1019,8 +1019,8 @@ use App\Enums\Season;
                         .split(",")
                         .map(function (v) { return v.trim(); })
                         .filter(function (v) { return v !== ""; }),
-                    sets_count: Number(entry.row.sets_count || 0),
-                    qty: Number(entry.row.units_count || 0),
+                    sets_count: variantQty,
+                    qty: variantQty,
                     warehouse_id: Number(entry.row.warehouse_id || 0),
                     unit_price: entry.unitPrice,
                     unit_cost: unitCost,

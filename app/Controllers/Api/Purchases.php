@@ -360,12 +360,13 @@ class Purchases extends BaseController
                         continue;
                     }
 
-                    $lineTotal = round((float) ($item['line_total'] ?? ($setsCount * $unitCost)), 2);
-                    $subTotal += $lineTotal;
+                    $variantQty = $setsCount;
+                    $lineTotal  = $this->purchaseLineTotal($variantQty, $unitCost);
+                    $subTotal  += $lineTotal;
 
                     $normalized[] = array_merge([
                         'product_variant_id'      => $resolvedVariantId,
-                        'qty'                     => $setsCount,
+                        'qty'                     => $variantQty,
                         'warehouse_id'            => $warehouseId,
                         'unit_price'              => $unitPrice,
                         'allocated_discount'      => $allocatedDiscount,
@@ -384,7 +385,7 @@ class Purchases extends BaseController
                 continue;
             }
 
-            $lineTotal = round((float) ($item['line_total'] ?? ($qty * $unitCost)), 2);
+            $lineTotal = $this->purchaseLineTotal($qty, $unitCost);
             $subTotal += $lineTotal;
 
             $normalized[] = array_merge([
@@ -942,6 +943,15 @@ class Purchases extends BaseController
         }
 
         return in_array($code, $legacy, true);
+    }
+
+    private function purchaseLineTotal(int $qty, float $unitCost): float
+    {
+        if ($qty < 1) {
+            return 0.0;
+        }
+
+        return round($qty * $unitCost, 2);
     }
 
     private function updateProductReference(
