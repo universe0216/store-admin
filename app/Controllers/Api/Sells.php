@@ -226,15 +226,14 @@ class Sells extends BaseController
                 ->getFirstRow('array');
             $unitCost = (float) ($variant['cost_price'] ?? 0);
 
-            $lineTotal  = (float) ($qty * $unitPrice);
-            $lineCost   = (float) ($qty * $unitCost);
-            $subTotal  += $lineTotal;
+            $lineGross = round((float) ($qty * $unitPrice), 2);
+            $lineCost  = (float) ($qty * $unitCost);
+            $subTotal += $lineGross;
             $cogsTotal += $lineCost;
             $normalized[] = [
                 'variant_id' => $variantId,
                 'qty'        => $qty,
                 'unit_price' => $unitPrice,
-                'line_total' => $lineTotal,
             ];
         }
 
@@ -247,7 +246,8 @@ class Sells extends BaseController
             $discountTotal = $subTotal;
         }
 
-        $amountDue = round(max(0, $subTotal - $discountTotal), 2);
+        $normalized = $this->distributeSaleDiscountToItems($normalized, $discountTotal);
+        $amountDue  = round(max(0, $subTotal - $discountTotal), 2);
         $payments  = $this->normalizeSalePayments($paymentsInput, $amountDue);
         if ($payments === null) {
             return $this->response->setStatusCode(422)->setJSON([
@@ -299,7 +299,7 @@ class Sells extends BaseController
                     'product_variant_id' => $item['variant_id'],
                     'qty'                => $item['qty'],
                     'unit_price'         => $item['unit_price'],
-                    'discount_amount'    => 0,
+                    'discount_amount'    => $item['discount_amount'],
                     'line_total'         => $item['line_total'],
                 ]);
 
@@ -590,7 +590,8 @@ class Sells extends BaseController
             ->select(
                 'products.name AS product_name, products.serial_number AS product_number, products.brand, ' .
                 'product_variants.sku, product_variants.size AS size_value, ' .
-                'product_variants.cost_price AS unit_cost, sale_items.qty, sale_items.unit_price, sale_items.line_total'
+                'product_variants.cost_price AS unit_cost, sale_items.qty, sale_items.unit_price, ' .
+                'sale_items.discount_amount, sale_items.line_total'
             )
             ->join('product_variants', 'product_variants.id = sale_items.product_variant_id')
             ->join('products', 'products.id = product_variants.product_id')
@@ -906,5 +907,65 @@ class Sells extends BaseController
         return in_array($status, [SaleStatus::Incomplete->value, SaleStatus::Completed->value], true)
             ? $status
             : '';
+    }
+
+    /**
+     * Allocate header discount across lines by gross line share; last line absorbs rounding.
+     *
+     * @param list<array{variant_id: int, qty: int, unit_price: float}> $items
+     *
+     * @return list<array{variant_id: int, qty: int, unit_price: float, discount_amount: float, line_total: float}>
+     */
+    private function distributeSaleDiscountToItems(array $items, float $discountTotal): array
+    {
+        $grossSubTotal = 0.0;
+        foreach ($items as $item) {
+            $grossSubTotal += round((float) ($item['qty'] ?? 0) * (float) ($item['unit_price'] ?? 0), 2);
+        }
+
+        $discountTotal = round(min(max(0, $discountTotal), $grossSubTotal), 2);
+
+        if ($discountTotal <= 0 || $grossSubTotal <= 0 || $items === []) {
+            $result = [];
+            foreach ($items as $item) {
+                $gross = round((float) ($item['qty'] ?? 0) * (float) ($item['unit_price'] ?? 0), 2);
+                $result[] = [
+                    'variant_id'      => (int) ($item['variant_id'] ?? 0),
+                    'qty'             => (int) ($item['qty'] ?? 0),
+                    'unit_price'      => (float) ($item['unit_price'] ?? 0),
+                    'discount_amount' => 0.0,
+                    'line_total'      => $gross,
+                ];
+            }
+
+            return $result;
+        }
+
+        $lastIndex = count($items) - 1;
+        $allocated = 0.0;
+        $result    = [];
+
+        foreach ($items as $index => $item) {
+            $gross = round((float) ($item['qty'] ?? 0) * (float) ($item['unit_price'] ?? 0), 2);
+
+            if ($index === $lastIndex) {
+                $itemDiscount = round($discountTotal - $allocated, 2);
+            } else {
+                $itemDiscount = round($discountTotal * ($gross / $grossSubTotal), 2);
+                $allocated += $itemDiscount;
+            }
+
+            $itemDiscount = min($itemDiscount, $gross);
+
+            $result[] = [
+                'variant_id'      => (int) ($item['variant_id'] ?? 0),
+                'qty'             => (int) ($item['qty'] ?? 0),
+                'unit_price'      => (float) ($item['unit_price'] ?? 0),
+                'discount_amount' => $itemDiscount,
+                'line_total'      => round(max(0, $gross - $itemDiscount), 2),
+            ];
+        }
+
+        return $result;
     }
 }

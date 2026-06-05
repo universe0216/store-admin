@@ -207,7 +207,7 @@
     Chart.defaults.plugins.legend.labels.boxWidth = 12;
 
     function money(n) {
-        return '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        return '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function pctText(value, suffix) {

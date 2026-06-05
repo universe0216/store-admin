@@ -528,10 +528,11 @@
                     { text: "Brand", datafield: "brand", width: 100 },
                     { text: "SKU", datafield: "sku", width: 100 },
                     { text: "Size", datafield: "size_value", width: 80 },
+                    { text: "Unit Cost", datafield: "unit_cost", width: 100, cellsformat: "f2", cellsalign: "right" },
                     { text: "Qty", datafield: "qty", width: 70, cellsalign: "right" },
                     { text: "Unit Price", datafield: "unit_price", width: 100, cellsformat: "f2", cellsalign: "right" },
-                    { text: "Unit Cost", datafield: "unit_cost", width: 100, cellsformat: "f2", cellsalign: "right" },
-                    { text: "Line Total", datafield: "line_total", cellsformat: "f2", cellsalign: "right" }
+                    { text: "Discount", datafield: "discount_amount", width: 100, cellsformat: "f2", cellsalign: "right" },
+                    { text: "Line Total", datafield: "line_total", width: 100, cellsformat: "f2", cellsalign: "right" }
                 ]
             });
         }
@@ -647,6 +648,7 @@
                     qty: Number(item.qty || 0),
                     unit_price: Number(item.unit_price || 0),
                     unit_cost: Number(item.unit_cost || 0),
+                    discount_amount: Number(item.discount_amount || 0),
                     line_total: Number(item.line_total || 0)
                 }));
                 $("#saleItemsGrid").jqxGrid({

@@ -308,6 +308,7 @@ use App\Enums\Season;
                 { text: "Qty", datafield: "qty", width: 70, cellsalign: "right", columntype: "numberinput" },
                 { text: "Cost Price", datafield: "unit_cost", width: 110, cellsformat: "f2", cellsalign: "right", columntype: "numberinput" },
                 { text: "Sell Price", datafield: "unit_price", width: 110, cellsformat: "f2", cellsalign: "right", columntype: "numberinput" },
+                { text: "Discount", datafield: "discount_amount", width: 100, cellsformat: "f2", cellsalign: "right", editable: false },
                 { text: "Line Total", datafield: "line_total", width: 110, cellsformat: "f2", cellsalign: "right", editable: false }
             ]
         });
@@ -381,8 +382,39 @@ use App\Enums\Season;
         updateSaleTotalsFooter();
     }
 
-    function getSaleSubTotal() {
-        return (saleItems || []).reduce((sum, r) => sum + Number(r.line_total || 0), 0);
+    function getSaleGrossSubTotal() {
+        return (saleItems || []).reduce(
+            (sum, r) => sum + Number(r.qty || 0) * Number(r.unit_price || 0),
+            0
+        );
+    }
+
+    function distributeDiscountToSaleItems(discountTotal) {
+        const items = saleItems || [];
+        const grossSubTotal = getSaleGrossSubTotal();
+        let discount = Number(Math.max(0, discountTotal || 0));
+        if (discount > grossSubTotal) {
+            discount = Number(grossSubTotal.toFixed(2));
+        }
+
+        let allocated = 0;
+        items.forEach(function (row, index) {
+            const gross = Number((Number(row.qty || 0) * Number(row.unit_price || 0)).toFixed(2));
+            let itemDiscount = 0;
+
+            if (grossSubTotal > 0 && discount > 0) {
+                if (index === items.length - 1) {
+                    itemDiscount = Number((discount - allocated).toFixed(2));
+                } else {
+                    itemDiscount = Number((discount * (gross / grossSubTotal)).toFixed(2));
+                    allocated += itemDiscount;
+                }
+                itemDiscount = Math.min(itemDiscount, gross);
+            }
+
+            row.discount_amount = itemDiscount;
+            row.line_total = Number(Math.max(0, gross - itemDiscount).toFixed(2));
+        });
     }
 
     function recalcSaleTotals(changedField) {
@@ -390,7 +422,7 @@ use App\Enums\Season;
             return null;
         }
 
-        const subTotal = getSaleSubTotal();
+        const subTotal = getSaleGrossSubTotal();
         saleTotalsCalcLock = true;
 
         let discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
@@ -401,6 +433,9 @@ use App\Enums\Season;
             discount = 0;
             $("#paidAmountInput").jqxNumberInput("val", paid);
             $("#discountTotalInput").jqxNumberInput("val", discount);
+        } else if (changedField === "redistribute") {
+            discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
+            paid = Number($("#paidAmountInput").jqxNumberInput("val") || 0);
         } else if (changedField === "paid") {
             discount = Number(Math.max(0, subTotal - paid).toFixed(2));
             $("#discountTotalInput").jqxNumberInput("val", discount);
@@ -408,6 +443,13 @@ use App\Enums\Season;
             paid = Number(Math.max(0, subTotal - discount).toFixed(2));
             $("#paidAmountInput").jqxNumberInput("val", paid);
         }
+
+        if (discount > subTotal) {
+            discount = Number(subTotal.toFixed(2));
+            $("#discountTotalInput").jqxNumberInput("val", discount);
+        }
+
+        distributeDiscountToSaleItems(discount);
 
         $("#subTotalDisplay").val(subTotal.toFixed(2));
         const grandTotal = Number(Math.max(0, subTotal - discount).toFixed(2));
@@ -421,8 +463,8 @@ use App\Enums\Season;
         const rows = saleItems || [];
         $("#saleItemsCount").text(rows.length);
         const totalQty = rows.reduce((sum, r) => sum + Number(r.qty || 0), 0);
-        const totals = recalcSaleTotals("items");
-        const grandTotal = totals ? totals.grandTotal : getSaleSubTotal();
+        const totals = recalcSaleTotals("redistribute");
+        const grandTotal = totals ? totals.grandTotal : getSaleGrossSubTotal();
         $("#saleItemsTotalsFooter").text(
             `Total Qty: ${totalQty} | Grand Total: ${grandTotal.toFixed(2)}`
         );
@@ -483,7 +525,6 @@ use App\Enums\Season;
         const unitPrice = Number(stock.selling_price || 0);
         if (saleRow) {
             saleRow.qty = Number(saleRow.qty) + 1;
-            saleRow.line_total = Number((saleRow.qty * saleRow.unit_price).toFixed(2));
         } else {
             saleItems.push({
                 variant_id: variantId,
@@ -493,6 +534,7 @@ use App\Enums\Season;
                 unit_cost: unitCost,
                 unit_price: unitPrice,
                 qty: 1,
+                discount_amount: 0,
                 line_total: unitPrice
             });
         }
@@ -535,7 +577,8 @@ use App\Enums\Season;
             saleRow.unit_price = Number(Number(gridRow.unit_price || 0).toFixed(2));
         }
 
-        saleRow.line_total = Number((Number(saleRow.qty) * Number(saleRow.unit_price)).toFixed(2));
+        const discount = Number($("#discountTotalInput").jqxNumberInput("val") || 0);
+        distributeDiscountToSaleItems(discount);
 
         refreshStockGrid();
         refreshSaleGrid();
@@ -808,7 +851,7 @@ use App\Enums\Season;
         }
 
         const totals = recalcSaleTotals("discount") || {
-            subTotal: getSaleSubTotal(),
+            subTotal: getSaleGrossSubTotal(),
             discount: Number($("#discountTotalInput").jqxNumberInput("val") || 0),
             paid: Number($("#paidAmountInput").jqxNumberInput("val") || 0),
             grandTotal: Number($("#grandTotalDisplay").val() || 0)
