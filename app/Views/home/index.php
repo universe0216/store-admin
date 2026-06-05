@@ -33,8 +33,8 @@
             <div class="col-6 col-lg-3">
                 <div class="card shadow-sm metric-card h-100">
                     <div class="card-body">
-                        <div class="text-muted small">Orders</div>
-                        <div id="kpiOrders" class="metric-value">—</div>
+                        <div class="text-muted small">Sold units</div>
+                        <div id="kpiOrdersUnits" class="metric-value">—</div>
                         <div id="kpiOrdersChangeMom" class="small text-muted">—</div>
                         <div id="kpiOrdersChangeYoy" class="small text-muted">—</div>
                     </div>
@@ -43,10 +43,10 @@
             <div class="col-6 col-lg-3">
                 <div class="card shadow-sm metric-card h-100">
                     <div class="card-body">
-                        <div class="text-muted small">Avg. order value</div>
-                        <div id="kpiAov" class="metric-value">—</div>
-                        <div id="kpiAovChangeMom" class="small text-muted">—</div>
-                        <div id="kpiAovChangeYoy" class="small text-muted">—</div>
+                        <div class="text-muted small">Profit (MTD)</div>
+                        <div id="kpiProfit" class="metric-value text-success">—</div>
+                        <div id="kpiProfitChangeMom" class="small text-muted">—</div>
+                        <div id="kpiProfitChangeYoy" class="small text-muted">—</div>
                     </div>
                 </div>
             </div>
@@ -57,6 +57,33 @@
                         <div id="kpiMargin" class="metric-value">—</div>
                         <div id="kpiMarginChangeMom" class="small text-muted">—</div>
                         <div id="kpiMarginChangeYoy" class="small text-muted">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-4">
+                <div class="card shadow-sm metric-card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Total remaining units</div>
+                        <div id="kpiInventoryUnits" class="metric-value">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4">
+                <div class="card shadow-sm metric-card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Total inventory price</div>
+                        <div id="kpiInventoryValue" class="metric-value text-primary">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4">
+                <div class="card shadow-sm metric-card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Returned percentage</div>
+                        <div id="kpiReturnedPct" class="metric-value">—</div>
                     </div>
                 </div>
             </div>
@@ -204,24 +231,29 @@
     function applyKpis(kpis) {
         const rev = kpis.revenue_mtd || {};
         const ord = kpis.orders || {};
-        const aov = kpis.avg_order_value || {};
+        const profit = kpis.profit || {};
         const margin = kpis.profit_margin_pct || {};
+        const inventory = kpis.inventory || {};
 
         document.getElementById('kpiRevenue').textContent = money(rev.value);
         setKpiComparison('kpiRevenueChangeMom', rev.change_pct ?? 0, '%', 'vs last month');
         setKpiComparison('kpiRevenueChangeYoy', rev.change_pct_yoy ?? 0, '%', 'vs last year');
 
-        document.getElementById('kpiOrders').textContent = Number(ord.value || 0).toLocaleString();
-        setKpiComparison('kpiOrdersChangeMom', ord.change_pct ?? 0, '%', 'vs last month');
-        setKpiComparison('kpiOrdersChangeYoy', ord.change_pct_yoy ?? 0, '%', 'vs last year');
+        document.getElementById('kpiOrdersUnits').textContent = Number(ord.units || 0).toLocaleString();
+        setKpiComparison('kpiOrdersChangeMom', ord.units_change_pct ?? 0, '%', 'vs last month');
+        setKpiComparison('kpiOrdersChangeYoy', ord.units_change_pct_yoy ?? 0, '%', 'vs last year');
 
-        document.getElementById('kpiAov').textContent = money(aov.value);
-        setKpiComparison('kpiAovChangeMom', aov.change_pct ?? 0, '%', 'vs last month');
-        setKpiComparison('kpiAovChangeYoy', aov.change_pct_yoy ?? 0, '%', 'vs last year');
+        document.getElementById('kpiProfit').textContent = money(profit.value);
+        setKpiComparison('kpiProfitChangeMom', profit.change_pct ?? 0, '%', 'vs last month');
+        setKpiComparison('kpiProfitChangeYoy', profit.change_pct_yoy ?? 0, '%', 'vs last year');
 
         document.getElementById('kpiMargin').textContent = (margin.value ?? 0) + '%';
         setKpiComparison('kpiMarginChangeMom', margin.change_pts ?? 0, ' pts', 'vs last month');
         setKpiComparison('kpiMarginChangeYoy', margin.change_pts_yoy ?? 0, ' pts', 'vs last year');
+
+        document.getElementById('kpiInventoryUnits').textContent = Number(inventory.remaining_units || 0).toLocaleString();
+        document.getElementById('kpiInventoryValue').textContent = money(inventory.inventory_value);
+        document.getElementById('kpiReturnedPct').textContent = (inventory.returned_pct ?? 0) + '%';
     }
 
     function emptyChartMessage(canvasId, message) {

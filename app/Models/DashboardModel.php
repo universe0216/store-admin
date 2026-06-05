@@ -35,7 +35,7 @@ class DashboardModel extends BaseModel
         $yoyMtd  = $this->periodSummary($db, $yoyMtdStart, $yoyMtdEnd);
 
         return [
-            'kpis'   => $this->buildKpis($mtd, $prevMtd, $yoyMtd),
+            'kpis'   => $this->buildKpis($mtd, $prevMtd, $yoyMtd, $this->inventorySummary($db)),
             'charts' => [
                 'revenue_trend'       => $this->monthlyRevenueProfit($db, (int) date('Y')),
                 'sales_by_warehouse'  => $this->salesByWarehouse($db, $mtdStart, $mtdEnd),
@@ -66,8 +66,14 @@ class DashboardModel extends BaseModel
             'profit_margin_pct' => 0.0,
         ];
 
+        $emptyInventory = [
+            'remaining_units'  => 0,
+            'inventory_value'  => 0.0,
+            'returned_pct'     => 0.0,
+        ];
+
         return [
-            'kpis'   => $this->buildKpis($emptyPeriod, $emptyPeriod, $emptyPeriod),
+            'kpis'   => $this->buildKpis($emptyPeriod, $emptyPeriod, $emptyPeriod, $emptyInventory),
             'charts' => [
                 'revenue_trend'       => ['labels' => [], 'revenue' => [], 'profit' => []],
                 'sales_by_warehouse'  => ['labels' => [], 'data' => []],
@@ -161,10 +167,11 @@ class DashboardModel extends BaseModel
      * @param array<string, float|int> $mtd
      * @param array<string, float|int> $prevMtd
      * @param array<string, float|int> $yoyMtd
+     * @param array{remaining_units: int, inventory_value: float, returned_pct: float} $inventory
      *
      * @return array<string, mixed>
      */
-    private function buildKpis(array $mtd, array $prevMtd, array $yoyMtd): array
+    private function buildKpis(array $mtd, array $prevMtd, array $yoyMtd, array $inventory): array
     {
         return [
             'revenue_mtd' => [
@@ -174,19 +181,70 @@ class DashboardModel extends BaseModel
             ],
             'orders' => [
                 'value'          => $mtd['orders'],
+                'units'          => $mtd['units'],
                 'change_pct'     => $this->percentChange((float) $prevMtd['orders'], (float) $mtd['orders']),
                 'change_pct_yoy' => $this->percentChange((float) $yoyMtd['orders'], (float) $mtd['orders']),
+                'units_change_pct'     => $this->percentChange((float) $prevMtd['units'], (float) $mtd['units']),
+                'units_change_pct_yoy' => $this->percentChange((float) $yoyMtd['units'], (float) $mtd['units']),
             ],
-            'avg_order_value' => [
-                'value'          => round($mtd['avg_order_value'], 2),
-                'change_pct'     => $this->percentChange((float) $prevMtd['avg_order_value'], (float) $mtd['avg_order_value']),
-                'change_pct_yoy' => $this->percentChange((float) $yoyMtd['avg_order_value'], (float) $mtd['avg_order_value']),
+            'profit' => [
+                'value'          => round((float) $mtd['profit'], 2),
+                'change_pct'     => $this->percentChange((float) $prevMtd['profit'], (float) $mtd['profit']),
+                'change_pct_yoy' => $this->percentChange((float) $yoyMtd['profit'], (float) $mtd['profit']),
             ],
             'profit_margin_pct' => [
                 'value'          => round($mtd['profit_margin_pct'], 1),
                 'change_pts'     => round($mtd['profit_margin_pct'] - $prevMtd['profit_margin_pct'], 1),
                 'change_pts_yoy' => round($mtd['profit_margin_pct'] - $yoyMtd['profit_margin_pct'], 1),
             ],
+            'inventory' => [
+                'remaining_units' => (int) $inventory['remaining_units'],
+                'inventory_value' => round((float) $inventory['inventory_value'], 2),
+                'returned_pct'    => round((float) $inventory['returned_pct'], 1),
+            ],
+        ];
+    }
+
+    /**
+     * @return array{remaining_units: int, inventory_value: float, returned_pct: float}
+     */
+    private function inventorySummary(BaseConnection $db): array
+    {
+        $empty = [
+            'remaining_units' => 0,
+            'inventory_value' => 0.0,
+            'returned_pct'    => 0.0,
+        ];
+
+        if (! $db->tableExists('inventory') || ! $db->tableExists('product_variants')) {
+            return $empty;
+        }
+
+        $inventoryRow = $db->query(
+            'SELECT COALESCE(SUM(i.quantity), 0) AS remaining_units, ' .
+            'COALESCE(SUM(i.quantity * pv.cost_price), 0) AS inventory_value ' .
+            'FROM inventory i ' .
+            'INNER JOIN product_variants pv ON pv.id = i.variant_id ' .
+            'WHERE pv.is_active = 1'
+        )->getRowArray();
+
+        $remainingUnits = (int) ($inventoryRow['remaining_units'] ?? 0);
+        $inventoryValue = (float) ($inventoryRow['inventory_value'] ?? 0);
+
+        $purchasedUnits = 0;
+        if ($db->tableExists('purchase_items')) {
+            $purchaseRow    = $db->query('SELECT COALESCE(SUM(qty), 0) AS purchased_units FROM purchase_items')->getRowArray();
+            $purchasedUnits = (int) ($purchaseRow['purchased_units'] ?? 0);
+        }
+
+        $returnedPct = $purchasedUnits > 0
+            ? ($remainingUnits / $purchasedUnits) * 100
+            : 0.0;
+
+        return [
+            'remaining_units' => $remainingUnits,
+            'inventory_value' => $inventoryValue,
+            'returned_pct'    => $returnedPct,
         ];
     }
 
