@@ -12,8 +12,8 @@ class SaleStatisticsModel extends BaseModel
     /**
      * @return array{
      *     grouped: array<string, array{rowspan: int, total_income: float, profit: float, orders: int, quantity: int, warehouses: array<int, array{name: string, rowspan: int, total_income: float, profit: float, orders: int, quantity: int, lines: list<array<string, mixed>>}>}>,
-     *     month_total: array{total_income: float, profit: float},
-     *     warehouse_totals: list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float}>
+     *     month_total: array{total_income: float, profit: float, quantity: int},
+     *     warehouse_totals: list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float, quantity: int}>
      * }
      */
     /**
@@ -41,8 +41,8 @@ class SaleStatisticsModel extends BaseModel
     /**
      * @return array{
      *     grouped: array<string, array{rowspan: int, total_income: float, profit: float, orders: int, quantity: int, warehouses: array<int, array{name: string, rowspan: int, total_income: float, profit: float, orders: int, quantity: int, lines: list<array<string, mixed>>}>}>,
-     *     year_total: array{total_income: float, profit: float},
-     *     warehouse_totals: list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float}>
+     *     year_total: array{total_income: float, profit: float, quantity: int},
+     *     warehouse_totals: list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float, quantity: int}>
      * }
      */
     /**
@@ -460,7 +460,7 @@ class SaleStatisticsModel extends BaseModel
     /**
      * @param list<array<string, mixed>> $rollupRows
      *
-     * @return array{total_income: float, profit: float}
+     * @return array{total_income: float, profit: float, quantity: int}
      */
     private function extractPeriodTotal(array $rollupRows): array
     {
@@ -469,17 +469,18 @@ class SaleStatisticsModel extends BaseModel
                 return [
                     'total_income' => (float) ($row['total_income'] ?? 0),
                     'profit'       => (float) ($row['profit'] ?? 0),
+                    'quantity'     => (int) ($row['quantity'] ?? 0),
                 ];
             }
         }
 
-        return ['total_income' => 0.0, 'profit' => 0.0];
+        return ['total_income' => 0.0, 'profit' => 0.0, 'quantity' => 0];
     }
 
     /**
      * @param list<array<string, mixed>> $rollupRows
      *
-     * @return list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float}>
+     * @return list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float, quantity: int}>
      */
     private function extractWarehouseTotals(array $rollupRows): array
     {
@@ -495,6 +496,7 @@ class SaleStatisticsModel extends BaseModel
                 'warehouse_name' => (string) ($row['warehouse_name'] ?? 'Unassigned'),
                 'total_income'   => (float) ($row['total_income'] ?? 0),
                 'profit'         => (float) ($row['profit'] ?? 0),
+                'quantity'       => (int) ($row['quantity'] ?? 0),
             ];
         }
 

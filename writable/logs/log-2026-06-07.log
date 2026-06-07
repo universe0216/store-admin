@@ -1,0 +1,26 @@
+CRITICAL - 2026-06-07 20:59:15 --> ParseError: syntax error, unexpected token ";", expecting ")"
+[Method: GET, Route: purchases/yearly-statistics]
+in APPPATH\Views\purchases\yearly_statistics.php on line 189.
+ 1 SYSTEMPATH\View\View.php(243): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 2 SYSTEMPATH\Common.php(1250): CodeIgniter\View\View->render('purchases/yearly_statistics', [], true)
+ 3 APPPATH\Controllers\Purchases.php(42): view('purchases/yearly_statistics', [...])
+ 4 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Purchases->yearlyStatistics()
+ 5 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Purchases))
+ 6 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+ 9 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))
+CRITICAL - 2026-06-07 21:28:56 --> ErrorException: Undefined array key "quantity"
+[Method: GET, Route: inventory/sales-statistics]
+in APPPATH\Views\inventory\sales_statistics.php on line 211.
+ 1 APPPATH\Views\inventory\sales_statistics.php(211): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "quantity"', 'C:\\Users\\aaa\\Documents\\projects\\htdocs\\codeigniter4\\app\\Views\\inventory\\sales_statistics.php', 211)
+ 2 SYSTEMPATH\View\View.php(240): include('C:\\Users\\aaa\\Documents\\projects\\htdocs\\codeigniter4\\app\\Views\\inventory\\sales_statistics.php')
+ 3 SYSTEMPATH\View\View.php(243): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1250): CodeIgniter\View\View->render('inventory/sales_statistics', [], true)
+ 5 APPPATH\Controllers\Inventory.php(32): view('inventory/sales_statistics', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(951): App\Controllers\Inventory->salesStatistics()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Inventory))
+ 8 SYSTEMPATH\CodeIgniter.php(340): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 SYSTEMPATH\Boot.php(417): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Boot.php(68): CodeIgniter\Boot::runCodeIgniter(Object(CodeIgniter\CodeIgniter))
+11 FCPATH\index.php(59): CodeIgniter\Boot::bootWeb(Object(Config\Paths))

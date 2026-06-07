@@ -7,24 +7,13 @@ use App\Enums\Department;
 /** @var string $department */
 /** @var list<array<string, mixed>> $warehouses */
 /** @var list<Department> $departments */
-/** @var array{grouped: array<string, array{rowspan: int, total_income: float, profit: float, orders: int, quantity: int, warehouses: array<int, array{name: string, rowspan: int, total_income: float, profit: float, orders: int, quantity: int, lines: list<array<string, mixed>>}>}>, month_total: array{total_income: float, profit: float}, warehouse_totals: list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float}>} $report */
+/** @var array{grouped: array<string, array{rowspan: int, total_income: float, profit: float, orders: int, quantity: int, warehouses: array<int, array{name: string, rowspan: int, total_income: float, profit: float, orders: int, quantity: int, lines: list<array<string, mixed>>}>}>, month_total: array{total_income: float, profit: float, quantity: int}, warehouse_totals: list<array{warehouse_id: int|null, warehouse_name: string, total_income: float, profit: float, quantity: int}>} $report */
 
 $formatMoney = static fn (float $value): string => number_format($value, 2, '.', ',');
-
-$renderMetricsStack = static function (float $revenue, int $units, int $orders, float $profit) use ($formatMoney): void {
-    $profitClass = $profit >= 0 ? 'metrics-profit-positive' : 'metrics-profit-negative';
-    ?>
-    <div class="metrics-stack text-end">
-        <div class="metrics-revenue"><span class="metrics-label">Revenue</span> <?= esc($formatMoney($revenue)) ?></div>
-        <div class="metrics-units"><span class="metrics-label">Units</span> <?= (int) $units ?></div>
-        <div class="metrics-orders"><span class="metrics-label">Orders</span> <?= (int) $orders ?></div>
-        <div class="metrics-profit <?= esc($profitClass) ?>"><span class="metrics-label">Profit</span> <?= esc($formatMoney($profit)) ?></div>
-    </div>
-    <?php
-};
+$profitClass = static fn (float $profit): string => $profit >= 0 ? 'text-success' : 'text-danger';
 
 $grouped = $report['grouped'] ?? [];
-$monthTotal = $report['month_total'] ?? ['total_income' => 0.0, 'profit' => 0.0];
+$monthTotal = $report['month_total'] ?? ['total_income' => 0.0, 'profit' => 0.0, 'quantity' => 0];
 $warehouseTotals = $report['warehouse_totals'] ?? [];
 $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y') ?? $month;
 ?>
@@ -38,13 +27,26 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
     .sales-stats-table td {
         vertical-align: middle;
     }
+    .sales-stats-table thead th.date-col {
+        background-color: #cfe2ff !important;
+        font-weight: 600;
+    }
+    .sales-stats-table thead th.warehouse-col {
+        background-color: #ffe0b2 !important;
+        font-weight: 600;
+    }
+    .sales-stats-table thead .subheader th.date-col,
+    .sales-stats-table thead .subheader th.warehouse-col {
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
     .sales-stats-table .date-cell {
-        background-color: #f8f9fa;
+        background-color: #e7f1ff;
         font-weight: 600;
         white-space: nowrap;
     }
     .sales-stats-table .warehouse-cell {
-        background-color: #fcfcfd;
+        background-color: #fff8e1;
         font-weight: 500;
         white-space: nowrap;
     }
@@ -56,41 +58,6 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
     .warehouse-totals-table td {
         vertical-align: middle;
     }
-    .metrics-stack {
-        line-height: 1.4;
-        font-size: 0.875rem;
-    }
-    .metrics-stack .metrics-label {
-        display: inline-block;
-        min-width: 3.5rem;
-        font-weight: 500;
-    }
-    .metrics-stack .metrics-revenue {
-        color: #0d6efd;
-        font-weight: 600;
-    }
-    .metrics-stack .metrics-units {
-        color: #0d6efd;
-        font-weight: 500;
-    }
-    .metrics-stack .metrics-orders {
-        color: #6c757d;
-        font-weight: 600;
-    }
-    .metrics-stack .metrics-profit {
-        font-weight: 600;
-    }
-    .metrics-stack .metrics-profit-positive,
-    .metrics-stack .metrics-profit-positive .metrics-label {
-        color: #198754;
-    }
-    .metrics-stack .metrics-profit-negative,
-    .metrics-stack .metrics-profit-negative .metrics-label {
-        color: #dc3545;
-    }
-    .metrics-legend .legend-revenue { color: #0d6efd; }
-    .metrics-legend .legend-orders { color: #6c757d; }
-    .metrics-legend .legend-profit { color: #198754; }
 </style>
 <?= $this->endSection() ?>
 
@@ -146,34 +113,28 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-bordered table-sm sales-stats-table mb-0">
-                            <thead class="table-light">
+                            <thead>
                                 <tr>
-                                    <th style="width: 110px;">Date</th>
-                                    <th class="text-end" style="width: 110px;">
-                                        Date Totals
-                                        <div class="metrics-legend small fw-normal mt-1">
-                                            <span class="legend-revenue">Revenue</span> ·
-                                            <span class="legend-revenue">Units</span> ·
-                                            <span class="legend-orders">Orders</span> ·
-                                            <span class="legend-profit">Profit</span>
-                                        </div>
-                                    </th>
-                                    <th style="width: 120px;">Warehouse</th>
-                                    <th class="text-end" style="width: 110px;">
-                                        WH Totals
-                                        <div class="metrics-legend small fw-normal mt-1">
-                                            <span class="legend-revenue">Revenue</span> ·
-                                            <span class="legend-revenue">Units</span> ·
-                                            <span class="legend-orders">Orders</span> ·
-                                            <span class="legend-profit">Profit</span>
-                                        </div>
-                                    </th>
-                                    <th>Product</th>
-                                    <th style="width: 110px;">Style</th>
-                                    <th>Sizes</th>
-                                    <th class="text-end" style="width: 80px;">Qty</th>
-                                    <th class="text-end" style="width: 100px;">Line Income</th>
-                                    <th class="text-end" style="width: 100px;">Line Profit</th>
+                                    <th rowspan="2" class="date-col" style="width: 110px;">Date</th>
+                                    <th colspan="3" class="text-center date-col">Date Total</th>
+                                    <th rowspan="2" class="warehouse-col" style="width: 120px;">Warehouse</th>
+                                    <th colspan="3" class="text-center warehouse-col">WH Total</th>
+                                    <th rowspan="2">Product</th>
+                                    <th rowspan="2" style="width: 110px;">Style</th>
+                                    <th rowspan="2">Sizes</th>
+                                    <th rowspan="2" class="text-end" style="width: 80px;">Qty</th>
+                                    <th rowspan="2" class="text-end" style="width: 100px;">Line Income</th>
+                                    <th rowspan="2" class="text-end" style="width: 100px;">Line Profit</th>
+                                </tr>
+                                <tr class="subheader">
+                                    <th class="text-end date-col" style="width: 90px;">Revenue</th>
+                                    <th class="text-end date-col" style="width: 70px;">Units</th>
+                                    <!-- <th class="text-end date-col" style="width: 70px;">Orders</th> -->
+                                    <th class="text-end date-col" style="width: 90px;">Profit</th>
+                                    <th class="text-end warehouse-col" style="width: 90px;">Revenue</th>
+                                    <th class="text-end warehouse-col" style="width: 70px;">Units</th>
+                                    <!-- <th class="text-end warehouse-col" style="width: 70px;">Orders</th> -->
+                                    <th class="text-end warehouse-col" style="width: 90px;">Profit</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -193,13 +154,18 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                                                 <?php endif; ?>
 
                                                 <?php if (! $dateTotalsRendered): ?>
-                                                    <td class="date-cell" rowspan="<?= (int) $dateGroup['rowspan'] ?>">
-                                                        <?php $renderMetricsStack(
-                                                            (float) ($dateGroup['total_income'] ?? 0),
-                                                            (int) ($dateGroup['quantity'] ?? 0),
-                                                            (int) ($dateGroup['orders'] ?? 0),
-                                                            (float) ($dateGroup['profit'] ?? 0)
-                                                        ); ?>
+                                                    <?php $dateProfit = (float) ($dateGroup['profit'] ?? 0); ?>
+                                                    <td class="date-cell text-end" rowspan="<?= (int) $dateGroup['rowspan'] ?>">
+                                                        <?= esc($formatMoney((float) ($dateGroup['total_income'] ?? 0))) ?>
+                                                    </td>
+                                                    <td class="date-cell text-end" rowspan="<?= (int) $dateGroup['rowspan'] ?>">
+                                                        <?= (int) ($dateGroup['quantity'] ?? 0) ?>
+                                                    </td>
+                                                    <!-- <td class="date-cell text-end" rowspan="<?= (int) $dateGroup['rowspan'] ?>">
+                                                        <?= (int) ($dateGroup['orders'] ?? 0) ?>
+                                                    </td> -->
+                                                    <td class="date-cell text-end fw-semibold <?= esc($profitClass($dateProfit)) ?>" rowspan="<?= (int) $dateGroup['rowspan'] ?>">
+                                                        <?= esc($formatMoney($dateProfit)) ?>
                                                     </td>
                                                     <?php $dateTotalsRendered = true; ?>
                                                 <?php endif; ?>
@@ -212,13 +178,18 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                                                 <?php endif; ?>
 
                                                 <?php if (! $warehouseTotalsRendered): ?>
-                                                    <td class="warehouse-cell" rowspan="<?= (int) $warehouseGroup['rowspan'] ?>">
-                                                        <?php $renderMetricsStack(
-                                                            (float) ($warehouseGroup['total_income'] ?? 0),
-                                                            (int) ($warehouseGroup['quantity'] ?? 0),
-                                                            (int) ($warehouseGroup['orders'] ?? 0),
-                                                            (float) ($warehouseGroup['profit'] ?? 0)
-                                                        ); ?>
+                                                    <?php $warehouseProfit = (float) ($warehouseGroup['profit'] ?? 0); ?>
+                                                    <td class="warehouse-cell text-end" rowspan="<?= (int) $warehouseGroup['rowspan'] ?>">
+                                                        <?= esc($formatMoney((float) ($warehouseGroup['total_income'] ?? 0))) ?>
+                                                    </td>
+                                                    <td class="warehouse-cell text-end" rowspan="<?= (int) $warehouseGroup['rowspan'] ?>">
+                                                        <?= (int) ($warehouseGroup['quantity'] ?? 0) ?>
+                                                    </td>
+                                                    <!-- <td class="warehouse-cell text-end" rowspan="<?= (int) $warehouseGroup['rowspan'] ?>">
+                                                        <?= (int) ($warehouseGroup['orders'] ?? 0) ?>
+                                                    </td> -->
+                                                    <td class="warehouse-cell text-end fw-semibold <?= esc($profitClass($warehouseProfit)) ?>" rowspan="<?= (int) $warehouseGroup['rowspan'] ?>">
+                                                        <?= esc($formatMoney($warehouseProfit)) ?>
                                                     </td>
                                                     <?php $warehouseTotalsRendered = true; ?>
                                                 <?php endif; ?>
@@ -236,7 +207,8 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="8" class="text-end">Month Total</td>
+                                    <td colspan="11" class="text-end">Month Total</td>
+                                    <td class="text-end"><?= (int) ($monthTotal['quantity'] ?? 0) ?></td>
                                     <td class="text-end"><?= esc($formatMoney((float) $monthTotal['total_income'])) ?></td>
                                     <td class="text-end"><?= esc($formatMoney((float) $monthTotal['profit'])) ?></td>
                                 </tr>
@@ -256,6 +228,7 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                             <thead class="table-light">
                                 <tr>
                                     <th>Warehouse</th>
+                                    <th class="text-end" style="width: 120px;">Total Qty</th>
                                     <th class="text-end" style="width: 160px;">Total Revenue</th>
                                     <th class="text-end" style="width: 160px;">Total Profit</th>
                                 </tr>
@@ -264,6 +237,7 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                                 <?php foreach ($warehouseTotals as $warehouseTotal): ?>
                                     <tr>
                                         <td><?= esc($warehouseTotal['warehouse_name']) ?></td>
+                                        <td class="text-end"><?= (int) ($warehouseTotal['quantity'] ?? 0) ?></td>
                                         <td class="text-end"><?= esc($formatMoney((float) $warehouseTotal['total_income'])) ?></td>
                                         <td class="text-end"><?= esc($formatMoney((float) $warehouseTotal['profit'])) ?></td>
                                     </tr>
@@ -272,6 +246,7 @@ $monthLabel = \DateTimeImmutable::createFromFormat('Y-m', $month)?->format('F Y'
                             <tfoot>
                                 <tr>
                                     <td class="text-end">Month Total</td>
+                                    <td class="text-end"><?= (int) ($monthTotal['quantity'] ?? 0) ?></td>
                                     <td class="text-end"><?= esc($formatMoney((float) $monthTotal['total_income'])) ?></td>
                                     <td class="text-end"><?= esc($formatMoney((float) $monthTotal['profit'])) ?></td>
                                 </tr>

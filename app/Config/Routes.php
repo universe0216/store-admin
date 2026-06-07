@@ -10,6 +10,7 @@ $routes->get('purchases', 'Purchases::index');
 $routes->get('purchases/create', 'Purchases::create');
     $routes->get('purchases/products', 'Purchases::products');
     $routes->get('purchases/history', 'Purchases::history');
+    $routes->get('purchases/yearly-statistics', 'Purchases::yearlyStatistics');
 $routes->get('sells', 'Sells::index');
 $routes->get('sells/create', 'Sells::create');
 $routes->get('sells/visual-statistics', 'Sells::visualStatistics');
