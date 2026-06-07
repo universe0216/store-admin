@@ -52,6 +52,7 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="<?= site_url('purchases') ?>">Purchase</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('purchases/history') ?>">Purchase History</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('purchases/create') ?>">New Purchase</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('purchases/products') ?>">Products</a></li>
                         </ul>

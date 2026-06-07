@@ -18,4 +18,9 @@ class Purchases extends BaseController
     {
         return view('purchases/products');
     }
+
+    public function history(): string
+    {
+        return view('purchases/history');
+    }
 }

@@ -695,6 +695,191 @@ class Purchases extends BaseController
         ]);
     }
 
+    public function purchaseHistory(): ResponseInterface
+    {
+        $filters = $this->parsePurchaseHistoryFilters();
+        $page    = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage = max(1, min(100, (int) ($this->request->getGet('per_page') ?? 20)));
+        $offset  = ($page - 1) * $perPage;
+
+        $total      = $this->countPurchaseHistory($filters);
+        $rows       = $this->fetchPurchaseHistory($filters, $perPage, $offset);
+        $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 0;
+
+        return $this->response->setJSON([
+            'data'       => $rows,
+            'pagination' => [
+                'page'        => $page,
+                'per_page'    => $perPage,
+                'total'       => $total,
+                'total_pages' => $totalPages,
+            ],
+        ]);
+    }
+
+    /**
+     * @return array{search: string, department: string, gender: string, season: string}
+     */
+    private function parsePurchaseHistoryFilters(): array
+    {
+        $search     = trim((string) ($this->request->getGet('search') ?? ''));
+        $department = trim((string) ($this->request->getGet('department') ?? ''));
+        $gender     = trim((string) ($this->request->getGet('gender') ?? ''));
+        $season     = trim((string) ($this->request->getGet('season') ?? ''));
+
+        if ($department !== '' && ! Department::isValid($department)) {
+            $department = '';
+        }
+        if ($gender !== '' && ! Gender::isValid($gender)) {
+            $gender = '';
+        }
+        if ($season !== '' && ! Season::isValid($season)) {
+            $season = '';
+        }
+
+        return [
+            'search'     => $search,
+            'department' => $department,
+            'gender'     => $gender,
+            'season'     => $season,
+        ];
+    }
+
+    /**
+     * @param array{search: string, department: string, gender: string, season: string} $filters
+     */
+    private function appendPurchaseHistoryFilterSql(string &$where, array &$params, array $filters): void
+    {
+        if ($filters['search'] !== '') {
+            $where .= ' AND (products.name LIKE ? OR products.serial_number LIKE ?)';
+            $like = '%' . $filters['search'] . '%';
+            $params[] = $like;
+            $params[] = $like;
+        }
+
+        $db = db_connect();
+
+        if ($filters['department'] !== '' && $db->fieldExists('department', 'products')) {
+            $where .= ' AND products.department = ?';
+            $params[] = $filters['department'];
+        }
+
+        if ($filters['gender'] !== '' && $db->fieldExists('gender', 'products')) {
+            $where .= ' AND products.gender = ?';
+            $params[] = $filters['gender'];
+        }
+
+        if ($filters['season'] !== '' && $db->fieldExists('season', 'products')) {
+            $where .= ' AND products.season = ?';
+            $params[] = $filters['season'];
+        }
+    }
+
+    /**
+     * @param array{search: string, department: string, gender: string, season: string} $filters
+     */
+    private function countPurchaseHistory(array $filters): int
+    {
+        $db = db_connect();
+
+        if (! $db->tableExists('purchase_items')
+            || ! $db->tableExists('purchases')
+            || ! $db->tableExists('product_variants')
+            || ! $db->tableExists('products')) {
+            return 0;
+        }
+
+        $where  = 'WHERE 1=1';
+        $params = [];
+        $this->appendPurchaseHistoryFilterSql($where, $params, $filters);
+
+        $sql = 'SELECT COUNT(*) AS aggregate FROM ('
+            . 'SELECT purchases.id AS purchase_id, products.id AS product_id '
+            . 'FROM purchase_items '
+            . 'INNER JOIN purchases ON purchases.id = purchase_items.purchase_id '
+            . 'INNER JOIN product_variants ON product_variants.id = purchase_items.product_variant_id '
+            . 'INNER JOIN products ON products.id = product_variants.product_id '
+            . $where . ' '
+            . 'GROUP BY purchases.id, products.id'
+            . ') grouped_rows';
+
+        $row = $db->query($sql, $params)->getRowArray();
+
+        return (int) ($row['aggregate'] ?? 0);
+    }
+
+    /**
+     * @param array{search: string, department: string, gender: string, season: string} $filters
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fetchPurchaseHistory(array $filters, int $limit, int $offset): array
+    {
+        $db = db_connect();
+
+        if (! $db->tableExists('purchase_items')
+            || ! $db->tableExists('purchases')
+            || ! $db->tableExists('product_variants')
+            || ! $db->tableExists('products')) {
+            return [];
+        }
+
+        $refCostExpr = $db->fieldExists('reference_cost', 'purchase_items')
+            ? 'MAX(purchase_items.reference_cost)'
+            : '0';
+        $refCurrencyExpr = $db->fieldExists('reference_currency', 'purchase_items')
+            ? 'MAX(purchase_items.reference_currency)'
+            : "'USD'";
+        $exchangeRateExpr = $db->fieldExists('exchange_rate', 'purchase_items')
+            ? 'MAX(purchase_items.exchange_rate)'
+            : '1';
+
+        $where  = 'WHERE 1=1';
+        $params = [];
+        $this->appendPurchaseHistoryFilterSql($where, $params, $filters);
+
+        $sql = 'SELECT purchases.id AS purchase_id, purchases.purchase_date, '
+            . 'products.name AS product_name, products.serial_number, '
+            . "GROUP_CONCAT(DISTINCT NULLIF(TRIM(product_variants.style), '') ORDER BY product_variants.style SEPARATOR ', ') AS style, "
+            . "{$refCostExpr} AS reference_cost, "
+            . "{$refCurrencyExpr} AS reference_currency, "
+            . "{$exchangeRateExpr} AS exchange_rate, "
+            . 'MAX(purchase_items.unit_cost) AS cost '
+            . 'FROM purchase_items '
+            . 'INNER JOIN purchases ON purchases.id = purchase_items.purchase_id '
+            . 'INNER JOIN product_variants ON product_variants.id = purchase_items.product_variant_id '
+            . 'INNER JOIN products ON products.id = product_variants.product_id '
+            . $where . ' '
+            . 'GROUP BY purchases.id, purchases.purchase_date, products.id, products.name, products.serial_number '
+            . 'ORDER BY purchases.purchase_date DESC, purchases.id DESC, products.name ASC '
+            . 'LIMIT ? OFFSET ?';
+
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $rows = $db->query($sql, $params)->getResultArray();
+
+        return array_map(function (array $row): array {
+            $purchaseDate = $row['purchase_date'] ?? null;
+            if ($purchaseDate !== null && $purchaseDate !== '') {
+                $timestamp = strtotime((string) $purchaseDate);
+                $row['purchase_date'] = $timestamp !== false
+                    ? date('Y-m-d', $timestamp)
+                    : substr((string) $purchaseDate, 0, 10);
+            } else {
+                $row['purchase_date'] = null;
+            }
+
+            $row['reference_cost']     = round((float) ($row['reference_cost'] ?? 0), 4);
+            $row['reference_currency'] = strtoupper(trim((string) ($row['reference_currency'] ?? 'USD')));
+            $row['exchange_rate']      = round((float) ($row['exchange_rate'] ?? 1), 8);
+            $row['cost']               = round((float) ($row['cost'] ?? 0), 4);
+            $row['style']              = trim((string) ($row['style'] ?? ''));
+
+            return $row;
+        }, $rows);
+    }
+
     /**
      * @return array{search: string, supplier_id: int, department: string, gender: string}
      */
