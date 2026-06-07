@@ -48,7 +48,7 @@ class DashboardModel extends BaseModel
                 'daily_activity'      => $this->dailyRevenueAndOrders($db, 7),
                 'category_scorecard'  => $this->categoryScorecard($db, $mtdStart, $mtdEnd),
                 'weekly_margin'       => $this->weeklyRevenueCost($db, 4),
-                'department_metrics'  => $this->departmentMetrics($db, $mtdStart, $mtdEnd),
+                'department_metrics'  => $this->departmentMetrics($db),
             ],
         ];
     }
@@ -93,7 +93,12 @@ class DashboardModel extends BaseModel
                 'department_metrics' => [
                     'revenue_share' => ['labels' => [], 'data' => []],
                     'units_share'   => ['labels' => [], 'data' => []],
-                    'comparison'    => ['labels' => [], 'revenue' => [], 'profit' => [], 'units' => []],
+                    'comparison'    => [
+                        'labels'  => array_map(static fn (Department $case): string => $case->label(), Department::cases()),
+                        'revenue' => array_fill(0, count(Department::cases()), 0.0),
+                        'profit'  => array_fill(0, count(Department::cases()), 0.0),
+                        'units'   => array_fill(0, count(Department::cases()), 0),
+                    ],
                 ],
             ],
         ];
@@ -403,6 +408,117 @@ class DashboardModel extends BaseModel
         return Department::from($value)->label();
     }
 
+    private function departmentKeySql(BaseConnection $db): string
+    {
+        $productDept = $db->fieldExists('department', 'products')
+            ? 'NULLIF(TRIM(p.department), \'\')'
+            : 'NULL';
+        $categoryDept = $db->tableExists('categories') && $db->fieldExists('department', 'categories')
+            ? 'NULLIF(TRIM(c.department), \'\')'
+            : 'NULL';
+
+        return "COALESCE({$productDept}, {$categoryDept}, 'unspecified')";
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return array{
+     *     revenue_share: array{labels: list<string>, data: list<float>},
+     *     units_share: array{labels: list<string>, data: list<int>},
+     *     comparison: array{
+     *         labels: list<string>,
+     *         revenue: list<float>,
+     *         profit: list<float>,
+     *         units: list<int>
+     *     }
+     * }
+     */
+    private function formatDepartmentMetrics(array $rows): array
+    {
+        $aggregated = [];
+
+        foreach ($rows as $row) {
+            $key = strtolower(trim((string) ($row['department_key'] ?? 'unspecified')));
+            if ($key === '') {
+                $key = 'unspecified';
+            }
+
+            if (! isset($aggregated[$key])) {
+                $aggregated[$key] = [
+                    'revenue' => 0.0,
+                    'profit'  => 0.0,
+                    'units'   => 0,
+                ];
+            }
+
+            $aggregated[$key]['revenue'] += (float) ($row['revenue'] ?? 0);
+            $aggregated[$key]['profit']  += (float) ($row['profit'] ?? 0);
+            $aggregated[$key]['units']   += (int) ($row['units'] ?? 0);
+        }
+
+        $comparisonLabels  = [];
+        $comparisonRevenue = [];
+        $comparisonProfit  = [];
+        $comparisonUnits   = [];
+
+        foreach (Department::cases() as $case) {
+            $key = $case->value;
+            $comparisonLabels[]  = $case->label();
+            $comparisonRevenue[] = round($aggregated[$key]['revenue'] ?? 0.0, 2);
+            $comparisonProfit[]  = round($aggregated[$key]['profit'] ?? 0.0, 2);
+            $comparisonUnits[]   = (int) ($aggregated[$key]['units'] ?? 0);
+            unset($aggregated[$key]);
+        }
+
+        foreach ($aggregated as $key => $totals) {
+            if (($totals['revenue'] ?? 0) <= 0 && ($totals['units'] ?? 0) <= 0) {
+                continue;
+            }
+
+            $comparisonLabels[]  = $this->departmentLabel($key);
+            $comparisonRevenue[] = round((float) ($totals['revenue'] ?? 0), 2);
+            $comparisonProfit[]  = round((float) ($totals['profit'] ?? 0), 2);
+            $comparisonUnits[]   = (int) ($totals['units'] ?? 0);
+        }
+
+        $pieRevenueLabels = [];
+        $pieRevenueData   = [];
+        $pieUnitsLabels   = [];
+        $pieUnitsData     = [];
+
+        foreach ($comparisonLabels as $index => $label) {
+            $revenue = (float) ($comparisonRevenue[$index] ?? 0);
+            $units   = (int) ($comparisonUnits[$index] ?? 0);
+
+            if ($revenue > 0) {
+                $pieRevenueLabels[] = $label;
+                $pieRevenueData[]   = $revenue;
+            }
+            if ($units > 0) {
+                $pieUnitsLabels[] = $label;
+                $pieUnitsData[]   = $units;
+            }
+        }
+
+        return [
+            'revenue_share' => [
+                'labels' => $pieRevenueLabels,
+                'data'   => $pieRevenueData,
+            ],
+            'units_share' => [
+                'labels' => $pieUnitsLabels,
+                'data'   => $pieUnitsData,
+            ],
+            'comparison' => [
+                'labels'  => $comparisonLabels,
+                'revenue' => $comparisonRevenue,
+                'profit'  => $comparisonProfit,
+                'units'   => $comparisonUnits,
+            ],
+        ];
+    }
+
     /**
      * @return array{
      *     revenue_share: array{labels: list<string>, data: list<float>},
@@ -415,7 +531,7 @@ class DashboardModel extends BaseModel
      *     }
      * }
      */
-    private function departmentMetrics(BaseConnection $db, string $startDate, string $endDate): array
+    private function departmentMetrics(BaseConnection $db): array
     {
         $empty = [
             'revenue_share' => ['labels' => [], 'data' => []],
@@ -423,13 +539,17 @@ class DashboardModel extends BaseModel
             'comparison'    => ['labels' => [], 'revenue' => [], 'profit' => [], 'units' => []],
         ];
 
-        if (! $db->tableExists('sale_items')
-            || ! $db->fieldExists('department', 'products')) {
+        if (! $db->tableExists('sale_items') || ! $db->tableExists('products')) {
             return $empty;
         }
 
+        $deptKey      = $this->departmentKeySql($db);
+        $categoryJoin = $db->tableExists('categories')
+            ? 'LEFT JOIN categories c ON c.id = p.category_id'
+            : '';
+
         $rows = $db->query(
-            'SELECT COALESCE(NULLIF(TRIM(p.department), ""), "unspecified") AS department_key, ' .
+            "SELECT {$deptKey} AS department_key, " .
             'COALESCE(SUM(si.line_total), 0) AS revenue, ' .
             'COALESCE(SUM(si.line_total), 0) - COALESCE(SUM(si.qty * pv.cost_price), 0) AS profit, ' .
             'COALESCE(SUM(si.qty), 0) AS units ' .
@@ -437,38 +557,16 @@ class DashboardModel extends BaseModel
             'INNER JOIN sales s ON s.id = si.sale_id ' .
             'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
             'INNER JOIN products p ON p.id = pv.product_id ' .
-            'WHERE ' . $this->saleDateWhere('s') . ' ' .
-            'GROUP BY p.department ' .
-            'ORDER BY revenue DESC',
-            [$startDate, $endDate]
+            $categoryJoin . ' ' .
+            "GROUP BY {$deptKey} " .
+            'ORDER BY revenue DESC'
         )->getResultArray();
 
         if ($rows === []) {
-            return $empty;
+            return $this->formatDepartmentMetrics([]);
         }
 
-        $labels  = [];
-        $revenue = [];
-        $profit  = [];
-        $units   = [];
-
-        foreach ($rows as $row) {
-            $labels[]  = $this->departmentLabel((string) ($row['department_key'] ?? ''));
-            $revenue[] = (float) ($row['revenue'] ?? 0);
-            $profit[]  = (float) ($row['profit'] ?? 0);
-            $units[]   = (int) ($row['units'] ?? 0);
-        }
-
-        return [
-            'revenue_share' => ['labels' => $labels, 'data' => $revenue],
-            'units_share'   => ['labels' => $labels, 'data' => $units],
-            'comparison'    => [
-                'labels'  => $labels,
-                'revenue' => $revenue,
-                'profit'  => $profit,
-                'units'   => $units,
-            ],
-        ];
+        return $this->formatDepartmentMetrics($rows);
     }
 
     /**

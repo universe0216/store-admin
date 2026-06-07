@@ -92,7 +92,7 @@
         <div class="row g-3 mb-3">
             <div class="col-12">
                 <h2 class="h5 fw-semibold mb-0">Departments</h2>
-                <p class="small text-muted mb-0">Revenue and units share by department (MTD).</p>
+                <p class="small text-muted mb-0">Revenue and units share by department (all time).</p>
             </div>
             <div class="col-12 col-lg-4">
                 <div class="card shadow-sm h-100">
@@ -116,7 +116,7 @@
                 <div class="card shadow-sm h-100">
                     <div class="card-body">
                         <h3 class="h6 fw-semibold mb-1">Revenue, profit &amp; units by department</h3>
-                        <p class="small text-muted mb-3">Compare department performance (MTD).</p>
+                        <p class="small text-muted mb-3">Compare department performance (all time).</p>
                         <div class="chart-wrap"><canvas id="chartDepartmentComparison"></canvas></div>
                     </div>
                 </div>
@@ -319,6 +319,14 @@
         return (ctx.label || '') + ': ' + value.toLocaleString() + ' (' + pct + '%)';
     }
 
+    function chartColors(count) {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            colors.push(palette[i % palette.length]);
+        }
+        return colors;
+    }
+
     function initCharts(payload) {
         const c = payload.charts || {};
         const dept = c.department_metrics || {};
@@ -328,7 +336,7 @@
                 type: 'pie',
                 data: {
                     labels: dept.revenue_share?.labels || [],
-                    datasets: [{ data: dept.revenue_share?.data || [], backgroundColor: palette }]
+                    datasets: [{ data: dept.revenue_share?.data || [], backgroundColor: chartColors((dept.revenue_share?.labels || []).length) }]
                 },
                 options: {
                     responsive: true,
@@ -339,7 +347,7 @@
                 }
             });
         } else {
-            emptyChartMessage('chartDepartmentRevenuePie', 'No department revenue this month.');
+            emptyChartMessage('chartDepartmentRevenuePie', 'No department revenue recorded yet.');
         }
 
         if (hasChartData(dept.units_share?.data)) {
@@ -347,7 +355,7 @@
                 type: 'pie',
                 data: {
                     labels: dept.units_share?.labels || [],
-                    datasets: [{ data: dept.units_share?.data || [], backgroundColor: palette }]
+                    datasets: [{ data: dept.units_share?.data || [], backgroundColor: chartColors((dept.units_share?.labels || []).length) }]
                 },
                 options: {
                     responsive: true,
@@ -358,7 +366,7 @@
                 }
             });
         } else {
-            emptyChartMessage('chartDepartmentUnitsPie', 'No department units sold this month.');
+            emptyChartMessage('chartDepartmentUnitsPie', 'No department units sold yet.');
         }
 
         const deptComparison = dept.comparison || {};
@@ -394,7 +402,7 @@
                 }
             });
         } else {
-            emptyChartMessage('chartDepartmentComparison', 'No department comparison data this month.');
+            emptyChartMessage('chartDepartmentComparison', 'No department comparison data yet.');
         }
 
         charts.revenueTrend = new Chart(document.getElementById('chartRevenueTrend'), {
