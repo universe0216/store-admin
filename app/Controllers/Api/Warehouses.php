@@ -40,6 +40,8 @@ class Warehouses extends BaseController
         $id = (new WarehouseModel())->createOne([
             'name'       => $name,
             'location'   => $payload['location'] ?? null,
+            'can_store'  => $this->parseBool($payload['can_store'] ?? true),
+            'can_sell'   => $this->parseBool($payload['can_sell'] ?? true),
             'is_deleted' => 0,
         ]);
 
@@ -67,11 +69,28 @@ class Warehouses extends BaseController
         }
 
         $model->updateOne($id, [
-            'name'     => $name,
-            'location' => $payload['location'] ?? null,
+            'name'      => $name,
+            'location'  => $payload['location'] ?? null,
+            'can_store' => $this->parseBool($payload['can_store'] ?? false),
+            'can_sell'  => $this->parseBool($payload['can_sell'] ?? false),
         ]);
 
         return $this->response->setJSON(['message' => 'Warehouse updated successfully.']);
+    }
+
+    private function parseBool(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (int) $value === 1;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
     }
 
     public function delete(int $id): ResponseInterface

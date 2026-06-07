@@ -22,7 +22,7 @@ class SalesVisualStatisticsModel extends BaseModel
      * @return array{
      *     labels: list<string>,
      *     available_years: list<int>,
-     *     series: array<string, array{revenue: list<float>, profit: list<float>, orders: list<int>}>
+     *     series: array<string, array{revenue: list<float>, profit: list<float>, units: list<int>, orders: list<int>}>
      * }
      */
     public function getMonthlyMetrics(array $years, array $filters = []): array
@@ -136,7 +136,7 @@ class SalesVisualStatisticsModel extends BaseModel
     /**
      * @param array{warehouse_id: int, department: string} $filters
      *
-     * @return array{revenue: list<float>, profit: list<float>, orders: list<int>}
+     * @return array{revenue: list<float>, profit: list<float>, units: list<int>, orders: list<int>}
      */
     private function monthlyMetricsForYear(BaseConnection $db, int $year, array $filters): array
     {
@@ -150,7 +150,7 @@ class SalesVisualStatisticsModel extends BaseModel
     /**
      * @param array{warehouse_id: int, department: string} $filters
      *
-     * @return array{revenue: list<float>, profit: list<float>, orders: list<int>}
+     * @return array{revenue: list<float>, profit: list<float>, units: list<int>, orders: list<int>}
      */
     private function monthlyMetricsFromSales(BaseConnection $db, int $year, array $filters): array
     {
@@ -173,6 +173,7 @@ class SalesVisualStatisticsModel extends BaseModel
         )->getResultArray();
 
         $profitRows = [];
+        $unitsRows  = [];
         if ($db->tableExists('sale_items')) {
             $itemExtra = $this->warehouseClause('s', $filters['warehouse_id']);
             $profitRows = $db->query(
@@ -184,15 +185,23 @@ class SalesVisualStatisticsModel extends BaseModel
                 'WHERE ' . $this->saleDateWhere('s') . $itemExtra['sql'] . ' GROUP BY MONTH(s.sale_date)',
                 [$start, $end, ...$itemExtra['params']]
             )->getResultArray();
+
+            $unitsRows = $db->query(
+                'SELECT MONTH(s.sale_date) AS month_num, COALESCE(SUM(si.qty), 0) AS units ' .
+                'FROM sale_items si ' .
+                'INNER JOIN sales s ON s.id = si.sale_id ' .
+                'WHERE ' . $this->saleDateWhere('s') . $itemExtra['sql'] . ' GROUP BY MONTH(s.sale_date)',
+                [$start, $end, ...$itemExtra['params']]
+            )->getResultArray();
         }
 
-        return $this->assembleMonthlySeries($revenueRows, $orderRows, $profitRows);
+        return $this->assembleMonthlySeries($revenueRows, $orderRows, $profitRows, $unitsRows);
     }
 
     /**
      * @param array{warehouse_id: int, department: string} $filters
      *
-     * @return array{revenue: list<float>, profit: list<float>, orders: list<int>}
+     * @return array{revenue: list<float>, profit: list<float>, units: list<int>, orders: list<int>}
      */
     private function monthlyMetricsFromSaleItems(BaseConnection $db, int $year, array $filters): array
     {
@@ -233,17 +242,28 @@ class SalesVisualStatisticsModel extends BaseModel
             $params
         )->getResultArray();
 
-        return $this->assembleMonthlySeries($revenueRows, $orderRows, $profitRows);
+        $unitsRows = $db->query(
+            'SELECT MONTH(s.sale_date) AS month_num, COALESCE(SUM(si.qty), 0) AS units ' .
+            'FROM sale_items si ' .
+            'INNER JOIN sales s ON s.id = si.sale_id ' .
+            'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
+            'INNER JOIN products p ON p.id = pv.product_id ' .
+            'WHERE ' . $where . $extra['sql'] . ' GROUP BY MONTH(s.sale_date)',
+            $params
+        )->getResultArray();
+
+        return $this->assembleMonthlySeries($revenueRows, $orderRows, $profitRows, $unitsRows);
     }
 
     /**
      * @param list<array<string, mixed>> $revenueRows
      * @param list<array<string, mixed>> $orderRows
      * @param list<array<string, mixed>> $profitRows
+     * @param list<array<string, mixed>> $unitsRows
      *
-     * @return array{revenue: list<float>, profit: list<float>, orders: list<int>}
+     * @return array{revenue: list<float>, profit: list<float>, units: list<int>, orders: list<int>}
      */
-    private function assembleMonthlySeries(array $revenueRows, array $orderRows, array $profitRows): array
+    private function assembleMonthlySeries(array $revenueRows, array $orderRows, array $profitRows, array $unitsRows = []): array
     {
         $byMonth = [];
         foreach ($revenueRows as $row) {
@@ -258,18 +278,24 @@ class SalesVisualStatisticsModel extends BaseModel
             $m = (int) ($row['month_num'] ?? 0);
             $byMonth[$m]['profit'] = (float) ($row['profit'] ?? 0);
         }
+        foreach ($unitsRows as $row) {
+            $m = (int) ($row['month_num'] ?? 0);
+            $byMonth[$m]['units'] = (int) ($row['units'] ?? 0);
+        }
 
         $revenue = [];
         $profit  = [];
+        $units   = [];
         $orders  = [];
 
         for ($m = 1; $m <= 12; $m++) {
             $revenue[] = $byMonth[$m]['revenue'] ?? 0.0;
             $profit[]  = $byMonth[$m]['profit'] ?? 0.0;
+            $units[]   = $byMonth[$m]['units'] ?? 0;
             $orders[]  = $byMonth[$m]['orders'] ?? 0;
         }
 
-        return ['revenue' => $revenue, 'profit' => $profit, 'orders' => $orders];
+        return ['revenue' => $revenue, 'profit' => $profit, 'units' => $units, 'orders' => $orders];
     }
 
     /**

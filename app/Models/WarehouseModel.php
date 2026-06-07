@@ -8,7 +8,7 @@ class WarehouseModel extends BaseModel
     protected $primaryKey       = 'id';
     protected $returnType       = 'array';
     protected $protectFields    = true;
-    protected $allowedFields    = ['name', 'location', 'is_deleted'];
+    protected $allowedFields    = ['name', 'location', 'can_store', 'can_sell', 'is_deleted'];
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
 

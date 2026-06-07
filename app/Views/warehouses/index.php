@@ -21,6 +21,8 @@
                                     <th style="width: 80px;">ID</th>
                                     <th>Name</th>
                                     <th>Location</th>
+                                    <th style="width: 90px;">Can Store</th>
+                                    <th style="width: 90px;">Can Sell</th>
                                     <th style="width: 150px;">Actions</th>
                                 </tr>
                             </thead>
@@ -45,6 +47,18 @@
                             <label class="form-label">Location</label>
                             <input id="locationInput" type="text" class="form-control">
                         </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="canStoreInput" checked>
+                                <label class="form-check-label" for="canStoreInput">Can Store</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="canSellInput" checked>
+                                <label class="form-check-label" for="canSellInput">Can Sell</label>
+                            </div>
+                        </div>
                         <div class="col-12 d-flex gap-2">
                             <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
                             <button type="button" class="btn btn-outline-secondary" id="cancelEditBtn">Cancel Edit</button>
@@ -64,10 +78,16 @@
 <script>
     const WAREHOUSES_API_URL = "<?= site_url('api/warehouses') ?>";
 
+    function boolLabel(value) {
+        return Number(value) === 1 ? "Yes" : "No";
+    }
+
     function resetForm() {
         $("#warehouseId").val("");
         $("#nameInput").val("");
         $("#locationInput").val("");
+        $("#canStoreInput").prop("checked", true);
+        $("#canSellInput").prop("checked", true);
         $("#formTitle").text("New Warehouse");
         $("#saveBtn").text("Save");
     }
@@ -77,7 +97,7 @@
         tbody.empty();
 
         if (!rows || rows.length === 0) {
-            tbody.append('<tr><td colspan="4" class="text-center text-muted">No warehouses found.</td></tr>');
+            tbody.append('<tr><td colspan="6" class="text-center text-muted">No warehouses found.</td></tr>');
             return;
         }
 
@@ -86,6 +106,8 @@
             tr.append(`<td>${row.id}</td>`);
             tr.append(`<td>${row.name || ""}</td>`);
             tr.append(`<td>${row.location || ""}</td>`);
+            tr.append(`<td>${boolLabel(row.can_store)}</td>`);
+            tr.append(`<td>${boolLabel(row.can_sell)}</td>`);
             tr.append(
                 `<td>
                     <button type="button" class="btn btn-sm btn-warning me-1 edit-btn" data-id="${row.id}">Edit</button>
@@ -109,7 +131,9 @@
     function getPayload() {
         return {
             name: $("#nameInput").val().trim(),
-            location: $("#locationInput").val().trim()
+            location: $("#locationInput").val().trim(),
+            can_store: $("#canStoreInput").is(":checked"),
+            can_sell: $("#canSellInput").is(":checked")
         };
     }
 
@@ -120,6 +144,8 @@
                 $("#warehouseId").val(row.id);
                 $("#nameInput").val(row.name || "");
                 $("#locationInput").val(row.location || "");
+                $("#canStoreInput").prop("checked", Number(row.can_store) === 1);
+                $("#canSellInput").prop("checked", Number(row.can_sell) === 1);
                 $("#formTitle").text("Edit Warehouse");
                 $("#saveBtn").text("Update");
                 setMessage("");

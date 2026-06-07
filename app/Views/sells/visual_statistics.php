@@ -27,7 +27,7 @@ $minYear = 2025;
         <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h1 class="h3 fw-bold mb-1">Visual Statistics</h1>
-                <p class="text-muted mb-0 small">Monthly revenue, profit, and orders by year.</p>
+                <p class="text-muted mb-0 small">Monthly revenue, profit, units sold, and orders by year.</p>
             </div>
             <a href="<?= site_url('sells') ?>" class="btn btn-outline-secondary btn-sm">Sales History</a>
         </div>
@@ -103,6 +103,15 @@ $minYear = 2025;
             <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-body">
+                        <h2 class="h6 fw-semibold mb-1">Monthly units sold</h2>
+                        <p class="small text-muted mb-3">Total quantity sold per month.</p>
+                        <div class="chart-wrap"><canvas id="chartUnits"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
                         <h2 class="h6 fw-semibold mb-1">Monthly orders</h2>
                         <p class="small text-muted mb-3">Number of sales per month.</p>
                         <div class="chart-wrap"><canvas id="chartOrders"></canvas></div>
@@ -122,7 +131,7 @@ $minYear = 2025;
     const MIN_YEAR = <?= $minYear ?>;
     const palette = ['#0d6efd', '#198754', '#dc3545', '#fd7e14', '#6f42c1', '#20c997', '#ffc107', '#6c757d'];
     const gridColor = 'rgba(0,0,0,0.06)';
-    const charts = { revenue: null, profit: null, orders: null };
+    const charts = { revenue: null, profit: null, units: null, orders: null };
     let loadTimer = null;
 
     function scheduleLoadStatistics() {
@@ -186,7 +195,7 @@ $minYear = 2025;
             label: year,
             data: (series[year] && series[year][field]) ? series[year][field] : [],
             borderColor: yearColor(index),
-            backgroundColor: field === 'orders' ? yearColor(index) : yearColor(index) + '33',
+            backgroundColor: field === 'orders' || field === 'units' ? yearColor(index) : yearColor(index) + '33',
             borderWidth: 2,
             tension: 0.3,
             fill: false
@@ -208,7 +217,7 @@ $minYear = 2025;
         }
 
         charts[chartKey] = new Chart(canvas, {
-            type: field === 'orders' ? 'bar' : 'line',
+            type: field === 'orders' || field === 'units' ? 'bar' : 'line',
             data: { labels, datasets },
             options: {
                 responsive: true,
@@ -232,6 +241,9 @@ $minYear = 2025;
                                 if (field === 'orders') {
                                     return ctx.dataset.label + ': ' + v.toLocaleString() + ' orders';
                                 }
+                                if (field === 'units') {
+                                    return ctx.dataset.label + ': ' + v.toLocaleString() + ' units';
+                                }
                                 return ctx.dataset.label + ': $' + v.toLocaleString(undefined, { maximumFractionDigits: 0 });
                             }
                         }
@@ -249,6 +261,7 @@ $minYear = 2025;
         }
         updateChart('revenue', 'chartRevenue', series, 'revenue', v => '$' + Number(v).toLocaleString());
         updateChart('profit', 'chartProfit', series, 'profit', v => '$' + Number(v).toLocaleString());
+        updateChart('units', 'chartUnits', series, 'units', v => Number(v).toLocaleString());
         updateChart('orders', 'chartOrders', series, 'orders', v => Number(v).toLocaleString());
     }
 
