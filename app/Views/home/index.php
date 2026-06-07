@@ -92,7 +92,7 @@
         <div class="row g-3 mb-3">
             <div class="col-12">
                 <h2 class="h5 fw-semibold mb-0">Departments</h2>
-                <p class="small text-muted mb-0">Revenue and units share by department (all time).</p>
+                <p class="small text-muted mb-0">Revenue, profit, and units share by department (all time).</p>
             </div>
             <div class="col-12 col-lg-4">
                 <div class="card shadow-sm h-100">
@@ -100,6 +100,15 @@
                         <h3 class="h6 fw-semibold mb-1">Revenue share</h3>
                         <p class="small text-muted mb-3">Department revenue ratio.</p>
                         <div class="chart-wrap chart-wrap-sm"><canvas id="chartDepartmentRevenuePie"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h3 class="h6 fw-semibold mb-1">Profit share</h3>
+                        <p class="small text-muted mb-3">Department profit ratio.</p>
+                        <div class="chart-wrap chart-wrap-sm"><canvas id="chartDepartmentProfitPie"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -348,6 +357,25 @@
             });
         } else {
             emptyChartMessage('chartDepartmentRevenuePie', 'No department revenue recorded yet.');
+        }
+
+        if (hasChartData(dept.profit_share?.data)) {
+            charts.departmentProfitPie = new Chart(document.getElementById('chartDepartmentProfitPie'), {
+                type: 'pie',
+                data: {
+                    labels: dept.profit_share?.labels || [],
+                    datasets: [{ data: dept.profit_share?.data || [], backgroundColor: chartColors((dept.profit_share?.labels || []).length) }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: { callbacks: { label: pieTooltipMoney } }
+                    }
+                }
+            });
+        } else {
+            emptyChartMessage('chartDepartmentProfitPie', 'No department profit recorded yet.');
         }
 
         if (hasChartData(dept.units_share?.data)) {

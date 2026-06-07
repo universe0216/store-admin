@@ -92,6 +92,7 @@ class DashboardModel extends BaseModel
                 'weekly_margin' => ['labels' => [], 'revenue' => [], 'cost' => []],
                 'department_metrics' => [
                     'revenue_share' => ['labels' => [], 'data' => []],
+                    'profit_share'  => ['labels' => [], 'data' => []],
                     'units_share'   => ['labels' => [], 'data' => []],
                     'comparison'    => [
                         'labels'  => array_map(static fn (Department $case): string => $case->label(), Department::cases()),
@@ -425,6 +426,7 @@ class DashboardModel extends BaseModel
      *
      * @return array{
      *     revenue_share: array{labels: list<string>, data: list<float>},
+     *     profit_share: array{labels: list<string>, data: list<float>},
      *     units_share: array{labels: list<string>, data: list<int>},
      *     comparison: array{
      *         labels: list<string>,
@@ -484,16 +486,23 @@ class DashboardModel extends BaseModel
 
         $pieRevenueLabels = [];
         $pieRevenueData   = [];
+        $pieProfitLabels  = [];
+        $pieProfitData    = [];
         $pieUnitsLabels   = [];
         $pieUnitsData     = [];
 
         foreach ($comparisonLabels as $index => $label) {
             $revenue = (float) ($comparisonRevenue[$index] ?? 0);
+            $profit  = (float) ($comparisonProfit[$index] ?? 0);
             $units   = (int) ($comparisonUnits[$index] ?? 0);
 
             if ($revenue > 0) {
                 $pieRevenueLabels[] = $label;
                 $pieRevenueData[]   = $revenue;
+            }
+            if ($profit > 0) {
+                $pieProfitLabels[] = $label;
+                $pieProfitData[]   = $profit;
             }
             if ($units > 0) {
                 $pieUnitsLabels[] = $label;
@@ -505,6 +514,10 @@ class DashboardModel extends BaseModel
             'revenue_share' => [
                 'labels' => $pieRevenueLabels,
                 'data'   => $pieRevenueData,
+            ],
+            'profit_share' => [
+                'labels' => $pieProfitLabels,
+                'data'   => $pieProfitData,
             ],
             'units_share' => [
                 'labels' => $pieUnitsLabels,
@@ -522,6 +535,7 @@ class DashboardModel extends BaseModel
     /**
      * @return array{
      *     revenue_share: array{labels: list<string>, data: list<float>},
+     *     profit_share: array{labels: list<string>, data: list<float>},
      *     units_share: array{labels: list<string>, data: list<int>},
      *     comparison: array{
      *         labels: list<string>,
@@ -535,6 +549,7 @@ class DashboardModel extends BaseModel
     {
         $empty = [
             'revenue_share' => ['labels' => [], 'data' => []],
+            'profit_share'  => ['labels' => [], 'data' => []],
             'units_share'   => ['labels' => [], 'data' => []],
             'comparison'    => ['labels' => [], 'revenue' => [], 'profit' => [], 'units' => []],
         ];
