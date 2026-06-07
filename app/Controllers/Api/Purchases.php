@@ -356,7 +356,7 @@ class Purchases extends BaseController
                         continue;
                     }
 
-                    $resolvedVariantId = $this->findOrCreateVariantBySize(
+                    $resolvedVariantId = $this->createVariantForPurchase(
                         $db,
                         $productVariantModel,
                         $product,
@@ -1259,7 +1259,7 @@ class Purchases extends BaseController
         return 'PO-' .  date('Ymd-His');
     }
 
-    private function findOrCreateVariantBySize(
+    private function createVariantForPurchase(
         BaseConnection $db,
         ProductVariantModel $productVariantModel,
         array $product,
@@ -1267,19 +1267,6 @@ class Purchases extends BaseController
         string $styleValue,
         float $unitCost
     ): int {
-        $existing = $db->table('product_variants')
-            ->select('id')
-            ->where('product_id', (int) $product['id'])
-            ->where('is_active', 1)
-            ->where('size', $sizeValue)
-            ->where('style', $styleValue)
-            ->get()
-            ->getFirstRow('array');
-
-        if (is_array($existing) && isset($existing['id'])) {
-            return (int) $existing['id'];
-        }
-
         $sku = $this->generateVariantSku($db, $product, $sizeValue);
 
         return (int) $productVariantModel->createOne([
