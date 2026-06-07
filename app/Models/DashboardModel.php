@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Department;
 use App\Enums\Gender;
 use CodeIgniter\Database\BaseConnection;
 
@@ -47,6 +48,7 @@ class DashboardModel extends BaseModel
                 'daily_activity'      => $this->dailyRevenueAndOrders($db, 7),
                 'category_scorecard'  => $this->categoryScorecard($db, $mtdStart, $mtdEnd),
                 'weekly_margin'       => $this->weeklyRevenueCost($db, 4),
+                'department_metrics'  => $this->departmentMetrics($db, $mtdStart, $mtdEnd),
             ],
         ];
     }
@@ -88,6 +90,11 @@ class DashboardModel extends BaseModel
                     'datasets' => [],
                 ],
                 'weekly_margin' => ['labels' => [], 'revenue' => [], 'cost' => []],
+                'department_metrics' => [
+                    'revenue_share' => ['labels' => [], 'data' => []],
+                    'units_share'   => ['labels' => [], 'data' => []],
+                    'comparison'    => ['labels' => [], 'revenue' => [], 'profit' => [], 'units' => []],
+                ],
             ],
         ];
     }
@@ -380,6 +387,88 @@ class DashboardModel extends BaseModel
         }
 
         return Gender::from($value)->label();
+    }
+
+    private function departmentLabel(string $value): string
+    {
+        $value = strtolower(trim($value));
+        if ($value === '' || $value === 'unspecified') {
+            return 'Unspecified';
+        }
+
+        if (! Department::isValid($value)) {
+            return ucfirst($value);
+        }
+
+        return Department::from($value)->label();
+    }
+
+    /**
+     * @return array{
+     *     revenue_share: array{labels: list<string>, data: list<float>},
+     *     units_share: array{labels: list<string>, data: list<int>},
+     *     comparison: array{
+     *         labels: list<string>,
+     *         revenue: list<float>,
+     *         profit: list<float>,
+     *         units: list<int>
+     *     }
+     * }
+     */
+    private function departmentMetrics(BaseConnection $db, string $startDate, string $endDate): array
+    {
+        $empty = [
+            'revenue_share' => ['labels' => [], 'data' => []],
+            'units_share'   => ['labels' => [], 'data' => []],
+            'comparison'    => ['labels' => [], 'revenue' => [], 'profit' => [], 'units' => []],
+        ];
+
+        if (! $db->tableExists('sale_items')
+            || ! $db->fieldExists('department', 'products')) {
+            return $empty;
+        }
+
+        $rows = $db->query(
+            'SELECT COALESCE(NULLIF(TRIM(p.department), ""), "unspecified") AS department_key, ' .
+            'COALESCE(SUM(si.line_total), 0) AS revenue, ' .
+            'COALESCE(SUM(si.line_total), 0) - COALESCE(SUM(si.qty * pv.cost_price), 0) AS profit, ' .
+            'COALESCE(SUM(si.qty), 0) AS units ' .
+            'FROM sale_items si ' .
+            'INNER JOIN sales s ON s.id = si.sale_id ' .
+            'INNER JOIN product_variants pv ON pv.id = si.product_variant_id ' .
+            'INNER JOIN products p ON p.id = pv.product_id ' .
+            'WHERE ' . $this->saleDateWhere('s') . ' ' .
+            'GROUP BY p.department ' .
+            'ORDER BY revenue DESC',
+            [$startDate, $endDate]
+        )->getResultArray();
+
+        if ($rows === []) {
+            return $empty;
+        }
+
+        $labels  = [];
+        $revenue = [];
+        $profit  = [];
+        $units   = [];
+
+        foreach ($rows as $row) {
+            $labels[]  = $this->departmentLabel((string) ($row['department_key'] ?? ''));
+            $revenue[] = (float) ($row['revenue'] ?? 0);
+            $profit[]  = (float) ($row['profit'] ?? 0);
+            $units[]   = (int) ($row['units'] ?? 0);
+        }
+
+        return [
+            'revenue_share' => ['labels' => $labels, 'data' => $revenue],
+            'units_share'   => ['labels' => $labels, 'data' => $units],
+            'comparison'    => [
+                'labels'  => $labels,
+                'revenue' => $revenue,
+                'profit'  => $profit,
+                'units'   => $units,
+            ],
+        ];
     }
 
     /**

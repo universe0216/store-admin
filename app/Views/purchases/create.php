@@ -117,6 +117,78 @@ use App\Enums\Season;
         margin: 0.75rem 0;
         opacity: 0.15;
     }
+    .size-selection-card {
+        background: #fff;
+    }
+    .size-pack-table-wrap {
+        overflow-x: auto;
+    }
+    .size-pack-table {
+        width: 100%;
+        margin-bottom: 0;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+    .size-pack-table th,
+    .size-pack-table td {
+        border: 1px solid #dee2e6;
+        padding: 0.45rem 0.65rem;
+        vertical-align: middle;
+    }
+    .size-pack-table thead th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+    .size-pack-table tfoot td {
+        background: #e7f1ff;
+        font-weight: 700;
+    }
+    .size-pack-qty-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .size-pack-qty-control .btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        line-height: 1;
+    }
+    .size-pack-qty-input {
+        width: 56px;
+        text-align: center;
+    }
+    .size-pack-empty {
+        color: #6c757d;
+        font-size: 0.8125rem;
+        padding: 0.75rem 0;
+    }
+    .product-search-dropdown {
+        position: absolute;
+        top: calc(100% + 2px);
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        max-height: 240px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        background: #fff;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+    .product-search-dropdown .list-group-item {
+        border-left: 0;
+        border-right: 0;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+    .product-search-dropdown .list-group-item:first-child {
+        border-top: 0;
+    }
+    .product-search-dropdown .list-group-item:last-child {
+        border-bottom: 0;
+    }
 </style>
 <?= $this->endSection() ?>
 
@@ -151,7 +223,7 @@ use App\Enums\Season;
                     <div class="card-body p-4">
                         <h2 class="h6 fw-semibold mb-3">Add Product</h2>
                         <form id="purchaseItemForm" class="row g-3">
-                            <div class="col-12 col-md-6">
+                            <div class="col-12 col-md-3">
                                 <label class="form-label text-secondary mb-1">Department</label>
                                 <select id="productDepartmentSelect" class="form-select">
                                     <option value="">Select department</option>
@@ -160,7 +232,7 @@ use App\Enums\Season;
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12 col-md-3">
                                 <label class="form-label text-secondary mb-1">Gender</label>
                                 <select id="productGenderSelect" class="form-select">
                                     <option value="">Select gender</option>
@@ -169,7 +241,7 @@ use App\Enums\Season;
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12 col-md-3">
                                 <label class="form-label text-secondary mb-1">Season</label>
                                 <select id="productSeasonSelect" class="form-select">
                                     <option value="">Select season</option>
@@ -178,19 +250,25 @@ use App\Enums\Season;
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-12 col-md-3">
                                 <label class="form-label text-secondary mb-1">Category</label>
                                 <select id="productCategorySelect" class="form-select" disabled>
                                     <option value="">Select category</option>
                                 </select>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 col-md-9">
                                 <label class="form-label text-secondary mb-1">Name</label>
-                                <input type="text" id="productNameInput" class="form-control" placeholder="Gender Category (Season)">
+                                <div class="position-relative">
+                                    <input type="text" id="productNameInput" class="form-control" placeholder="Gender Category (Season)" autocomplete="off">
+                                    <div id="productNameSearchDropdown" class="product-search-dropdown list-group d-none"></div>
+                                </div>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12 col-md-3">
                                 <label class="form-label text-secondary mb-1">Serial Number</label>
-                                <input type="text" id="productSerialInput" class="form-control" placeholder="Serial number">
+                                <div class="position-relative">
+                                    <input type="text" id="productSerialInput" class="form-control" placeholder="Serial number" autocomplete="off">
+                                    <div id="productSerialSearchDropdown" class="product-search-dropdown list-group d-none"></div>
+                                </div>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label text-secondary mb-1">Brand</label>
@@ -200,15 +278,47 @@ use App\Enums\Season;
                                 <label class="form-label text-secondary mb-1">Style</label>
                                 <input type="text" id="productStyleInput" class="form-control" placeholder="Style">
                             </div>
-                            <div class="col-12 col-md-6">
-                                <label class="form-label text-secondary mb-1">Size</label>
-                                <div id="sizeSelector"></div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <label class="form-label text-secondary mb-1">Sets Count</label>
-                                <div id="setsCountInput"></div>
-                            </div>
                             <div class="col-12">
+                                <div class="size-selection-card border rounded p-3">
+                                    <!-- <div class="fw-semibold mb-3">Size Selection</div> -->
+                                    <div class="row g-2 align-items-end mb-3">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label text-secondary mb-1">Select Size Range</label>
+                                            <div id="sizeSelector"></div>
+                                        </div>
+                                        <div class="col-12 col-md-3">
+                                            <label class="form-label text-secondary mb-1">
+                                                Sets Count
+                                                <span class="text-muted" title="Number of identical sets to order">?</span>
+                                            </label>
+                                            <div id="setsCountInput"></div>
+                                        </div>
+                                    </div>
+                                    <div id="sizePackTableWrap">
+                                        <div id="sizePackEmpty" class="size-pack-empty">Select one or more sizes to configure units per set.</div>
+                                        <div class="size-pack-table-wrap d-none" id="sizePackTableContainer">
+                                            <table class="size-pack-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 120px;">Size</th>
+                                                        <th>Units Per Set</th>
+                                                        <th style="width: 180px;">Total Units<br><span class="fw-normal small text-muted">(Units Per Set × Sets Count)</span></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="sizePackTableBody"></tbody>
+                                                <tfoot>
+                                                    <tr>
+                                                        <td></td>
+                                                        <td class="text-end">Total Per Set: <span id="sizePackTotalPerSet">0</span></td>
+                                                        <td class="text-end">Total Units: <span id="sizePackGrandTotal">0</span></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
                                 <label class="form-label text-secondary mb-1">
                                     Unit Price
                                     <span id="unitPriceRateLink" class="text-primary ms-2 d-none" role="button" tabindex="0"></span>
@@ -221,11 +331,11 @@ use App\Enums\Season;
                                     <span id="unitPriceUsdHint" class="fw-bold text-nowrap d-none pl-4"></span>
                                 </div>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-3 col-md-3">
                                 <label class="form-label text-secondary mb-1">Total Units</label>
                                 <div id="totalUnitsInput"></div>
                             </div>
-                            <div class="col-12 col-md-6">
+                            <div class="col-3 col-md-3">
                                 <label class="form-label text-secondary mb-1">Total Price</label>
                                 <div id="totalPriceInput"></div>
                             </div>
@@ -392,9 +502,13 @@ use App\Enums\Season;
         let allTags = [];
         let selectedTagIds = new Set();
         let tagSyncLock = false;
-        let selectedSizeCount = 0;
+        let sizePackUnits = {};
         let selectedCategoryId = 0;
         let productNameManual = false;
+        let selectedExistingProductId = 0;
+        let productFillLock = false;
+        let productSearchTimer = null;
+        let productSearchRequest = null;
         let confirmPurchaseModal = null;
         let exchangeRateModal = null;
         let exchangeRatesByCurrency = {};
@@ -403,6 +517,202 @@ use App\Enums\Season;
             label: String(size),
             value: String(size)
         }));
+        const SIZE_PACK_TEMPLATES = {
+            one_each: function (sizes) {
+                const pack = {};
+                sizes.forEach(function (size) {
+                    pack[size] = 1;
+                });
+                return pack;
+            },
+            sample: function (sizes) {
+                const defaults = { 220: 2, 230: 3 };
+                const pack = {};
+                sizes.forEach(function (size) {
+                    pack[size] = Number(defaults[Number(size)] || 0);
+                });
+                return pack;
+            },
+            clear: function (sizes) {
+                const pack = {};
+                sizes.forEach(function (size) {
+                    pack[size] = 0;
+                });
+                return pack;
+            }
+        };
+
+        function getCheckedSizes() {
+            return ($("#sizeSelector").jqxDropDownList("getCheckedItems") || [])
+                .map(function (item) {
+                    return String(item.value);
+                })
+                .sort(function (a, b) {
+                    return Number(a) - Number(b);
+                });
+        }
+
+        function getSizePackTotals() {
+            const setsCount = Math.max(Number($("#setsCountInput").jqxNumberInput("val") || 0), 0);
+            const sizes = getCheckedSizes();
+            let totalPerSet = 0;
+            let totalUnits = 0;
+
+            sizes.forEach(function (size) {
+                const unitsPerSet = Math.max(Number(sizePackUnits[size] || 0), 0);
+                totalPerSet += unitsPerSet;
+                totalUnits += unitsPerSet * setsCount;
+            });
+
+            return {
+                sizes: sizes,
+                setsCount: setsCount,
+                totalPerSet: totalPerSet,
+                totalUnits: totalUnits
+            };
+        }
+
+        function buildSizePackObject() {
+            const pack = {};
+            getCheckedSizes().forEach(function (size) {
+                pack[size] = Math.max(Number(sizePackUnits[size] || 0), 0);
+            });
+            return pack;
+        }
+
+        function formatSizeValueFromPack(pack) {
+            return Object.keys(pack)
+                .sort(function (a, b) { return Number(a) - Number(b); })
+                .join(", ");
+        }
+
+        function renderSizePackTable() {
+            const sizes = getCheckedSizes();
+            const $body = $("#sizePackTableBody").empty();
+
+            sizes.forEach(function (size) {
+                if (!Object.prototype.hasOwnProperty.call(sizePackUnits, size)) {
+                    sizePackUnits[size] = 1;
+                }
+            });
+            Object.keys(sizePackUnits).forEach(function (size) {
+                if (!sizes.includes(size)) {
+                    delete sizePackUnits[size];
+                }
+            });
+
+            if (sizes.length === 0) {
+                $("#sizePackEmpty").removeClass("d-none");
+                $("#sizePackTableContainer").addClass("d-none");
+                $("#sizePackTotalPerSet").text("0");
+                $("#sizePackGrandTotal").text("0");
+                recalcTotalUnits();
+                return;
+            }
+
+            if (Number($("#setsCountInput").jqxNumberInput("val") || 0) < 1) {
+                $("#setsCountInput").jqxNumberInput("val", 1);
+            }
+
+            const setsCount = Math.max(Number($("#setsCountInput").jqxNumberInput("val") || 0), 0);
+
+            $("#sizePackEmpty").addClass("d-none");
+            $("#sizePackTableContainer").removeClass("d-none");
+
+            sizes.forEach(function (size) {
+                const unitsPerSet = Math.max(Number(sizePackUnits[size] || 0), 0);
+                const rowTotal = unitsPerSet * setsCount;
+                const $row = $(`
+                    <tr data-size="${escapeHtml(size)}">
+                        <td class="fw-semibold">${escapeHtml(size)}</td>
+                        <td>
+                            <div class="size-pack-qty-control">
+                                <button type="button" class="btn btn-outline-secondary btn-xs size-pack-minus" aria-label="Decrease">−</button>
+                                <input type="number" class="form-control form-control-xs size-pack-qty-input" min="0" step="1" value="${unitsPerSet}">
+                                <button type="button" class="btn btn-outline-secondary btn-xs size-pack-plus" aria-label="Increase">+</button>
+                            </div>
+                        </td>
+                        <td class="size-pack-row-total fw-semibold">${rowTotal}</td>
+                    </tr>
+                `);
+                $body.append($row);
+            });
+
+            updateSizePackFooter();
+        }
+
+        function updateSizePackRowTotal($row) {
+            const setsCount = Math.max(Number($("#setsCountInput").jqxNumberInput("val") || 0), 0);
+            const size = String($row.data("size") || "");
+            const unitsPerSet = Math.max(Number(sizePackUnits[size] || 0), 0);
+            $row.find(".size-pack-qty-input").val(unitsPerSet);
+            $row.find(".size-pack-row-total").text(unitsPerSet * setsCount);
+        }
+
+        function updateSizePackFooter() {
+            const totals = getSizePackTotals();
+            $("#sizePackTotalPerSet").text(totals.totalPerSet);
+            $("#sizePackGrandTotal").text(totals.totalUnits);
+            recalcTotalUnits();
+        }
+
+        function setSizePackUnits(size, value) {
+            sizePackUnits[String(size)] = Math.max(Number(value || 0), 0);
+            const $row = $("#sizePackTableBody tr").filter(function () {
+                return String($(this).data("size")) === String(size);
+            });
+            if ($row.length) {
+                updateSizePackRowTotal($row);
+            }
+            updateSizePackFooter();
+        }
+
+        function applySizePackTemplate(templateKey) {
+            const sizes = getCheckedSizes();
+            if (sizes.length === 0) {
+                setMessage("Select at least one size before applying a pack template.");
+                return;
+            }
+
+            const template = SIZE_PACK_TEMPLATES[templateKey];
+            if (typeof template !== "function") {
+                return;
+            }
+
+            sizePackUnits = template(sizes);
+            renderSizePackTable();
+        }
+
+        function resetSizePackSelection() {
+            sizePackUnits = {};
+            if ($("#sizeSelector").data("jqxDropDownList")) {
+                const items = $("#sizeSelector").jqxDropDownList("getItems") || [];
+                items.forEach(function (_item, index) {
+                    $("#sizeSelector").jqxDropDownList("uncheckIndex", index);
+                });
+            }
+            renderSizePackTable();
+        }
+
+        function parseSizePack(row) {
+            if (row.size_pack) {
+                try {
+                    return typeof row.size_pack === "string" ? JSON.parse(row.size_pack) : row.size_pack;
+                } catch (error) {
+                    return {};
+                }
+            }
+
+            const pack = {};
+            String(row.size_value || "")
+                .split(",")
+                .map(function (value) { return value.trim(); })
+                .filter(function (value) { return value !== ""; })
+                .forEach(function (size) {
+                    pack[size] = 1;
+                });
+            return pack;
+        }
 
         function getSelectedUnitCurrency() {
             return String($("#unitPriceCurrency").val() || "USD").toUpperCase();
@@ -865,6 +1175,169 @@ use App\Enums\Season;
             return String($("#productDepartmentSelect").val() || "").trim();
         }
 
+        function hideProductSearchDropdowns() {
+            $("#productNameSearchDropdown, #productSerialSearchDropdown").addClass("d-none").empty();
+        }
+
+        function getProductSearchMeta(product) {
+            const parts = [
+                product.serial_number ? `SN: ${product.serial_number}` : "",
+                product.department ? String(product.department) : "",
+                product.gender ? String(product.gender) : "",
+                product.season ? String(product.season) : ""
+            ].filter(Boolean);
+
+            return parts.join(" · ");
+        }
+
+        function renderProductSearchDropdown(dropdownId, products) {
+            const $dropdown = $(dropdownId).empty();
+
+            if (!products.length) {
+                $dropdown
+                    .append('<div class="list-group-item text-muted small">No matching products.</div>')
+                    .removeClass("d-none");
+                return;
+            }
+
+            products.forEach(function (product) {
+                const $item = $(`
+                    <button type="button" class="list-group-item list-group-item-action py-2">
+                        <div class="fw-semibold">${escapeHtml(product.name || "")}</div>
+                        <div class="small text-muted">${escapeHtml(getProductSearchMeta(product))}</div>
+                    </button>
+                `);
+                $item.on("mousedown", function (event) {
+                    event.preventDefault();
+                    applyProductSelection(product);
+                });
+                $dropdown.append($item);
+            });
+
+            $dropdown.removeClass("d-none");
+        }
+
+        function searchProductsForField(field, searchTerm) {
+            const term = String(searchTerm || "").trim();
+            const dropdownId = field === "serial"
+                ? "#productSerialSearchDropdown"
+                : "#productNameSearchDropdown";
+            const otherDropdownId = field === "serial"
+                ? "#productNameSearchDropdown"
+                : "#productSerialSearchDropdown";
+
+            $(otherDropdownId).addClass("d-none").empty();
+
+            if (term.length < 2) {
+                $(dropdownId).addClass("d-none").empty();
+                return;
+            }
+
+            if (productSearchRequest) {
+                productSearchRequest.abort();
+                productSearchRequest = null;
+            }
+
+            productSearchRequest = $.getJSON(API_URLS.products, {
+                search: term,
+                limit: 10
+            }).done(function (res) {
+                renderProductSearchDropdown(dropdownId, res.data || []);
+            }).fail(function (_xhr, status) {
+                if (status === "abort") {
+                    return;
+                }
+                renderProductSearchDropdown(dropdownId, []);
+            }).always(function () {
+                productSearchRequest = null;
+            });
+        }
+
+        function queueProductSearch(field) {
+            if (productFillLock) {
+                return;
+            }
+
+            clearTimeout(productSearchTimer);
+            productSearchTimer = setTimeout(function () {
+                const searchTerm = field === "serial"
+                    ? $("#productSerialInput").val()
+                    : $("#productNameInput").val();
+                searchProductsForField(field, searchTerm);
+            }, 300);
+        }
+
+        function applyProductSelection(product) {
+            productFillLock = true;
+            selectedExistingProductId = Number(product.id || 0);
+            productNameManual = true;
+
+            $("#productNameInput").val(String(product.name || ""));
+            $("#productSerialInput").val(String(product.serial_number || ""));
+            $("#productBrandInput").val(String(product.brand || ""));
+
+            if (product.department) {
+                $("#productDepartmentSelect").val(String(product.department));
+            }
+            populateCategorySelect();
+
+            if (product.gender) {
+                $("#productGenderSelect").val(String(product.gender));
+            }
+            if (product.season) {
+                $("#productSeasonSelect").val(String(product.season));
+            }
+            if (product.category_id) {
+                $("#productCategorySelect").val(String(product.category_id));
+                selectedCategoryId = Number(product.category_id);
+            }
+
+            const currency = String(product.reference_currency || "USD").toUpperCase();
+            const referenceCost = Number(product.reference_cost || 0);
+            $("#unitPriceCurrency").val(currency);
+            $("#unitPriceInput").val(referenceCost);
+
+            hideProductSearchDropdowns();
+
+            loadExchangeRateForCurrency(currency).always(function () {
+                updateUnitPriceCurrencyUi();
+                recalcTotalPrice();
+                productFillLock = false;
+            });
+        }
+
+        function appendProductRowToGrid(productId, rowData) {
+            rowData.product_id = productId;
+            $("#itemsGrid").jqxGrid("addrow", null, rowData);
+            updateGridFooterTotals();
+            clearProductFormPartial();
+            setMessage("Product added to grid.", false);
+        }
+
+        function buildPurchaseGridRowData(params) {
+            return {
+                product_id: params.productId,
+                product_variant_id: 0,
+                product_name: params.name,
+                sku: params.serialNumber,
+                brand: params.brand,
+                style: params.styleValue,
+                warehouse_id: params.warehouseId,
+                unit_price: Number(params.unitCost.toFixed(4)),
+                unit_cost: Number(params.unitCost.toFixed(4)),
+                reference_currency: params.selectedCurrency,
+                reference_cost: Number(params.referenceUnitCost.toFixed(4)),
+                original_cost_display: formatOriginalCost(params.referenceUnitCost, params.selectedCurrency),
+                exchange_rate: params.exchangeRate > 0 ? params.exchangeRate : 1,
+                reference_total_price: Number(params.referenceTotalPrice.toFixed(2)),
+                size_value: formatSizeValueFromPack(params.sizePack),
+                size_pack: JSON.stringify(params.sizePack),
+                sets_count: params.setsCount,
+                units_count: params.unitsCount,
+                total_cost: Number(params.totalPrice.toFixed(2))
+            };
+        }
+
         function populateCategorySelect() {
             const $select = $("#productCategorySelect");
             const previousValue = String($select.val() || "");
@@ -1010,17 +1483,25 @@ use App\Enums\Season;
                     + perUnitShipping
                     + perUnitTransfer
                 ).toFixed(4));
-                const variantQty = Math.max(Number(entry.row.sets_count || 0), 0);
-                const lineTotal = Number((unitCost * variantQty).toFixed(2));
+                const sizePack = parseSizePack(entry.row);
+                const setsCount = Math.max(Number(entry.row.sets_count || 0), 0);
+                const sizeQtys = {};
+                const sizes = Object.keys(sizePack)
+                    .filter(function (size) {
+                        return Math.max(Number(sizePack[size] || 0), 0) > 0;
+                    })
+                    .sort(function (a, b) { return Number(a) - Number(b); });
+                sizes.forEach(function (size) {
+                    sizeQtys[size] = Math.max(Number(sizePack[size] || 0), 0) * setsCount;
+                });
+                const lineTotal = Number((unitCost * entry.unitsCount).toFixed(2));
 
                 return {
                     product_id: Number(entry.row.product_id || 0),
-                    sizes: String(entry.row.size_value || "")
-                        .split(",")
-                        .map(function (v) { return v.trim(); })
-                        .filter(function (v) { return v !== ""; }),
-                    sets_count: variantQty,
-                    qty: variantQty,
+                    sizes: sizes,
+                    size_qtys: sizeQtys,
+                    sets_count: setsCount,
+                    qty: Math.max(Number(entry.row.units_count || 0), 0),
                     warehouse_id: Number(entry.row.warehouse_id || 0),
                     unit_price: entry.unitPrice,
                     unit_cost: unitCost,
@@ -1194,6 +1675,8 @@ use App\Enums\Season;
 
         function clearProductForm() {
             productNameManual = false;
+            selectedExistingProductId = 0;
+            hideProductSearchDropdowns();
             $("#productDepartmentSelect").val("");
             $("#productGenderSelect").val("");
             $("#productSeasonSelect").val("");
@@ -1204,11 +1687,17 @@ use App\Enums\Season;
             $("#productBrandInput").val("");
             $("#productStyleInput").val("");
             $("#unitPriceInput").val(0);
+            resetSizePackSelection();
+            if ($("#setsCountInput").data("jqxNumberInput")) {
+                $("#setsCountInput").jqxNumberInput("val", 0);
+            }
             recalcTotalUnits();
         }
 
         function clearProductFormPartial() {
             // $("#productNameInput").val("");
+            selectedExistingProductId = 0;
+            hideProductSearchDropdowns();
             $("#productSerialInput").val("");
             $("#productBrandInput").val("");
             $("#productStyleInput").val("");
@@ -1217,9 +1706,8 @@ use App\Enums\Season;
         }
 
         function recalcTotalUnits() {
-            const setsCount = Number($("#setsCountInput").jqxNumberInput("val") || 0);
-            const totalUnits = Math.max(setsCount, 0) * Math.max(selectedSizeCount, 0);
-            $("#totalUnitsInput").jqxNumberInput("val", totalUnits);
+            const totals = getSizePackTotals();
+            $("#totalUnitsInput").jqxNumberInput("val", totals.totalUnits);
             recalcTotalPrice();
         }
 
@@ -1239,9 +1727,11 @@ use App\Enums\Season;
             const serialNumber = String($("#productSerialInput").val() || "").trim();
             const brand = String($("#productBrandInput").val() || "").trim();
             const styleValue = String($("#productStyleInput").val() || "").trim();
-            const checkedSizes = $("#sizeSelector").jqxDropDownList("getCheckedItems") || [];
-            const setsCount = Number($("#setsCountInput").jqxNumberInput("val") || 0);
-            const unitsCount = Number($("#totalUnitsInput").jqxNumberInput("val") || 0);
+            const checkedSizes = getCheckedSizes();
+            const sizePack = buildSizePackObject();
+            const packTotals = getSizePackTotals();
+            const setsCount = packTotals.setsCount;
+            const unitsCount = packTotals.totalUnits;
             const selectedCurrency = getSelectedUnitCurrency();
             if (selectedCurrency !== "USD" && getExchangeRateForCurrency(selectedCurrency) <= 0) {
                 setMessage("Please set exchange rate.");
@@ -1281,8 +1771,20 @@ use App\Enums\Season;
                 setMessage("Serial number is required.");
                 return;
             }
+            if (referenceUnitCost <= 0) {
+                setMessage("Unit price is required before adding the product.");
+                return;
+            }
+            if (unitCost <= 0) {
+                setMessage("Please set a valid unit price and exchange rate.");
+                return;
+            }
             if (checkedSizes.length === 0) {
                 setMessage("Please select at least one size.");
+                return;
+            }
+            if (packTotals.totalPerSet <= 0) {
+                setMessage("Units per set must be greater than 0 for at least one size.");
                 return;
             }
             if (!warehouseId) {
@@ -1295,6 +1797,31 @@ use App\Enums\Season;
             }
 
             $("#addProductsBtn").prop("disabled", true);
+
+            const rowParams = {
+                productId: selectedExistingProductId,
+                name,
+                serialNumber,
+                brand,
+                styleValue,
+                warehouseId,
+                unitCost,
+                selectedCurrency,
+                referenceUnitCost,
+                exchangeRate,
+                referenceTotalPrice,
+                sizePack,
+                setsCount,
+                unitsCount,
+                totalPrice
+            };
+            const rowData = buildPurchaseGridRowData(rowParams);
+
+            if (selectedExistingProductId > 0) {
+                appendProductRowToGrid(selectedExistingProductId, rowData);
+                $("#addProductsBtn").prop("disabled", false);
+                return;
+            }
 
             $.ajax({
                 url: API_URLS.products,
@@ -1319,29 +1846,7 @@ use App\Enums\Season;
                     return;
                 }
 
-                const rowData = {
-                    product_id: createdId,
-                    product_variant_id: 0,
-                    product_name: name,
-                    sku: serialNumber,
-                    brand: brand,
-                    style: styleValue,
-                    warehouse_id: warehouseId,
-                    unit_price: Number(unitCost.toFixed(4)),
-                    unit_cost: Number(unitCost.toFixed(4)),
-                    reference_currency: selectedCurrency,
-                    reference_cost: Number(referenceUnitCost.toFixed(4)),
-                    original_cost_display: formatOriginalCost(referenceUnitCost, selectedCurrency),
-                    exchange_rate: exchangeRate > 0 ? exchangeRate : 1,
-                    reference_total_price: Number(referenceTotalPrice.toFixed(2)),
-                    size_value: checkedSizes.map(s => String(s.value)).join(", "),
-                    sets_count: setsCount,
-                    units_count: unitsCount,
-                    total_cost: Number(totalPrice.toFixed(2))
-                };
-                $("#itemsGrid").jqxGrid("addrow", null, rowData);
-                updateGridFooterTotals();
-                clearProductFormPartial();
+                appendProductRowToGrid(createdId, rowData);
                 setMessage("Product registered and added to grid.", false);
             }).fail(function (xhr) {
                 setMessage(xhr.responseJSON?.message || "Failed to register product.");
@@ -1583,16 +2088,55 @@ use App\Enums\Season;
                 updateAutoProductName();
             });
             $("#productNameInput").on("input", function () {
-                productNameManual = true;
+                if (!productFillLock) {
+                    productNameManual = true;
+                    selectedExistingProductId = 0;
+                    queueProductSearch("name");
+                }
+            });
+            $("#productSerialInput").on("input", function () {
+                if (!productFillLock) {
+                    selectedExistingProductId = 0;
+                    queueProductSearch("serial");
+                }
+            });
+            $("#productNameInput, #productSerialInput").on("focus", function () {
+                const field = this.id === "productSerialInput" ? "serial" : "name";
+                queueProductSearch(field);
+            });
+            $(document).on("mousedown", function (event) {
+                if ($(event.target).closest("#productNameInput, #productSerialInput, #productNameSearchDropdown, #productSerialSearchDropdown").length) {
+                    return;
+                }
+                hideProductSearchDropdowns();
             });
 
             $("#sizeSelector").on("checkChange", function () {
-                const checkedItems = $("#sizeSelector").jqxDropDownList("getCheckedItems") || [];
-                selectedSizeCount = checkedItems.length;
-                recalcTotalUnits();
+                renderSizePackTable();
             });
 
-            $("#setsCountInput").on("valueChanged", recalcTotalUnits);
+            $("#sizePackTableBody").on("click", ".size-pack-minus", function () {
+                const size = String($(this).closest("tr").data("size") || "");
+                setSizePackUnits(size, Math.max(Number(sizePackUnits[size] || 0) - 1, 0));
+            });
+            $("#sizePackTableBody").on("click", ".size-pack-plus", function () {
+                const size = String($(this).closest("tr").data("size") || "");
+                setSizePackUnits(size, Math.max(Number(sizePackUnits[size] || 0) + 1, 0));
+            });
+            $("#sizePackTableBody").on("input change", ".size-pack-qty-input", function () {
+                const size = String($(this).closest("tr").data("size") || "");
+                setSizePackUnits(size, Math.max(Number($(this).val() || 0), 0));
+            });
+            $(".size-pack-template-btn").on("click", function () {
+                applySizePackTemplate(String($(this).data("template") || ""));
+            });
+
+            $("#setsCountInput").on("valueChanged", function () {
+                $("#sizePackTableBody tr").each(function () {
+                    updateSizePackRowTotal($(this));
+                });
+                updateSizePackFooter();
+            });
             $("#unitPriceInput").on("input change", function () {
                 updateUnitPriceCurrencyUi();
                 recalcTotalPrice();

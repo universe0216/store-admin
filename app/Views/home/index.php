@@ -90,6 +90,40 @@
         </div>
 
         <div class="row g-3 mb-3">
+            <div class="col-12">
+                <h2 class="h5 fw-semibold mb-0">Departments</h2>
+                <p class="small text-muted mb-0">Revenue and units share by department (MTD).</p>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h3 class="h6 fw-semibold mb-1">Revenue share</h3>
+                        <p class="small text-muted mb-3">Department revenue ratio.</p>
+                        <div class="chart-wrap chart-wrap-sm"><canvas id="chartDepartmentRevenuePie"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h3 class="h6 fw-semibold mb-1">Units share</h3>
+                        <p class="small text-muted mb-3">Department units sold ratio.</p>
+                        <div class="chart-wrap chart-wrap-sm"><canvas id="chartDepartmentUnitsPie"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h3 class="h6 fw-semibold mb-1">Revenue, profit &amp; units by department</h3>
+                        <p class="small text-muted mb-3">Compare department performance (MTD).</p>
+                        <div class="chart-wrap"><canvas id="chartDepartmentComparison"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
             <div class="col-12 col-xl-8">
                 <div class="card shadow-sm h-100">
                     <div class="card-body">
@@ -271,8 +305,97 @@
         return Array.isArray(values) && values.some(v => Number(v) > 0);
     }
 
+    function pieTooltipMoney(ctx) {
+        const total = (ctx.dataset.data || []).reduce((sum, value) => sum + Number(value || 0), 0);
+        const value = Number(ctx.raw || 0);
+        const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+        return (ctx.label || '') + ': $' + value.toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' (' + pct + '%)';
+    }
+
+    function pieTooltipUnits(ctx) {
+        const total = (ctx.dataset.data || []).reduce((sum, value) => sum + Number(value || 0), 0);
+        const value = Number(ctx.raw || 0);
+        const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+        return (ctx.label || '') + ': ' + value.toLocaleString() + ' (' + pct + '%)';
+    }
+
     function initCharts(payload) {
         const c = payload.charts || {};
+        const dept = c.department_metrics || {};
+
+        if (hasChartData(dept.revenue_share?.data)) {
+            charts.departmentRevenuePie = new Chart(document.getElementById('chartDepartmentRevenuePie'), {
+                type: 'pie',
+                data: {
+                    labels: dept.revenue_share?.labels || [],
+                    datasets: [{ data: dept.revenue_share?.data || [], backgroundColor: palette }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: { callbacks: { label: pieTooltipMoney } }
+                    }
+                }
+            });
+        } else {
+            emptyChartMessage('chartDepartmentRevenuePie', 'No department revenue this month.');
+        }
+
+        if (hasChartData(dept.units_share?.data)) {
+            charts.departmentUnitsPie = new Chart(document.getElementById('chartDepartmentUnitsPie'), {
+                type: 'pie',
+                data: {
+                    labels: dept.units_share?.labels || [],
+                    datasets: [{ data: dept.units_share?.data || [], backgroundColor: palette }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: { callbacks: { label: pieTooltipUnits } }
+                    }
+                }
+            });
+        } else {
+            emptyChartMessage('chartDepartmentUnitsPie', 'No department units sold this month.');
+        }
+
+        const deptComparison = dept.comparison || {};
+        if (hasChartData(deptComparison.revenue) || hasChartData(deptComparison.profit) || hasChartData(deptComparison.units)) {
+            charts.departmentComparison = new Chart(document.getElementById('chartDepartmentComparison'), {
+                type: 'bar',
+                data: {
+                    labels: deptComparison.labels || [],
+                    datasets: [
+                        { label: 'Revenue', data: deptComparison.revenue || [], backgroundColor: palette[0], yAxisID: 'y' },
+                        { label: 'Profit', data: deptComparison.profit || [], backgroundColor: palette[1], yAxisID: 'y' },
+                        { label: 'Units sold', data: deptComparison.units || [], backgroundColor: palette[3], yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            grid: { color: gridColor },
+                            ticks: { callback: v => '$' + Number(v).toLocaleString() }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: v => Number(v).toLocaleString() }
+                        }
+                    }
+                }
+            });
+        } else {
+            emptyChartMessage('chartDepartmentComparison', 'No department comparison data this month.');
+        }
 
         charts.revenueTrend = new Chart(document.getElementById('chartRevenueTrend'), {
             type: 'line',

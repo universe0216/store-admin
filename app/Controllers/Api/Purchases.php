@@ -323,6 +323,7 @@ class Purchases extends BaseController
             $allocatedTransfer = round((float) ($item['allocated_transfer_fee'] ?? 0), 4);
             $discountAmount    = 0.0;
             $sizes             = $item['sizes'] ?? [];
+            $sizeQtys          = $item['size_qtys'] ?? [];
             $style             = $item['style'] ?? '';
             $warehouseId       = (int) ($item['warehouse_id'] ?? 0);
             $referenceCurrency = strtoupper(trim((string) ($item['reference_currency'] ?? 'USD')));
@@ -367,7 +368,16 @@ class Purchases extends BaseController
                         continue;
                     }
 
-                    $variantQty = $setsCount;
+                    if (is_array($sizeQtys) && array_key_exists($sizeText, $sizeQtys)) {
+                        $variantQty = max(0, (int) $sizeQtys[$sizeText]);
+                    } else {
+                        $variantQty = $setsCount;
+                    }
+
+                    if ($variantQty < 1) {
+                        continue;
+                    }
+
                     $lineTotal  = $this->purchaseLineTotal($variantQty, $unitCost);
                     $subTotal  += $lineTotal;
 
@@ -638,6 +648,22 @@ class Purchases extends BaseController
 
     public function products(): ResponseInterface
     {
+        $search = trim((string) ($this->request->getGet('search') ?? ''));
+
+        if ($search !== '') {
+            $limit = max(1, min(20, (int) ($this->request->getGet('limit') ?? 10)));
+            $rows  = (new ProductModel())
+                ->where('is_active', 1)
+                ->groupStart()
+                    ->like('name', $search)
+                    ->orLike('serial_number', $search)
+                ->groupEnd()
+                ->orderBy('name', 'ASC')
+                ->findAll($limit);
+
+            return $this->response->setJSON(['data' => $rows]);
+        }
+
         $rows = (new ProductModel())
             ->where('is_active', 1)
             ->orderBy('name', 'ASC')
