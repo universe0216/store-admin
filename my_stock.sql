@@ -11,7 +11,7 @@
  Target Server Version : 80043 (8.0.43)
  File Encoding         : 65001
 
- Date: 08/06/2026 14:24:25
+ Date: 09/06/2026 03:16:15
 */
 
 SET NAMES utf8mb4;
@@ -201,7 +201,7 @@ INSERT INTO `inventory` VALUES (9, 9, 1, 1, 0, '2026-06-07 19:27:47');
 INSERT INTO `inventory` VALUES (10, 10, 1, 1, 0, '2026-06-07 19:27:47');
 INSERT INTO `inventory` VALUES (11, 11, 1, 0, 0, '2026-06-04 15:44:14');
 INSERT INTO `inventory` VALUES (12, 12, 1, 0, 0, '2026-06-04 15:44:14');
-INSERT INTO `inventory` VALUES (13, 13, 1, 0, 0, '2026-06-04 15:44:14');
+INSERT INTO `inventory` VALUES (13, 13, 1, 1, 0, '2026-06-08 15:15:27');
 INSERT INTO `inventory` VALUES (14, 14, 1, 0, 0, '2026-06-04 15:44:14');
 INSERT INTO `inventory` VALUES (15, 15, 1, 0, 0, '2026-06-04 15:44:14');
 INSERT INTO `inventory` VALUES (16, 16, 1, 0, 0, '2026-06-04 15:44:14');
@@ -224,11 +224,11 @@ INSERT INTO `inventory` VALUES (32, 27, 1, 1, 0, '2026-06-08 02:19:35');
 INSERT INTO `inventory` VALUES (33, 28, 1, 0, 0, '2026-06-08 02:19:35');
 INSERT INTO `inventory` VALUES (34, 29, 1, 0, 0, '2026-06-08 02:19:35');
 INSERT INTO `inventory` VALUES (35, 30, 1, 0, 0, '2026-06-08 02:19:35');
-INSERT INTO `inventory` VALUES (36, 31, 1, 1, 0, '2026-06-08 02:19:35');
-INSERT INTO `inventory` VALUES (37, 32, 1, 1, 0, '2026-06-08 02:19:35');
-INSERT INTO `inventory` VALUES (38, 33, 1, 1, 0, '2026-06-08 02:19:35');
-INSERT INTO `inventory` VALUES (39, 34, 1, 1, 0, '2026-06-08 02:19:35');
-INSERT INTO `inventory` VALUES (40, 35, 1, 1, 0, '2026-06-08 02:19:35');
+INSERT INTO `inventory` VALUES (36, 31, 1, 0, 0, '2026-06-08 15:07:01');
+INSERT INTO `inventory` VALUES (37, 32, 1, 0, 0, '2026-06-08 15:07:01');
+INSERT INTO `inventory` VALUES (38, 33, 1, 0, 0, '2026-06-08 15:07:01');
+INSERT INTO `inventory` VALUES (39, 34, 1, 0, 0, '2026-06-08 15:07:01');
+INSERT INTO `inventory` VALUES (40, 35, 1, 0, 0, '2026-06-08 15:07:01');
 
 -- ----------------------------
 -- Table structure for migrations
@@ -311,7 +311,7 @@ INSERT INTO `product_variants` VALUES (9, 2, '', '235', 'xxxxxx-235-864', NULL, 
 INSERT INTO `product_variants` VALUES (10, 2, '', '240', 'xxxxxx-240-750', NULL, 12.14, 20.00, 1, 1, '2026-06-04 15:44:14', '2026-06-07 19:27:47');
 INSERT INTO `product_variants` VALUES (11, 3, '', '230', 'xxxxxx-230-537', NULL, 17.13, 0.00, 0, 1, '2026-06-04 15:44:14', '2026-06-04 15:44:14');
 INSERT INTO `product_variants` VALUES (12, 3, '', '235', 'xxxxxx-235-201', NULL, 17.13, 0.00, 0, 1, '2026-06-04 15:44:14', '2026-06-04 15:44:14');
-INSERT INTO `product_variants` VALUES (13, 3, '', '240', 'xxxxxx-240-658', NULL, 17.13, 0.00, 0, 1, '2026-06-04 15:44:14', '2026-06-04 15:44:14');
+INSERT INTO `product_variants` VALUES (13, 3, '', '240', 'xxxxxx-240-658', NULL, 17.13, 0.00, 1, 1, '2026-06-04 15:44:14', '2026-06-04 15:44:14');
 INSERT INTO `product_variants` VALUES (14, 3, '', '245', 'xxxxxx-245-312', NULL, 17.13, 25.00, 0, 1, '2026-06-04 15:44:14', '2026-06-05 03:55:50');
 INSERT INTO `product_variants` VALUES (15, 3, '', '250', 'xxxxxx-250-451', NULL, 17.13, 0.00, 0, 1, '2026-06-04 15:44:14', '2026-06-04 15:44:14');
 INSERT INTO `product_variants` VALUES (16, 4, 'BM', '230', 'bnbnb-230-521', NULL, 22.84, 0.00, 0, 1, '2026-06-04 15:44:14', '2026-06-04 15:44:14');
@@ -329,11 +329,11 @@ INSERT INTO `product_variants` VALUES (27, 13, '01', '225', '1010101-225-555', N
 INSERT INTO `product_variants` VALUES (28, 13, '01', '230', '1010101-230-954', NULL, 15.00, 0.00, 0, 1, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
 INSERT INTO `product_variants` VALUES (29, 13, '01', '235', '1010101-235-496', NULL, 15.00, 0.00, 0, 1, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
 INSERT INTO `product_variants` VALUES (30, 13, '01', '240', '1010101-240-102', NULL, 15.00, 0.00, 0, 1, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
-INSERT INTO `product_variants` VALUES (31, 14, '', '220', '1111-220-569', NULL, 16.43, 0.00, 1, 1, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
-INSERT INTO `product_variants` VALUES (32, 14, '', '225', '1111-225-538', NULL, 16.43, 0.00, 1, 1, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
-INSERT INTO `product_variants` VALUES (33, 14, '', '230', '1111-230-611', NULL, 16.43, 0.00, 1, 1, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
-INSERT INTO `product_variants` VALUES (34, 14, '', '235', '1111-235-874', NULL, 16.43, 0.00, 1, 1, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
-INSERT INTO `product_variants` VALUES (35, 14, '', '240', '1111-240-720', NULL, 16.43, 0.00, 1, 1, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
+INSERT INTO `product_variants` VALUES (31, 14, '', '220', '1111-220-569', NULL, 16.43, 0.00, 0, 1, '2026-06-08 02:19:35', '2026-06-08 15:07:01');
+INSERT INTO `product_variants` VALUES (32, 14, '', '225', '1111-225-538', NULL, 16.43, 0.00, 0, 1, '2026-06-08 02:19:35', '2026-06-08 15:07:01');
+INSERT INTO `product_variants` VALUES (33, 14, '', '230', '1111-230-611', NULL, 16.43, 0.00, 0, 1, '2026-06-08 02:19:35', '2026-06-08 15:07:01');
+INSERT INTO `product_variants` VALUES (34, 14, '', '235', '1111-235-874', NULL, 16.43, 0.00, 0, 1, '2026-06-08 02:19:35', '2026-06-08 15:07:01');
+INSERT INTO `product_variants` VALUES (35, 14, '', '240', '1111-240-720', NULL, 16.43, 0.00, 0, 1, '2026-06-08 02:19:35', '2026-06-08 15:07:01');
 
 -- ----------------------------
 -- Table structure for products
@@ -387,7 +387,7 @@ CREATE TABLE `purchase_items`  (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `purchase_id` bigint UNSIGNED NOT NULL,
   `product_variant_id` bigint UNSIGNED NOT NULL,
-  `qty` int UNSIGNED NOT NULL,
+  `qty` int NOT NULL,
   `unit_price` decimal(12, 2) NULL DEFAULT NULL,
   `allocated_discount` decimal(12, 2) NOT NULL DEFAULT 0.00,
   `allocated_shipping` decimal(12, 2) NOT NULL DEFAULT 0.00,
@@ -405,7 +405,7 @@ CREATE TABLE `purchase_items`  (
   INDEX `idx_purchase_items_product_variant_id`(`product_variant_id` ASC) USING BTREE,
   CONSTRAINT `fk_purchase_items_product_variant_id` FOREIGN KEY (`product_variant_id`) REFERENCES `product_variants` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_purchase_items_purchase_id` FOREIGN KEY (`purchase_id`) REFERENCES `purchases` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 41 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 46 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of purchase_items
@@ -450,6 +450,11 @@ INSERT INTO `purchase_items` VALUES (37, 6, 32, 1, 16.43, 0.00, 0.00, 0.00, 0.00
 INSERT INTO `purchase_items` VALUES (38, 6, 33, 1, 16.43, 0.00, 0.00, 0.00, 0.00, 16.43, 16.43, 115.00, 'RMB', 7.00, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
 INSERT INTO `purchase_items` VALUES (39, 6, 34, 1, 16.43, 0.00, 0.00, 0.00, 0.00, 16.43, 16.43, 115.00, 'RMB', 7.00, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
 INSERT INTO `purchase_items` VALUES (40, 6, 35, 1, 16.43, 0.00, 0.00, 0.00, 0.00, 16.43, 16.43, 115.00, 'RMB', 7.00, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
+INSERT INTO `purchase_items` VALUES (41, 7, 31, -1, NULL, 0.00, 0.00, 0.00, 0.00, -16.43, -16.43, NULL, NULL, NULL, '2026-06-08 15:07:01', '2026-06-08 15:07:01');
+INSERT INTO `purchase_items` VALUES (42, 7, 32, -1, NULL, 0.00, 0.00, 0.00, 0.00, -16.43, -16.43, NULL, NULL, NULL, '2026-06-08 15:07:01', '2026-06-08 15:07:01');
+INSERT INTO `purchase_items` VALUES (43, 7, 33, -1, NULL, 0.00, 0.00, 0.00, 0.00, -16.43, -16.43, NULL, NULL, NULL, '2026-06-08 15:07:01', '2026-06-08 15:07:01');
+INSERT INTO `purchase_items` VALUES (44, 7, 35, -1, NULL, 0.00, 0.00, 0.00, 0.00, -16.43, -16.43, NULL, NULL, NULL, '2026-06-08 15:07:01', '2026-06-08 15:07:01');
+INSERT INTO `purchase_items` VALUES (45, 7, 34, -1, NULL, 0.00, 0.00, 0.00, 0.00, -16.43, -16.43, NULL, NULL, NULL, '2026-06-08 15:07:01', '2026-06-08 15:07:01');
 
 -- ----------------------------
 -- Table structure for purchase_payments
@@ -465,7 +470,7 @@ CREATE TABLE `purchase_payments`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_purchase_payments_purchase_id`(`purchase_id` ASC) USING BTREE,
   CONSTRAINT `fk_purchase_payments_purchase_id` FOREIGN KEY (`purchase_id`) REFERENCES `purchases` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of purchase_payments
@@ -477,6 +482,7 @@ INSERT INTO `purchase_payments` VALUES (4, 3, 'bank_usd', 60.70, '2026-06-07 19:
 INSERT INTO `purchase_payments` VALUES (5, 4, 'bank_usd', 85.74, '2026-06-07 20:44:55', '2026-06-07 20:44:55');
 INSERT INTO `purchase_payments` VALUES (6, 5, 'bank_usd', 28.57, '2026-06-08 02:18:04', '2026-06-08 02:18:04');
 INSERT INTO `purchase_payments` VALUES (7, 6, 'bank_usd', 157.15, '2026-06-08 02:19:35', '2026-06-08 02:19:35');
+INSERT INTO `purchase_payments` VALUES (8, 7, 'cash_usd', -82.15, '2026-06-08 15:07:01', '2026-06-08 15:07:01');
 
 -- ----------------------------
 -- Table structure for purchases
@@ -503,7 +509,7 @@ CREATE TABLE `purchases`  (
   INDEX `idx_purchases_purchase_date`(`purchase_date` ASC) USING BTREE,
   INDEX `idx_purchases_supplier_id`(`supplier_id` ASC) USING BTREE,
   CONSTRAINT `fk_purchases_supplier_id` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of purchases
@@ -514,6 +520,7 @@ INSERT INTO `purchases` VALUES (3, 'PO-20260607-192747', '2026-06-08 00:00:00', 
 INSERT INTO `purchases` VALUES (4, 'PO-20260607-204455', '2026-06-08 00:00:00', 3, 'received', 85.74, 0.00, 0.00, 0.00, 85.74, 85.74, NULL, '2026-06-07 20:44:55', '2026-06-07 20:44:55', 'bank_usd');
 INSERT INTO `purchases` VALUES (5, 'PO-20260608-021804', '2026-06-08 00:00:00', 3, 'received', 28.57, 0.00, 0.00, 0.00, 28.57, 28.57, NULL, '2026-06-08 02:18:04', '2026-06-08 02:18:04', 'bank_usd');
 INSERT INTO `purchases` VALUES (6, 'PO-20260608-021935', '2026-06-08 00:00:00', 3, 'received', 157.15, 0.00, 0.00, 0.00, 157.15, 157.15, NULL, '2026-06-08 02:19:35', '2026-06-08 02:19:35', 'bank_usd');
+INSERT INTO `purchases` VALUES (7, 'PR-20260608-150701', '2026-06-09 00:00:00', 3, 'refunded', -82.15, 0.00, 0.00, 0.00, -82.15, -82.15, 'Purchase refund', '2026-06-08 15:07:01', '2026-06-08 15:07:01', 'cash_usd');
 
 -- ----------------------------
 -- Table structure for sale_items
@@ -539,7 +546,6 @@ CREATE TABLE `sale_items`  (
 -- ----------------------------
 -- Records of sale_items
 -- ----------------------------
-INSERT INTO `sale_items` VALUES (30, 10, 13, 1, 25.00, 0.00, 25.00, '2026-06-04 15:47:11', '2026-06-04 15:47:11');
 INSERT INTO `sale_items` VALUES (31, 11, 19, 1, 28.00, 0.00, 28.00, '2026-06-04 16:02:02', '2026-06-04 16:02:02');
 INSERT INTO `sale_items` VALUES (32, 11, 11, 1, 24.00, 0.00, 24.00, '2026-06-04 16:02:02', '2026-06-04 16:02:02');
 INSERT INTO `sale_items` VALUES (33, 11, 12, 1, 24.00, 0.00, 24.00, '2026-06-04 16:02:02', '2026-06-04 16:02:02');
@@ -582,8 +588,6 @@ CREATE TABLE `sale_payments`  (
 -- ----------------------------
 -- Records of sale_payments
 -- ----------------------------
-INSERT INTO `sale_payments` VALUES (10, 10, 'bank_usd', 20.00, '2026-06-05 00:00:00', '2026-06-04 15:47:11');
-INSERT INTO `sale_payments` VALUES (11, 10, 'bank_usd', 5.00, '2026-06-05 00:00:00', '2026-06-04 15:48:11');
 INSERT INTO `sale_payments` VALUES (12, 11, 'bank_usd', 76.00, '2026-06-05 00:00:00', '2026-06-04 16:02:02');
 INSERT INTO `sale_payments` VALUES (13, 12, 'bank_usd', 80.00, '2026-06-02 00:00:00', '2026-06-04 16:16:28');
 INSERT INTO `sale_payments` VALUES (14, 13, 'bank_usd', 40.00, '2026-06-05 00:00:00', '2026-06-05 01:14:44');
@@ -620,7 +624,6 @@ CREATE TABLE `sales`  (
 -- ----------------------------
 -- Records of sales
 -- ----------------------------
-INSERT INTO `sales` VALUES (10, 'SO-20260604-154711', '2026-06-05 00:00:00', NULL, 1, 25.00, 0.00, 25.00, 25.00, 0.00, 'bank_usd', 'completed', '2026-06-04 15:47:11', '2026-06-04 15:48:11');
 INSERT INTO `sales` VALUES (11, 'SO-20260604-160202', '2026-06-05 00:00:00', NULL, 2, 76.00, 0.00, 76.00, 76.00, 0.00, 'bank_usd', 'completed', '2026-06-04 16:02:02', '2026-06-04 16:02:02');
 INSERT INTO `sales` VALUES (12, 'SO-20260604-161628', '2026-06-02 00:00:00', NULL, 2, 82.00, 2.00, 80.00, 80.00, 0.00, 'bank_usd', 'completed', '2026-06-04 16:16:28', '2026-06-04 16:16:28');
 INSERT INTO `sales` VALUES (13, 'SO-20260605-011444', '2026-06-05 00:00:00', NULL, 1, 45.00, 5.00, 40.00, 40.00, 0.00, 'bank_usd', 'completed', '2026-06-05 01:14:44', '2026-06-05 01:14:44');
@@ -649,7 +652,7 @@ CREATE TABLE `stock_movements`  (
   INDEX `idx_stock_movements_movement_type`(`movement_type` ASC) USING BTREE,
   INDEX `idx_stock_movements_created_at`(`created_at` ASC) USING BTREE,
   CONSTRAINT `fk_stock_movements_product_variant_id` FOREIGN KEY (`product_variant_id`) REFERENCES `product_variants` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE = InnoDB AUTO_INCREMENT = 74 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 79 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of stock_movements
@@ -674,7 +677,6 @@ INSERT INTO `stock_movements` VALUES (17, 17, 'purchase', 1, 'purchase', 1, 'Sto
 INSERT INTO `stock_movements` VALUES (18, 18, 'purchase', 1, 'purchase', 1, 'Stock received from purchase.', '2026-06-04 15:44:14', '2026-06-04 15:44:14');
 INSERT INTO `stock_movements` VALUES (19, 19, 'purchase', 1, 'purchase', 1, 'Stock received from purchase.', '2026-06-04 15:44:14', '2026-06-04 15:44:14');
 INSERT INTO `stock_movements` VALUES (20, 20, 'purchase', 1, 'purchase', 1, 'Stock received from purchase.', '2026-06-04 15:44:14', '2026-06-04 15:44:14');
-INSERT INTO `stock_movements` VALUES (21, 13, 'sale', -1, 'sale', 10, 'Stock deducted from sale.', '2026-06-04 15:47:11', '2026-06-04 15:47:11');
 INSERT INTO `stock_movements` VALUES (22, 19, 'sale', -1, 'sale', 11, 'Stock deducted from sale.', '2026-06-04 16:02:02', '2026-06-04 16:02:02');
 INSERT INTO `stock_movements` VALUES (23, 11, 'sale', -1, 'sale', 11, 'Stock deducted from sale.', '2026-06-04 16:02:02', '2026-06-04 16:02:02');
 INSERT INTO `stock_movements` VALUES (24, 12, 'sale', -1, 'sale', 11, 'Stock deducted from sale.', '2026-06-04 16:02:02', '2026-06-04 16:02:02');
@@ -727,6 +729,11 @@ INSERT INTO `stock_movements` VALUES (70, 24, 'sale', -1, 'sale', 18, 'Stock ded
 INSERT INTO `stock_movements` VALUES (71, 28, 'sale', -1, 'sale', 18, 'Stock deducted from sale.', '2026-06-08 02:20:00', '2026-06-08 02:20:00');
 INSERT INTO `stock_movements` VALUES (72, 30, 'sale', -1, 'sale', 18, 'Stock deducted from sale.', '2026-06-08 02:20:00', '2026-06-08 02:20:00');
 INSERT INTO `stock_movements` VALUES (73, 29, 'sale', -1, 'sale', 18, 'Stock deducted from sale.', '2026-06-08 02:20:00', '2026-06-08 02:20:00');
+INSERT INTO `stock_movements` VALUES (74, 31, 'purchase_refund', -1, 'purchase', 7, 'Stock returned on purchase refund.', '2026-06-08 15:07:01', '2026-06-08 15:07:01');
+INSERT INTO `stock_movements` VALUES (75, 32, 'purchase_refund', -1, 'purchase', 7, 'Stock returned on purchase refund.', '2026-06-08 15:07:01', '2026-06-08 15:07:01');
+INSERT INTO `stock_movements` VALUES (76, 33, 'purchase_refund', -1, 'purchase', 7, 'Stock returned on purchase refund.', '2026-06-08 15:07:01', '2026-06-08 15:07:01');
+INSERT INTO `stock_movements` VALUES (77, 35, 'purchase_refund', -1, 'purchase', 7, 'Stock returned on purchase refund.', '2026-06-08 15:07:01', '2026-06-08 15:07:01');
+INSERT INTO `stock_movements` VALUES (78, 34, 'purchase_refund', -1, 'purchase', 7, 'Stock returned on purchase refund.', '2026-06-08 15:07:01', '2026-06-08 15:07:01');
 
 -- ----------------------------
 -- Table structure for suppliers
@@ -812,7 +819,7 @@ CREATE TABLE `transactions`  (
   `exchange_rate` decimal(18, 8) NOT NULL DEFAULT 1.00000000,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 63 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 65 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of transactions
@@ -821,13 +828,6 @@ INSERT INTO `transactions` VALUES (1, '2026-06-05', '1200', 'PO-20260604-154414'
 INSERT INTO `transactions` VALUES (2, '2026-06-05', '5110', 'PO-20260604-154414', 'Purchase PO-20260604-154414', 13.00, 0.00, 13.00000000, 'USD', 1.00000000, '2026-06-04 15:44:14');
 INSERT INTO `transactions` VALUES (3, '2026-06-05', '1000', 'PO-20260604-154414', 'Purchase PO-20260604-154414', 0.00, 300.00, 300.00000000, 'USD', 1.00000000, '2026-06-04 15:44:14');
 INSERT INTO `transactions` VALUES (4, '2026-06-05', '1010', 'PO-20260604-154414', 'Purchase PO-20260604-154414', 0.00, 39.00, 39.00000000, 'USD', 1.00000000, '2026-06-04 15:44:14');
-INSERT INTO `transactions` VALUES (5, '2026-06-05', '4000', 'SO-20260604-154711', 'Sale SO-20260604-154711', 0.00, 25.00, 25.00000000, 'USD', 1.00000000, '2026-06-04 15:47:11');
-INSERT INTO `transactions` VALUES (6, '2026-06-05', '1010', 'SO-20260604-154711', 'Sale SO-20260604-154711', 20.00, 0.00, 20.00000000, 'USD', 1.00000000, '2026-06-04 15:47:11');
-INSERT INTO `transactions` VALUES (7, '2026-06-05', '1100', 'SO-20260604-154711', 'Sale SO-20260604-154711 (unpaid)', 5.00, 0.00, 5.00000000, 'USD', 1.00000000, '2026-06-04 15:47:11');
-INSERT INTO `transactions` VALUES (8, '2026-06-05', '5000', 'SO-20260604-154711', 'COGS SO-20260604-154711', 17.13, 0.00, 17.13000000, 'USD', 1.00000000, '2026-06-04 15:47:11');
-INSERT INTO `transactions` VALUES (9, '2026-06-05', '1210', 'SO-20260604-154711', 'COGS SO-20260604-154711', 0.00, 17.13, 17.13000000, 'USD', 1.00000000, '2026-06-04 15:47:11');
-INSERT INTO `transactions` VALUES (10, '2026-06-05', '1010', 'SO-20260604-154711', 'Sale payment SO-20260604-154711', 5.00, 0.00, 5.00000000, 'USD', 1.00000000, '2026-06-04 15:48:11');
-INSERT INTO `transactions` VALUES (11, '2026-06-05', '1100', 'SO-20260604-154711', 'Sale payment SO-20260604-154711', 0.00, 5.00, 5.00000000, 'USD', 1.00000000, '2026-06-04 15:48:11');
 INSERT INTO `transactions` VALUES (12, '2026-06-05', '4000', 'SO-20260604-160202', 'Sale SO-20260604-160202', 0.00, 76.00, 76.00000000, 'USD', 1.00000000, '2026-06-04 16:02:02');
 INSERT INTO `transactions` VALUES (13, '2026-06-05', '1010', 'SO-20260604-160202', 'Sale SO-20260604-160202', 76.00, 0.00, 76.00000000, 'USD', 1.00000000, '2026-06-04 16:02:02');
 INSERT INTO `transactions` VALUES (14, '2026-06-05', '5000', 'SO-20260604-160202', 'COGS SO-20260604-160202', 57.10, 0.00, 57.10000000, 'USD', 1.00000000, '2026-06-04 16:02:02');
@@ -879,6 +879,8 @@ INSERT INTO `transactions` VALUES (59, '2026-06-02', '4000', 'SO-20260608-022000
 INSERT INTO `transactions` VALUES (60, '2026-06-02', '1010', 'SO-20260608-022000', 'Sale SO-20260608-022000', 80.00, 0.00, 80.00000000, 'USD', 1.00000000, '2026-06-08 02:20:00');
 INSERT INTO `transactions` VALUES (61, '2026-06-02', '5000', 'SO-20260608-022000', 'COGS SO-20260608-022000', 59.29, 0.00, 59.29000000, 'USD', 1.00000000, '2026-06-08 02:20:00');
 INSERT INTO `transactions` VALUES (62, '2026-06-02', '1210', 'SO-20260608-022000', 'COGS SO-20260608-022000', 0.00, 59.29, 59.29000000, 'USD', 1.00000000, '2026-06-08 02:20:00');
+INSERT INTO `transactions` VALUES (63, '2026-06-09', '1000', 'PR-20260608-150701', 'Purchase refund PR-20260608-150701', 82.15, 0.00, 82.15000000, 'USD', 1.00000000, '2026-06-08 15:07:01');
+INSERT INTO `transactions` VALUES (64, '2026-06-09', '1200', 'PR-20260608-150701', 'Purchase refund PR-20260608-150701', 0.00, 82.15, 82.15000000, 'USD', 1.00000000, '2026-06-08 15:07:01');
 
 -- ----------------------------
 -- Table structure for transfer_items
