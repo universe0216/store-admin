@@ -66,6 +66,7 @@
                             <li><a class="dropdown-item" href="<?= site_url('sells') ?>">Sales History</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('sells/create') ?>">New Sale</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('sells/visual-statistics') ?>">Visual Statistics</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('sells/price-analyzer') ?>">Price Analyzer</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('sells/yearly-statistics') ?>">Yearly Statistics</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('inventory/sales-statistics') ?>">Monthly Statistics</a></li>
                         </ul>

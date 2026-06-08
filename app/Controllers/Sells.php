@@ -35,6 +35,24 @@ class Sells extends BaseController
         ]);
     }
 
+    public function priceAnalyzer(): string
+    {
+        $db = db_connect();
+        $warehouses = [];
+
+        if ($db->tableExists('warehouses')) {
+            $warehouses = $db->table('warehouses')
+                ->select('id, name')
+                ->orderBy('name', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
+
+        return view('sells/price_analyzer', [
+            'warehouses' => $warehouses,
+        ]);
+    }
+
     public function yearlyStatistics(): string
     {
         $year = (int) ($this->request->getGet('year') ?? date('Y'));
