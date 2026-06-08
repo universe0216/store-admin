@@ -11,9 +11,16 @@ class SalesVisualStatistics extends BaseController
 {
     public function index(): ResponseInterface
     {
-        $years = $this->parseYearsParam();
+        $years       = $this->parseYearsParam();
+        $granularity = $this->parseGranularityParam();
+        $model       = new SalesVisualStatisticsModel();
+        $filters     = $this->parseFilters();
 
-        $data = (new SalesVisualStatisticsModel())->getMonthlyMetrics($years, $this->parseFilters());
+        $data = $granularity === 'daily'
+            ? $model->getDailyMetrics($years, $filters)
+            : $model->getMonthlyMetrics($years, $filters);
+
+        $data['granularity'] = $granularity;
 
         return $this->response->setJSON(['data' => $data]);
     }
@@ -55,5 +62,12 @@ class SalesVisualStatistics extends BaseController
         }
 
         return [(int) date('Y')];
+    }
+
+    private function parseGranularityParam(): string
+    {
+        $granularity = strtolower(trim((string) ($this->request->getGet('granularity') ?? 'monthly')));
+
+        return in_array($granularity, ['monthly', 'daily'], true) ? $granularity : 'monthly';
     }
 }

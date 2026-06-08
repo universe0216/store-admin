@@ -27,7 +27,7 @@ $minYear = 2025;
         <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <h1 class="h3 fw-bold mb-1">Visual Statistics</h1>
-                <p class="text-muted mb-0 small">Monthly revenue, profit, units sold, and orders by year.</p>
+                <p class="text-muted mb-0 small">Revenue, profit, units sold, and orders by month or day.</p>
             </div>
             <a href="<?= site_url('sells') ?>" class="btn btn-outline-secondary btn-sm">Sales History</a>
         </div>
@@ -76,6 +76,19 @@ $minYear = 2025;
                         <button type="button" id="selectAllYearsBtn" class="btn btn-outline-secondary btn-sm">Select all</button>
                         <button type="button" id="clearYearsBtn" class="btn btn-outline-secondary btn-sm">Clear</button>
                     </div>
+                    <div class="col-12">
+                        <label class="form-label text-secondary mb-2 small fw-semibold">Display by</label>
+                        <div class="d-flex flex-wrap gap-3">
+                            <label class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="radio" name="granularity" id="granularityMonthly" value="monthly" checked>
+                                <span class="form-check-label small">Monthly</span>
+                            </label>
+                            <label class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="radio" name="granularity" id="granularityDaily" value="daily">
+                                <span class="form-check-label small">Daily</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
                 <div id="statsAlert" class="alert alert-danger d-none mt-3 mb-0" role="alert"></div>
             </div>
@@ -85,8 +98,8 @@ $minYear = 2025;
             <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <h2 class="h6 fw-semibold mb-1">Monthly revenue</h2>
-                        <p class="small text-muted mb-3">Grand total by month.</p>
+                        <h2 class="h6 fw-semibold mb-1" data-chart-title="revenue">Monthly revenue</h2>
+                        <p class="small text-muted mb-3" data-chart-desc="revenue">Grand total by month.</p>
                         <div class="chart-wrap"><canvas id="chartRevenue"></canvas></div>
                     </div>
                 </div>
@@ -94,8 +107,8 @@ $minYear = 2025;
             <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <h2 class="h6 fw-semibold mb-1">Monthly profit</h2>
-                        <p class="small text-muted mb-3">Line total minus cost of goods sold.</p>
+                        <h2 class="h6 fw-semibold mb-1" data-chart-title="profit">Monthly profit</h2>
+                        <p class="small text-muted mb-3" data-chart-desc="profit">Line total minus cost of goods sold.</p>
                         <div class="chart-wrap"><canvas id="chartProfit"></canvas></div>
                     </div>
                 </div>
@@ -103,8 +116,8 @@ $minYear = 2025;
             <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <h2 class="h6 fw-semibold mb-1">Monthly units sold</h2>
-                        <p class="small text-muted mb-3">Total quantity sold per month.</p>
+                        <h2 class="h6 fw-semibold mb-1" data-chart-title="units">Monthly units sold</h2>
+                        <p class="small text-muted mb-3" data-chart-desc="units">Total quantity sold per month.</p>
                         <div class="chart-wrap"><canvas id="chartUnits"></canvas></div>
                     </div>
                 </div>
@@ -112,8 +125,8 @@ $minYear = 2025;
             <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <h2 class="h6 fw-semibold mb-1">Monthly orders</h2>
-                        <p class="small text-muted mb-3">Number of sales per month.</p>
+                        <h2 class="h6 fw-semibold mb-1" data-chart-title="orders">Monthly orders</h2>
+                        <p class="small text-muted mb-3" data-chart-desc="orders">Number of sales per month.</p>
                         <div class="chart-wrap"><canvas id="chartOrders"></canvas></div>
                     </div>
                 </div>
@@ -133,6 +146,24 @@ $minYear = 2025;
     const gridColor = 'rgba(0,0,0,0.06)';
     const charts = { revenue: null, profit: null, units: null, orders: null };
     let loadTimer = null;
+    let currentGranularity = 'monthly';
+
+    const chartCopy = {
+        monthly: {
+            revenue: { title: 'Monthly revenue', desc: 'Grand total by month.' },
+            profit: { title: 'Monthly profit', desc: 'Line total minus cost of goods sold.' },
+            units: { title: 'Monthly units sold', desc: 'Total quantity sold per month.' },
+            orders: { title: 'Monthly orders', desc: 'Number of sales per month.' }
+        },
+        daily: {
+            revenue: { title: 'Daily revenue', desc: 'Grand total by day of year.' },
+            profit: { title: 'Daily profit', desc: 'Line total minus cost of goods sold per day.' },
+            units: { title: 'Daily units sold', desc: 'Total quantity sold per day.' },
+            orders: { title: 'Daily orders', desc: 'Number of sales per day.' }
+        }
+    };
+
+    const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     function scheduleLoadStatistics() {
         clearTimeout(loadTimer);
@@ -185,6 +216,25 @@ $minYear = 2025;
         }).join('');
     }
 
+    function getGranularity() {
+        const selected = document.querySelector('input[name="granularity"]:checked');
+        return selected && selected.value === 'daily' ? 'daily' : 'monthly';
+    }
+
+    function updateChartHeadings(granularity) {
+        const copy = chartCopy[granularity] || chartCopy.monthly;
+        Object.keys(copy).forEach(key => {
+            const titleEl = document.querySelector('[data-chart-title="' + key + '"]');
+            const descEl = document.querySelector('[data-chart-desc="' + key + '"]');
+            if (titleEl) titleEl.textContent = copy[key].title;
+            if (descEl) descEl.textContent = copy[key].desc;
+        });
+    }
+
+    function defaultLabels(granularity) {
+        return granularity === 'daily' ? [] : monthLabels.slice();
+    }
+
     function yearColor(index) {
         return palette[index % palette.length];
     }
@@ -202,10 +252,11 @@ $minYear = 2025;
         }));
     }
 
-    function updateChart(chartKey, canvasId, series, field, yTickFormatter) {
-        const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    function updateChart(chartKey, canvasId, labels, series, field, yTickFormatter, granularity) {
+        const chartLabels = labels.length ? labels : defaultLabels(granularity);
         const datasets = buildDatasets(series, field);
         const canvas = document.getElementById(canvasId);
+        const useBarChart = granularity === 'monthly' && (field === 'orders' || field === 'units');
 
         if (charts[chartKey]) {
             charts[chartKey].destroy();
@@ -217,14 +268,17 @@ $minYear = 2025;
         }
 
         charts[chartKey] = new Chart(canvas, {
-            type: field === 'orders' || field === 'units' ? 'bar' : 'line',
-            data: { labels, datasets },
+            type: useBarChart ? 'bar' : 'line',
+            data: { labels: chartLabels, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
+                interaction: { mode: granularity === 'daily' ? 'nearest' : 'index', intersect: false },
                 scales: {
-                    x: { grid: { display: false } },
+                    x: {
+                        grid: { display: false },
+                        ticks: granularity === 'daily' ? { maxTicksLimit: 12, autoSkip: true } : {}
+                    },
                     y: {
                         beginAtZero: true,
                         grid: { color: gridColor },
@@ -256,13 +310,13 @@ $minYear = 2025;
     function renderCharts(data) {
         const series = data.series || {};
         const labels = data.labels || [];
-        if (labels.length) {
-            /* labels from API; charts use fixed month names */
-        }
-        updateChart('revenue', 'chartRevenue', series, 'revenue', v => '$' + Number(v).toLocaleString());
-        updateChart('profit', 'chartProfit', series, 'profit', v => '$' + Number(v).toLocaleString());
-        updateChart('units', 'chartUnits', series, 'units', v => Number(v).toLocaleString());
-        updateChart('orders', 'chartOrders', series, 'orders', v => Number(v).toLocaleString());
+        const granularity = data.granularity || currentGranularity;
+        currentGranularity = granularity;
+        updateChartHeadings(granularity);
+        updateChart('revenue', 'chartRevenue', labels, series, 'revenue', v => '$' + Number(v).toLocaleString(), granularity);
+        updateChart('profit', 'chartProfit', labels, series, 'profit', v => '$' + Number(v).toLocaleString(), granularity);
+        updateChart('units', 'chartUnits', labels, series, 'units', v => Number(v).toLocaleString(), granularity);
+        updateChart('orders', 'chartOrders', labels, series, 'orders', v => Number(v).toLocaleString(), granularity);
     }
 
     function loadStatistics() {
@@ -284,6 +338,7 @@ $minYear = 2025;
         if (warehouseId !== '') {
             params.set('warehouse_id', warehouseId);
         }
+        params.set('granularity', getGranularity());
 
         fetch(API_URL + '?' + params.toString())
             .then(r => {
@@ -304,6 +359,9 @@ $minYear = 2025;
 
     document.getElementById('departmentFilter').addEventListener('change', scheduleLoadStatistics);
     document.getElementById('warehouseFilter').addEventListener('change', scheduleLoadStatistics);
+    document.querySelectorAll('input[name="granularity"]').forEach(radio => {
+        radio.addEventListener('change', scheduleLoadStatistics);
+    });
 
     document.getElementById('selectAllYearsBtn').addEventListener('click', () => {
         document.querySelectorAll('#yearCheckboxList input[type="checkbox"]').forEach(cb => { cb.checked = true; });
