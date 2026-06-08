@@ -53,6 +53,117 @@ class LedgerService
         );
     }
 
+    public function recordPurchaseRefund(
+        BaseConnection $db,
+        string $referenceNo,
+        string $transactionDate,
+        float $amount,
+        string $paymentMethod,
+        ?string $description = null,
+        ?string $calculationCurrency = null
+    ): void {
+        if ($amount <= 0) {
+            return;
+        }
+
+        $payment = $this->resolvePaymentMethod($db, $paymentMethod);
+        $debitAccount    = $payment['account_code'];
+        $paymentCurrency = $payment['currency_code'];
+        $calcCurrency    = strtoupper(trim((string) ($calculationCurrency ?? '')));
+        if ($calcCurrency === '') {
+            $calcCurrency = $paymentCurrency;
+        }
+
+        $paymentAmount = $this->convertCurrency($amount, $calcCurrency, $paymentCurrency);
+
+        $this->postPair(
+            $db,
+            $referenceNo,
+            $transactionDate,
+            $debitAccount,
+            $this->config->inventoryAccount,
+            $paymentAmount,
+            $description ?? "Purchase refund {$referenceNo}",
+            $paymentCurrency,
+            $debitAccount
+        );
+    }
+
+    /**
+     * @param list<array{payment_method: string, amount: float}> $payments Positive refund amounts received.
+     */
+    public function recordPurchaseRefundSplit(
+        BaseConnection $db,
+        string $referenceNo,
+        string $transactionDate,
+        float $inventoryAmount,
+        array $payments,
+        ?string $description = null
+    ): void {
+        if ($payments === [] || $inventoryAmount <= 0) {
+            return;
+        }
+
+        $base = strtoupper($this->config->baseCurrency);
+        $desc = $description ?? "Purchase refund {$referenceNo}";
+        $date = self::toTransactionDate($transactionDate);
+        $now  = date('Y-m-d H:i:s');
+        $rows = [];
+
+        $inventoryMonetary = $this->resolveMonetary(
+            $db,
+            $inventoryAmount,
+            $base,
+            $this->config->inventoryAccount
+        );
+
+        $rows[] = $this->transactionRow(
+            $date,
+            $this->config->inventoryAccount,
+            $referenceNo,
+            $desc,
+            0.00,
+            $inventoryMonetary['usd_amount'],
+            $inventoryMonetary,
+            $now
+        );
+
+        foreach ($payments as $payment) {
+            $amount = round((float) ($payment['amount'] ?? 0), 2);
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $methodCode = strtolower(trim((string) ($payment['payment_method'] ?? '')));
+            if ($methodCode === '') {
+                continue;
+            }
+
+            $resolved = $this->resolvePaymentMethod($db, $methodCode);
+            $debitMonetary = $this->resolveMonetary(
+                $db,
+                $this->convertCurrency($amount, $base, $resolved['currency_code']),
+                $resolved['currency_code'],
+                $resolved['account_code']
+            );
+
+            $rows[] = $this->transactionRow(
+                $date,
+                $resolved['account_code'],
+                $referenceNo,
+                $desc,
+                $debitMonetary['usd_amount'],
+                0.00,
+                $debitMonetary,
+                $now
+            );
+        }
+
+        if ($rows !== []) {
+            $db->table('transactions')->insertBatch($rows);
+        }
+    }
+
     /**
      * @param list<array{payment_method: string, amount: float}> $payments
      */

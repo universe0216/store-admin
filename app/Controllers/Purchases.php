@@ -17,6 +17,11 @@ class Purchases extends BaseController
         return view('purchases/create');
     }
 
+    public function refund(): string
+    {
+        return view('purchases/refund');
+    }
+
     public function products(): string
     {
         return view('purchases/products');

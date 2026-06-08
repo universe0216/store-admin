@@ -611,6 +611,191 @@ class Purchases extends BaseController
         }
     }
 
+    public function createRefund(): ResponseInterface
+    {
+        $payload = $this->request->getJSON(true);
+        if (! is_array($payload)) {
+            return $this->response->setStatusCode(400)->setJSON(['message' => 'Invalid JSON payload.']);
+        }
+
+        $supplierId    = (int) ($payload['supplier_id'] ?? 0);
+        $purchaseDate  = (string) ($payload['purchase_date'] ?? '');
+        $warehouseId   = (int) ($payload['warehouse_id'] ?? 0);
+        $notes         = trim((string) ($payload['notes'] ?? ''));
+        $paymentMethod = strtolower(trim((string) ($payload['payment_method'] ?? 'cash')));
+        $items         = $payload['items'] ?? [];
+        $paymentsInput = $payload['payments'] ?? [];
+
+        if ($supplierId < 1 || $purchaseDate === '' || ! is_array($items) || $items === []) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'message' => 'supplier_id, purchase_date and at least one item are required.',
+            ]);
+        }
+
+        $purchaseModel       = new PurchaseModel();
+        $purchaseItemModel   = new PurchaseItemModel();
+        $productVariantModel = new ProductVariantModel();
+        $stockMovementModel  = new StockMovementModel();
+        $db                  = db_connect();
+
+        $normalized = [];
+        $subTotal   = 0.0;
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $variantId   = (int) ($item['product_variant_id'] ?? $item['variant_id'] ?? 0);
+            $qty         = (int) ($item['qty'] ?? 0);
+            $unitCost    = round((float) ($item['unit_cost'] ?? 0), 4);
+            $itemWarehouseId = (int) ($item['warehouse_id'] ?? $warehouseId);
+
+            if ($variantId < 1 || $qty < 1 || $unitCost <= 0) {
+                continue;
+            }
+
+            $available = $this->getVariantWarehouseStock($db, $variantId, $itemWarehouseId);
+            if ($available < $qty) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'message' => 'Insufficient inventory stock for one or more items.',
+                ]);
+            }
+
+            $absLineTotal = round($qty * $unitCost, 2);
+            $subTotal += $absLineTotal;
+
+            $normalized[] = [
+                'product_variant_id' => $variantId,
+                'qty'                => -1 * $qty,
+                'warehouse_id'       => $itemWarehouseId,
+                'unit_cost'          => -1 * abs($unitCost),
+                'discount_amount'    => 0.0,
+                'line_total'         => -1 * $absLineTotal,
+            ];
+        }
+
+        if ($normalized === []) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'No valid refund items.']);
+        }
+
+        $subTotal   = round($subTotal, 2);
+        $grandTotal = round(-1 * $subTotal, 2);
+        $paidTotal  = $grandTotal;
+
+        $payments = $this->normalizePurchasePayments($paymentsInput, $paymentMethod, $subTotal);
+        if ($payments === null) {
+            return $this->response->setStatusCode(422)->setJSON(['message' => 'Invalid payment methods or amounts.']);
+        }
+
+        $primaryPaymentMethod = (string) ($payments[0]['payment_method'] ?? 'cash');
+
+        $db->transBegin();
+
+        try {
+            $purchaseNo   = $this->generateRefundPurchaseNo();
+            $purchaseData = [
+                'purchase_no'    => $purchaseNo,
+                'purchase_date'  => $purchaseDate,
+                'supplier_id'    => $supplierId,
+                'status'         => 'refunded',
+                'sub_total'      => $grandTotal,
+                'discount_total' => 0.0,
+                'transfer_fee'   => 0.0,
+                'grand_total'    => $grandTotal,
+                'paid_total'     => $paidTotal,
+                'payment_method' => $primaryPaymentMethod,
+                'notes'          => $notes !== '' ? $notes : 'Purchase refund',
+            ];
+
+            if ($db->fieldExists('shipping_fee', 'purchases')) {
+                $purchaseData['shipping_fee'] = 0.0;
+            }
+
+            $purchaseId = $purchaseModel->createOne($purchaseData);
+
+            $purchasePaymentModel = new PurchasePaymentModel();
+            foreach ($payments as $payment) {
+                if ($db->tableExists('purchase_payments')) {
+                    $purchasePaymentModel->createOne([
+                        'purchase_id'    => $purchaseId,
+                        'payment_method' => $payment['payment_method'],
+                        'amount'         => round(-1 * (float) $payment['amount'], 2),
+                    ]);
+                }
+            }
+
+            foreach ($normalized as $item) {
+                $purchaseItemModel->createOne([
+                    'purchase_id'        => $purchaseId,
+                    'product_variant_id' => $item['product_variant_id'],
+                    'qty'                => $item['qty'],
+                    'unit_cost'          => $item['unit_cost'],
+                    'discount_amount'    => $item['discount_amount'],
+                    'line_total'         => $item['line_total'],
+                ]);
+
+                $this->deductRefundStock(
+                    $db,
+                    $productVariantModel,
+                    (int) $item['product_variant_id'],
+                    (int) $item['warehouse_id'],
+                    abs((int) $item['qty'])
+                );
+
+                $stockMovementModel->createOne([
+                    'product_variant_id' => $item['product_variant_id'],
+                    'movement_type'      => 'purchase_refund',
+                    'qty_change'         => (int) $item['qty'],
+                    'reference_type'     => 'purchase',
+                    'reference_id'       => $purchaseId,
+                    'notes'              => 'Stock returned on purchase refund.',
+                ]);
+            }
+
+            $ledger = new LedgerService();
+            if (count($payments) > 1) {
+                $ledger->recordPurchaseRefundSplit(
+                    $db,
+                    $purchaseNo,
+                    $purchaseDate,
+                    $subTotal,
+                    $payments,
+                    'Purchase refund ' . $purchaseNo
+                );
+            } else {
+                $ledger->recordPurchaseRefund(
+                    $db,
+                    $purchaseNo,
+                    $purchaseDate,
+                    $subTotal,
+                    $primaryPaymentMethod,
+                    'Purchase refund ' . $purchaseNo
+                );
+            }
+
+            if ($db->transStatus() === false) {
+                throw new RuntimeException('Failed to save refund purchase.');
+            }
+
+            $db->transCommit();
+
+            return $this->response->setStatusCode(201)->setJSON([
+                'message' => 'Refund purchase created successfully.',
+                'data'    => ['purchase_id' => $purchaseId, 'purchase_no' => $purchaseNo],
+            ]);
+        } catch (Throwable $e) {
+            $db->transRollback();
+
+            $status = $e instanceof RuntimeException ? 422 : 500;
+
+            return $this->response->setStatusCode($status)->setJSON([
+                'message' => $e->getMessage() !== '' ? $e->getMessage() : 'Failed to create refund purchase.',
+                'error'   => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function suppliers(): ResponseInterface
     {
         $rows = (new SupplierModel())
@@ -1257,6 +1442,95 @@ class Purchases extends BaseController
     private function generatePurchaseNo(): string
     {
         return 'PO-' .  date('Ymd-His');
+    }
+
+    private function generateRefundPurchaseNo(): string
+    {
+        return 'PR-' . date('Ymd-His');
+    }
+
+    private function getVariantWarehouseStock(BaseConnection $db, int $variantId, int $warehouseId): int
+    {
+        if ($variantId < 1) {
+            return 0;
+        }
+
+        $builder = $db->table('inventory')
+            ->selectSum('quantity', 'total_qty')
+            ->where('variant_id', $variantId);
+
+        if ($warehouseId > 0) {
+            $builder->where('warehouse_id', $warehouseId);
+        }
+
+        $row = $builder->get()->getFirstRow('array');
+
+        return (int) ($row['total_qty'] ?? 0);
+    }
+
+    private function deductRefundStock(
+        BaseConnection $db,
+        ProductVariantModel $productVariantModel,
+        int $variantId,
+        int $warehouseId,
+        int $qty
+    ): void {
+        if ($variantId < 1 || $qty < 1) {
+            return;
+        }
+
+        $remaining = $qty;
+
+        if ($warehouseId > 0) {
+            $inventory = $db->table('inventory')
+                ->select('id, quantity')
+                ->where('variant_id', $variantId)
+                ->where('warehouse_id', $warehouseId)
+                ->where('quantity >', 0)
+                ->get()
+                ->getFirstRow('array');
+
+            if (! is_array($inventory) || (int) ($inventory['quantity'] ?? 0) < $remaining) {
+                throw new RuntimeException('Insufficient inventory stock for refund.');
+            }
+
+            $db->table('inventory')
+                ->set('quantity', 'quantity - ' . $remaining, false)
+                ->set('updated_at', date('Y-m-d H:i:s'))
+                ->where('id', (int) $inventory['id'])
+                ->update();
+        } else {
+            $rows = $db->table('inventory')
+                ->select('id, quantity')
+                ->where('variant_id', $variantId)
+                ->where('quantity >', 0)
+                ->orderBy('quantity', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            foreach ($rows as $row) {
+                if ($remaining <= 0) {
+                    break;
+                }
+
+                $deduct = min($remaining, (int) ($row['quantity'] ?? 0));
+                $db->table('inventory')
+                    ->set('quantity', 'quantity - ' . $deduct, false)
+                    ->set('updated_at', date('Y-m-d H:i:s'))
+                    ->where('id', (int) $row['id'])
+                    ->update();
+                $remaining -= $deduct;
+            }
+
+            if ($remaining > 0) {
+                throw new RuntimeException('Insufficient inventory stock for refund.');
+            }
+        }
+
+        $productVariantModel
+            ->set('stock_qty', 'stock_qty - ' . $qty, false)
+            ->where('id', $variantId)
+            ->update();
     }
 
     private function createVariantForPurchase(

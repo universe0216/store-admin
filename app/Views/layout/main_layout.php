@@ -56,6 +56,7 @@
                             <li><a class="dropdown-item" href="<?= site_url('purchases/history') ?>">Purchase History</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('purchases/yearly-statistics') ?>">Yearly Statistics</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('purchases/create') ?>">New Purchase</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('purchases/refund') ?>">Refund Purchase</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('purchases/products') ?>">Products</a></li>
                         </ul>
                     </li>

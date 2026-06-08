@@ -2,13 +2,41 @@
 
 <?= $this->section('title') ?>Purchase List<?= $this->endSection() ?>
 
+<?= $this->section('pageStyles') ?>
+<style>
+    #purchasesGrid .purchase-cell-refunded {
+        background-color: #fff3cd !important;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0 4px;
+        box-sizing: border-box;
+        margin-top: 0px !important;
+        padding-top: 8px !important;
+    }
+    #purchasesGrid .jqx-grid-cell-selected .purchase-cell-refunded,
+    #purchasesGrid .jqx-grid-cell-hover .purchase-cell-refunded {
+        background-color: #ffe69c !important;
+        margin-top: 0px !important;
+        padding-top: 8px !important;
+    }
+    #purchaseInfoPanel.purchase-info-refunded {
+        background-color: #fff3cd !important;
+        border-color: #ffda6a !important;
+    }
+</style>
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
     <div class="container-fluid py-4 px-5">
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h3 fw-bold mb-1">Purchase List</h1>
             </div>
-            <a href="<?= site_url('purchases/create') ?>" class="btn btn-primary">New Purchase</a>
+            <div class="d-flex gap-2">
+                <a href="<?= site_url('purchases/refund') ?>" class="btn btn-outline-warning">Refund Purchase</a>
+                <a href="<?= site_url('purchases/create') ?>" class="btn btn-primary">New Purchase</a>
+            </div>
         </div>
 
         <div class="row g-3">
@@ -180,6 +208,42 @@
             return Number(value || 0).toFixed(2);
         }
 
+        function isRefundedPurchase(row) {
+            if (!row) {
+                return false;
+            }
+
+            const status = String(row.status || "").toLowerCase();
+            if (status === "refunded") {
+                return true;
+            }
+
+            if (Number(row.grand_total || 0) < 0) {
+                return true;
+            }
+
+            return String(row.purchase_no || "").toUpperCase().startsWith("PR-");
+        }
+
+        function purchaseGridCellRenderer(row, column, value, defaultHtml, columnSettings, rowData) {
+            const el = $(defaultHtml);
+            if (isRefundedPurchase(rowData)) {
+                el.addClass("purchase-cell-refunded");
+            }
+            return el[0].outerHTML;
+        }
+
+        function purchaseStatusCellRenderer(row, column, value, defaultHtml, columnSettings, rowData) {
+            const el = $(defaultHtml);
+            if (isRefundedPurchase(rowData)) {
+                el.addClass("purchase-cell-refunded");
+                el.html('<span class="text-warning-emphasis fw-semibold">Refunded</span>');
+            } else {
+                el.text(String(value || ""));
+            }
+            return el[0].outerHTML;
+        }
+
         function formatPaymentDate(value) {
             const text = String(value || "").trim();
             if (text === "") {
@@ -223,6 +287,7 @@
         }
 
         function clearPurchaseInfo() {
+            $("#purchaseInfoPanel").removeClass("purchase-info-refunded");
             $("#infoPurchaseDate").text("—");
             $("#infoSupplier").text("—");
             $("#infoSubTotal").text("—");
@@ -238,6 +303,8 @@
                 clearPurchaseInfo();
                 return;
             }
+
+            $("#purchaseInfoPanel").toggleClass("purchase-info-refunded", isRefundedPurchase(purchase));
 
             $("#infoPurchaseDate").text(purchase.purchase_date || "—");
             $("#infoSupplier").text(purchase.supplier_name || "—");
@@ -305,12 +372,12 @@
                 },
                 source: purchaseGridAdapter,
                 columns: [
-                    { text: "ID", datafield: "id", width: 50 },
-                    { text: "Purchase No", datafield: "purchase_no", width: 180 },
-                    { text: "Date", datafield: "purchase_date", width: 100 },
-                    { text: "Supplier", datafield: "supplier_name", width: 150 },
-                    { text: "Status", datafield: "status", width: 100 },
-                    { text: "Grand Total", datafield: "grand_total", cellsformat: "f2" }
+                    { text: "ID", datafield: "id", width: 50, cellsrenderer: purchaseGridCellRenderer },
+                    { text: "Purchase No", datafield: "purchase_no", width: 180, cellsrenderer: purchaseGridCellRenderer },
+                    { text: "Date", datafield: "purchase_date", width: 100, cellsrenderer: purchaseGridCellRenderer },
+                    { text: "Supplier", datafield: "supplier_name", width: 150, cellsrenderer: purchaseGridCellRenderer },
+                    { text: "Status", datafield: "status", width: 100, cellsrenderer: purchaseStatusCellRenderer },
+                    { text: "Grand Total", datafield: "grand_total", cellsformat: "f2", cellsrenderer: purchaseGridCellRenderer }
                 ]
             });
 
