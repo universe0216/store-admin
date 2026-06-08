@@ -489,7 +489,8 @@ use App\Enums\Season;
             tags: "<?= site_url('api/tags') ?>",
             currencies: "<?= site_url('api/currencies') ?>",
             exchangeRates: "<?= site_url('api/exchange-rates') ?>",
-            paymentMethods: "<?= site_url('api/payment-methods') ?>"
+            paymentMethods: "<?= site_url('api/payment-methods') ?>",
+            departmentSizes: "<?= site_url('api/department-sizes') ?>"
         };
 
         const items = [];
@@ -513,10 +514,8 @@ use App\Enums\Season;
         let exchangeRateModal = null;
         let exchangeRatesByCurrency = {};
         let totalsCalcLock = false;
-        const FIXED_SIZES = [220, 225, 230, 235, 240, 245, 250].map(size => ({
-            label: String(size),
-            value: String(size)
-        }));
+        let departmentSizes = [];
+        let departmentSizesRequest = null;
         const SIZE_PACK_TEMPLATES = {
             one_each: function (sizes) {
                 const pack = {};
@@ -542,14 +541,102 @@ use App\Enums\Season;
             }
         };
 
+        function compareSizes(a, b) {
+            const left = String(a || "");
+            const right = String(b || "");
+            const numA = Number(left);
+            const numB = Number(right);
+            const bothNumeric = left !== "" && right !== "" && !Number.isNaN(numA) && !Number.isNaN(numB);
+
+            if (bothNumeric) {
+                return numA - numB;
+            }
+
+            return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
+        }
+
+        function buildSizeOptions(rows) {
+            return (rows || [])
+                .filter(function (row) {
+                    return Number(row.is_active || 0) === 1;
+                })
+                .map(function (row) {
+                    const value = String(row.value || "");
+                    return {
+                        label: value,
+                        value: value
+                    };
+                });
+        }
+
+        function updateSizePackEmptyMessage() {
+            const department = getSelectedDepartment();
+            let message = "Select one or more sizes to configure units per set.";
+
+            if (department === "") {
+                message = "Select a department to load sizes.";
+            } else if (departmentSizes.length === 0) {
+                message = "No active sizes configured for this department.";
+            }
+
+            $("#sizePackEmpty").text(message);
+        }
+
+        function updateSizeSelector(options, disabled) {
+            if (!$("#sizeSelector").data("jqxDropDownList")) {
+                return;
+            }
+
+            sizePackUnits = {};
+            $("#sizeSelector").jqxDropDownList({
+                source: options,
+                disabled: !!disabled,
+                placeHolder: disabled
+                    ? (getSelectedDepartment() === "" ? "Select department first" : "No sizes available")
+                    : "Select size(s)"
+            });
+            updateSizePackEmptyMessage();
+            renderSizePackTable();
+        }
+
+        function loadDepartmentSizes(department) {
+            department = String(department || "").trim();
+
+            if (departmentSizesRequest) {
+                departmentSizesRequest.abort();
+                departmentSizesRequest = null;
+            }
+
+            if (department === "") {
+                departmentSizes = [];
+                updateSizeSelector([], true);
+                return $.Deferred().resolve().promise();
+            }
+
+            departmentSizesRequest = $.getJSON(API_URLS.departmentSizes, { department: department });
+
+            return departmentSizesRequest.done(function (res) {
+                departmentSizes = buildSizeOptions(res.data || []);
+                updateSizeSelector(departmentSizes, departmentSizes.length === 0);
+            }).fail(function (xhr) {
+                if (xhr.statusText === "abort") {
+                    return;
+                }
+
+                departmentSizes = [];
+                updateSizeSelector([], true);
+                setMessage(xhr.responseJSON?.message || "Failed to load sizes.", true);
+            }).always(function () {
+                departmentSizesRequest = null;
+            });
+        }
+
         function getCheckedSizes() {
             return ($("#sizeSelector").jqxDropDownList("getCheckedItems") || [])
                 .map(function (item) {
                     return String(item.value);
                 })
-                .sort(function (a, b) {
-                    return Number(a) - Number(b);
-                });
+                .sort(compareSizes);
         }
 
         function getSizePackTotals() {
@@ -582,7 +669,7 @@ use App\Enums\Season;
 
         function formatSizeValueFromPack(pack) {
             return Object.keys(pack)
-                .sort(function (a, b) { return Number(a) - Number(b); })
+                .sort(compareSizes)
                 .join(", ");
         }
 
@@ -890,9 +977,10 @@ use App\Enums\Season;
                 height: 34,
                 displayMember: "label",
                 valueMember: "value",
-                placeHolder: "Select size(s)",
+                placeHolder: "Select department first",
                 checkboxes: true,
-                source: FIXED_SIZES
+                source: [],
+                disabled: true
             });
             $("#setsCountInput").jqxNumberInput({
                 width: "100%",
@@ -1280,6 +1368,7 @@ use App\Enums\Season;
                 $("#productDepartmentSelect").val(String(product.department));
             }
             populateCategorySelect();
+            loadDepartmentSizes(getSelectedDepartment());
 
             if (product.gender) {
                 $("#productGenderSelect").val(String(product.gender));
@@ -1490,7 +1579,7 @@ use App\Enums\Season;
                     .filter(function (size) {
                         return Math.max(Number(sizePack[size] || 0), 0) > 0;
                     })
-                    .sort(function (a, b) { return Number(a) - Number(b); });
+                    .sort(compareSizes);
                 sizes.forEach(function (size) {
                     sizeQtys[size] = Math.max(Number(sizePack[size] || 0), 0) * setsCount;
                 });
@@ -1687,7 +1776,7 @@ use App\Enums\Season;
             $("#productBrandInput").val("");
             $("#productStyleInput").val("");
             $("#unitPriceInput").val(0);
-            resetSizePackSelection();
+            loadDepartmentSizes("");
             if ($("#setsCountInput").data("jqxNumberInput")) {
                 $("#setsCountInput").jqxNumberInput("val", 0);
             }
@@ -2082,6 +2171,7 @@ use App\Enums\Season;
             $("#productDepartmentSelect").on("change", function () {
                 populateCategorySelect();
                 updateAutoProductName();
+                loadDepartmentSizes(getSelectedDepartment());
             });
             $("#productGenderSelect, #productSeasonSelect, #productCategorySelect").on("change", function () {
                 selectedCategoryId = Number($("#productCategorySelect").val() || 0);
